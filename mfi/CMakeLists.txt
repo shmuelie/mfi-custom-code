@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.12)
+project(mFiCustomCode)
+
+set(MFI_API_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+set(MFI_API_HEADERS
+	${MFI_API_INCLUDE}/mfi/board_info.h
+)
+set(MFI_API_SOURCE_CODE
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi/board_info.cpp
+)
+
+add_library(${MFI_API_TARGET_NAME} STATIC
+	${MFI_API_HEADERS}
+	${MFI_API_SOURCE_CODE}
+)
+set_target_properties(${MFI_API_TARGET_NAME} PROPERTIES
+	CXX_STANDARD 20
+	CXX_EXTENSIONS OFF
+	MAP_IMPORTED_CONFIG_MINSIZEREL Release
+	MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
+	VERSION 1.0.0.0
+)
+target_include_directories(${MFI_API_TARGET_NAME} PUBLIC ${MFI_API_INCLUDE})
