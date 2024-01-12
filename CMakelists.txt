@@ -6,6 +6,10 @@ option(MFI_CROSS_COMPILE "Cross Compile for MIPS" OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(MFI_CROSS_COMPILE)
+	execute_process(
+		COMMAND make O=${CMAKE_CURRENT_SOURCE_DIR}/br2
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/buildroot
+	)
 	set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/br2/host/share/buildroot/toolchainfile.cmake)
 endif()
 
