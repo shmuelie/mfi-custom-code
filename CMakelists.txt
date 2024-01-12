@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.12)
-project(mFiCustomCode)
 
 option(MFI_CROSS_COMPILE "Cross Compile for MIPS" OFF)
 
@@ -12,6 +11,8 @@ if(MFI_CROSS_COMPILE)
 	)
 	set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/br2/host/share/buildroot/toolchainfile.cmake)
 endif()
+
+project(mFiCustomCode)
 
 add_executable(Hello ${CMAKE_CURRENT_SOURCE_DIR}/hello.cpp)
 set_target_properties(Hello PROPERTIES
