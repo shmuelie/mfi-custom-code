@@ -1,5 +1,5 @@
 #include <iostream>
-#include "mfi/board_info.h"
+#include "mfi.h"
 
 int main()
 {
