@@ -21,13 +21,3 @@ set(MFI_CLI_TARGET_NAME mfi-cli)
 
 add_subdirectory(mfi)
 add_subdirectory(mfi-cli)
-
-add_executable(Hello ${CMAKE_CURRENT_SOURCE_DIR}/hello.cpp)
-set_target_properties(Hello PROPERTIES
-	CXX_STANDARD 20
-	CXX_EXTENSIONS OFF
-	MAP_IMPORTED_CONFIG_MINSIZEREL Release
-	MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
-	VERSION 1.0.0.0
-)
-target_link_libraries(Hello PUBLIC ${MFI_API_TARGET_NAME})
