@@ -5,7 +5,8 @@
 
 static void print_help()
 {
-	std::cout << "Help:" << std::endl;
+	std::cout <<
+		"Help:" << std::endl;
 }
 
 static int status(int argc, char* argv[]) {
@@ -41,6 +42,7 @@ static int sensor(int argc, char* argv[]) {
 		}
 		else
 		{
+			std::cout << "Invalid sensor ID " << std::to_string(sensorId) << std::endl;
 			print_help();
 		}
 	}
@@ -57,14 +59,17 @@ static int sensor(int argc, char* argv[]) {
 				sensor.relay(false);
 			}
 			else {
+				std::cout << "Valid input is on/off, not " << onOff << std::endl;
 				print_help();
 			}
 		}
 		else {
+			std::cout << "Invalid sensor ID " << std::to_string(sensorId) << std::endl;
 			print_help();
 		}
 	}
 	else {
+		std::cout << "Missing parameter" << std::endl;
 		print_help();
 	}
 
@@ -86,6 +91,9 @@ int main(int argc, char* argv[]) {
 		}
 		else if (command == "sensor") {
 			return sensor(argc - 2, argv + 2);
+		}
+		else {
+			std::cout << "Unknown command " << command << std::endl;
 		}
 	}
 
