@@ -209,7 +209,7 @@ namespace filewatch {
 		}
 
 		// Const memeber varibles don't let me implent moves nicely, if moves are really wanted std::unique_ptr should be used and move that.
-		FileWatch<StringType>(FileWatch<StringType>&&) = delete;
+		FileWatch(FileWatch<StringType>&&) = delete;
 		FileWatch<StringType>& operator=(FileWatch<StringType>&&) & = delete;
 
 	private:
@@ -714,14 +714,6 @@ namespace filewatch {
 						}
 				  }
 
-				  if (IsWChar<C>::value) {
-						size_t needed = mbsrtowcs(nullptr, &str, 0, &state) + 1;
-						StringType s;
-
-						s.reserve(needed);
-						mbsrtowcs((wchar_t*)&s[0], &str, s.size(), &state);
-						return s;
-				  }
 				  return StringType {buf};
 			}
 #elif _WIN32
