@@ -5,7 +5,6 @@
 
 using namespace std;
 using namespace mfi;
-using namespace filewatch;
 
 const string root{ "/proc/power/" };
 const string power_path{ root + "active_pwr" };
@@ -54,26 +53,4 @@ bool sensor::relay() const {
 void sensor::relay(bool value) const {
 	ofstream stream{ relay_path + to_string(_id), ios::out };
 	stream << (value ? 1 : 0);
-}
-
-FileWatch<string> sensor::watch_relay(function<void(bool)> callback) const {
-	return FileWatch<string>{
-		relay_path + to_string(_id),
-		[&callback, this](const string& path, const Event change_type) {
-			if (change_type == Event::modified) {
-				callback(relay());
-			}
-		}
-	};
-}
-
-FileWatch<string> sensor::watch_power(function<void(double)> callback) const {
-	return FileWatch<string>{
-		power_path + to_string(_id),
-		[&callback, this](const string& path, const Event change_type) {
-			if (change_type == Event::modified) {
-				callback(power());
-			}
-		}
-	};
 }
