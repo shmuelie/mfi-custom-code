@@ -7,18 +7,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(MIPS_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/br2/host/share/buildroot/toolchainfile.cmake)
 if(MFI_CROSS_COMPILE AND ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux"))
 	message(STATUS "Cross Compiling for MIPS")
-		execute_process(
-			COMMAND make O=${CMAKE_CURRENT_SOURCE_DIR}/br2
-			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/buildroot
-		)
+	execute_process(
+		COMMAND make O=${CMAKE_CURRENT_SOURCE_DIR}/br2
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/buildroot
+	)
 	set(CMAKE_TOOLCHAIN_FILE ${MIPS_TOOLCHAIN_FILE})
 endif()
 
 project(mFiCustomCode)
 
 set(MFI_API_TARGET_NAME mFiApi)
+set(MFI_CLI_TARGET_NAME mfi-cli)
 
 add_subdirectory(mfi)
+add_subdirectory(mfi-cli)
 
 add_executable(Hello ${CMAKE_CURRENT_SOURCE_DIR}/hello.cpp)
 set_target_properties(Hello PROPERTIES
