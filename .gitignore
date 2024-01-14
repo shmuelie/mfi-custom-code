@@ -430,4 +430,4 @@ MigrationBackup/
 # Buildroot
 br2/**/*
 !br2/.config
-!br2/build/uclibc1.0.45/.config
+!br2/build/uclibc-1.0.45/.config
