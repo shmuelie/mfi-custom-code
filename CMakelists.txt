@@ -18,6 +18,8 @@ project(mFiCustomCode)
 
 set(MFI_API_TARGET_NAME mFiApi)
 set(MFI_CLI_TARGET_NAME mfi-cli)
+set(MFI_SERVER_TARGET_NAME mfi-server)
 
 add_subdirectory(mfi)
 add_subdirectory(mfi-cli)
+add_subdirectory(mfi-server)
