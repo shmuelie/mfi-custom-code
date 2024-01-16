@@ -8,12 +8,14 @@ set(MFI_SERVER_HEADERS
 	${MFI_SERVER_INCLUDE}/mg/server.h
 	${MFI_SERVER_INCLUDE}/mg/http_message.h
 	${MFI_SERVER_INCLUDE}/mg/http_server.h
+	${MFI_SERVER_INCLUDE}/mfi_server.h
 )
 set(MFI_SERVER_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/connection.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/http_message.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/http_server.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
 )
@@ -26,4 +28,5 @@ set_target_properties(${MFI_SERVER_TARGET_NAME} PROPERTIES
 	CXX_EXTENSIONS OFF
 	VERSION 1.0.0.0
 )
+target_include_directories(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_SERVER_INCLUDE})
 target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME})
