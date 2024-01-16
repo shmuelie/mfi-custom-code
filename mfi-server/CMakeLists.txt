@@ -4,6 +4,7 @@ project(mFiCustomCode)
 set(MFI_SERVER_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_SERVER_HEADERS
 	${MFI_SERVER_INCLUDE}/mongoose.h
+	${MFI_SERVER_INCLUDE}/join.h
 	${MFI_SERVER_INCLUDE}/mg/connection.h
 	${MFI_SERVER_INCLUDE}/mg/server.h
 	${MFI_SERVER_INCLUDE}/mg/http_message.h
