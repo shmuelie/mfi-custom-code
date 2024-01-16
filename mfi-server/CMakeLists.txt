@@ -1,10 +1,24 @@
 cmake_minimum_required(VERSION 3.12)
 project(mFiCustomCode)
 
+set(MFI_SERVER_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
+set(MFI_SERVER_HEADERS
+	${MFI_SERVER_INCLUDE}/mongoose.h
+	${MFI_SERVER_INCLUDE}/mg/connection.h
+	${MFI_SERVER_INCLUDE}/mg/server.h
+	${MFI_SERVER_INCLUDE}/mg/http_message.h
+	${MFI_SERVER_INCLUDE}/mg/http_server.h
+)
 set(MFI_SERVER_SOURCE_CODE
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/connection.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/server.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/http_message.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/http_server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
 )
 add_executable(${MFI_SERVER_TARGET_NAME}
+	${MFI_SERVER_HEADERS}
 	${MFI_SERVER_SOURCE_CODE}
 )
 set_target_properties(${MFI_SERVER_TARGET_NAME} PROPERTIES
