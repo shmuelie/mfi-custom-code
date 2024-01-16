@@ -4,7 +4,7 @@
 #include "mg/http_server.h"
 #include "mfi.h"
 
-class mfi_server : mg::http_server {
+class mfi_server : public mg::http_server {
 public:
 	explicit mfi_server() noexcept;
 

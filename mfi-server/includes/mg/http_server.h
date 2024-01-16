@@ -5,7 +5,7 @@
 #include "mg/http_message.h"
 
 namespace mg {
-	class http_server : server {
+	class http_server : public server {
 	public:
 		explicit http_server() noexcept;
 
