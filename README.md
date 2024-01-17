@@ -25,3 +25,10 @@ In `mfi-cli` is a simple CLI program for testing the mFi API.
 In `mfi-server` is a [Mongoose](https://mongoose.ws/) based HTTP REST API server
 for the mFi devices built on top of the mFi API. Also includes a simple C++
 wrapper around Mongoose.
+
+## Building
+
+Uses CMake to build/configure. If `MFI_CROSS_COMPILE` is `ON`, CMake configure
+will also run `make` on the Buildroot submodule and configure CMake to use the
+cross-compiler for MIPS. The resulting binaries can be copied and run on the mFi
+devices.
