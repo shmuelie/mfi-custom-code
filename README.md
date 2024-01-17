@@ -1,6 +1,6 @@
-# Ubiquity mFi Custom Code
+# Ubiquiti mFi Custom Code
 
-Providing custom code to run on Ubiquity's mFi Devices
+Providing custom code to run on Ubiquiti's mFi Devices
 
 ## Projects
 
