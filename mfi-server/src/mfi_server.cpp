@@ -20,7 +20,7 @@ http_response mfi_server::status_handler() noexcept {
 	for (sensor sensor : _board.sensors()) {
 		sensorsJson.push_back(to_json(sensor));
 	}
-	return { 200, map<string, string>{
+	return { map<string, string>{
 		{"Content-Type", "application/json"}
 	}, ("[" + join(sensorsJson.cbegin(), sensorsJson.cend(), ",") + "]") };
 }
@@ -44,7 +44,7 @@ http_response mfi_server::sensor_handler(const string& method, const vector<stri
 
 	sensor sensor = _board.sensors().at(sensorId);
 	if (method == "GET") {
-		return { 200, map<string, string>{
+		return { map<string, string>{
 			{"Content-Type", "application/json"}
 		}, to_json(sensor) };
 	}
@@ -69,7 +69,7 @@ http_response mfi_server::sensor_handler(const string& method, const vector<stri
 http_response mfi_server::led_handler(const string& method, const string& body) noexcept {
 	led l{};
 	if (method == "GET") {
-		return { 200, map<string, string>{
+		return { map<string, string>{
 			{"Content-Type", "application/json"}
 		}, "{\"color\":" + to_string(static_cast<int>(l.color())) + ",\"frequency\":" + to_string(l.frequency()) + "}" };
 	}
