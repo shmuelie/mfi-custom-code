@@ -14,7 +14,7 @@ namespace mg {
 		template<std::size_t _Nm>
 		bool match_uri(const std::string& glob, std::vector<std::string>& captures) const noexcept {
 			mg_str mgCaptures[_Nm + 1];
-			bool result = mg_match(_message->uri, mg_str(glob.c_str()), mgCaptures);
+			bool result = mg_match(_message->uri, mg_str_n(glob.c_str(), glob.length()), mgCaptures);
 			if (result) {
 				for (std::size_t i = 0; i < _Nm; i++) {
 					mg_str mgCapture = mgCaptures[i];
