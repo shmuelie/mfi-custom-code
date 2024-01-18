@@ -1,5 +1,7 @@
 #include "mfi_server.h"
 #include "join.h"
+#include "mfi/led.h"
+#include <cmath>
 
 using namespace std;
 using namespace mg;
@@ -64,6 +66,41 @@ http_response mfi_server::sensor_handler(const string& method, const vector<stri
 	}
 }
 
+http_response mfi_server::led_handler(const string& method, const string& body) noexcept {
+	led l{};
+	if (method == "GET") {
+		return { 200, map<string, string>{
+			{"Content-Type", "application/json"}
+		}, "{\"color\":" + to_string(static_cast<int>(l.color())) + ",\"frequency\":" + to_string(l.frequency()) + "}" };
+	}
+	else if (method == "POST") {
+		mg_str json = mg_str_n(body.c_str(), body.length());
+		double intpart;
+		double color;
+		if (mg_json_get_num(json, "$.color", &color)) {
+			if (modf(color, &intpart) != 0.0) {
+				return { 400, "Invalid color " + to_string(color) };
+			}
+
+			l.color(static_cast<led_color>(static_cast<int>(intpart)));
+		}
+
+		double frequency;
+		if (mg_json_get_num(json, "$.frequency", &frequency)) {
+			if (modf(frequency, &intpart) != 0.0) {
+				return { 400, "Invalid frequencey " + to_string(frequency) };
+			}
+
+			l.frequency(static_cast<uint32_t>(intpart));
+		}
+
+		return 200;
+	}
+	else {
+		return { 405, "Unexpected method " + method };
+	}
+}
+
 http_response mfi_server::http_handler(const http_message& message) noexcept {
 	vector<string> captures{};
 	if (message.match_uri("/api/v2/status")) {
@@ -71,6 +108,9 @@ http_response mfi_server::http_handler(const http_message& message) noexcept {
 	}
 	else if (message.match_uri<1>("/api/v2/sensor/*", captures)) {
 		return sensor_handler(message.method(), captures, message.body());
+	}
+	else if (message.match_uri("/api/v2/led")) {
+		return led_handler(message.method(), message.body());
 	}
 	else {
 		return 404;
