@@ -9,7 +9,7 @@ public:
 	explicit mfi_server() noexcept;
 
 protected:
-	virtual void http_handler(const mg::connection& connection, const mg::http_message& message) noexcept override;
+	virtual mg::http_response http_handler(const mg::http_message& message) noexcept override;
 
 private:
 	mfi::board _board{};

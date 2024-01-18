@@ -8,19 +8,14 @@ using namespace mg;
 connection::connection(mg_connection* c) noexcept : _connection(c) {
 }
 
-void connection::http_reply(int status_code, const string& body) const noexcept {
-	mg_http_reply(_connection, status_code, nullptr, body.c_str());
-}
-
-void connection::http_reply(int status_code, const map<string, string>& headers, const string& body) const noexcept {
-	if (headers.size() > 0) {
-		vector<string> headersVector;
-		for (const map<string, string>::const_iterator::reference pair : headers) {
-			headersVector.push_back(pair.first + ": " + pair.second);
-		}
-		mg_http_reply(_connection, status_code, join(headersVector.cbegin(), headersVector.cend(), "\r\n", "\r\n").c_str(), body.c_str());
+void connection::reply(const http_response& response) const noexcept {
+	const char* headers = nullptr;
+	vector<string> headersVector{};
+	for (const map<string, string>::const_iterator::reference pair : response.headers()) {
+		headersVector.push_back(pair.first + ": " + pair.second);
 	}
-	else {
-		mg_http_reply(_connection, status_code, nullptr, body.c_str());
+	if (headersVector.size() > 0) {
+		headers = join(headersVector.cbegin(), headersVector.cend(), "\r\n", "\r\n").c_str();
 	}
+	mg_http_reply(_connection, response.status_code(), headers, response.body().c_str());
 }

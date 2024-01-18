@@ -3,6 +3,7 @@
 #include "mongoose.h"
 #include "mg/server.h"
 #include "mg/http_message.h"
+#include "mg/http_response.h"
 
 namespace mg {
 	class http_server : public server {
@@ -13,6 +14,6 @@ namespace mg {
 
 	protected:
 		virtual void event_handler(const connection& connection, event event, void* event_data) noexcept override;
-		virtual void http_handler(const connection& connection, const http_message& message) noexcept = 0;
+		virtual http_response http_handler(const http_message& message) noexcept = 0;
 	};
 }

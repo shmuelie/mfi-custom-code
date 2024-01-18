@@ -26,5 +26,5 @@ optional<connection> server::listen(const string& url) noexcept {
 
 void server::_event_handler(mg_connection* c, int event, void* event_data) noexcept {
 	server* self = static_cast<server*>(c->fn_data);
-	self->event_handler(connection{ c }, static_cast<mg::event>(event), event_data);
+	self->event_handler(c, static_cast<mg::event>(event), event_data);
 }
