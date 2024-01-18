@@ -50,7 +50,7 @@ http_response mfi_server::http_handler(const http_message& message) noexcept {
 					}
 				}
 				else {
-					return { 400, "Unexpected method " + message.method() };
+					return { 405, "Unexpected method " + message.method() };
 				}
 			}
 			else {
