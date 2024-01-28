@@ -40,7 +40,7 @@ board::board() {
 		break;
 	}
 
-	for (uint8_t sensorId = 0; sensorId < sensorCount; sensorId++) {
+	for (uint8_t sensorId = 1; sensorId <= sensorCount; sensorId++) {
 		_sensors.push_back(sensor{ sensorId });
 	}
 }

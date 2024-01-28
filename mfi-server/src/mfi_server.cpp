@@ -33,11 +33,11 @@ http_response mfi_server::sensor_handler(const string& method, const vector<stri
 
 	auto sensorId = try_stoul<uint8_t>(captures.at(0), nullptr, 10);
 
-	if (!sensorId.has_value() || sensorId.value() >= _board.sensors().size()) {
+	if (!sensorId.has_value() || sensorId.value() > _board.sensors().size()) {
 		return { 400, "Invalid Sensor ID" };
 	}
 
-	sensor sensor = _board.sensors().at(sensorId.value());
+	sensor sensor = _board.sensors().at(sensorId.value() - 1);
 	if (method == "GET") {
 		return { map<string, string>{
 			{"Content-Type", "application/json"}
