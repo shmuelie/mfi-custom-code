@@ -1,11 +1,12 @@
 #include "mfi_server.h"
-#include "join.h"
 #include "mfi/led.h"
 #include <cmath>
+#include "string_helpers.h"
 
 using namespace std;
 using namespace mg;
 using namespace mfi;
+using namespace string_helpers;
 
 mfi_server::mfi_server() noexcept : http_server() {
 }
@@ -30,19 +31,13 @@ http_response mfi_server::sensor_handler(const string& method, const vector<stri
 		return { 400, "Invalid path" };
 	}
 
-	uint8_t sensorId;
-	try {
-		sensorId = static_cast<uint8_t>(stoul(captures.at(0), nullptr, 10));
-	}
-	catch (invalid_argument& ex) {
-		return { 400, ex.what() };
-	}
+	auto sensorId = try_stoul<uint8_t>(captures.at(0), nullptr, 10);
 
-	if (sensorId >= _board.sensors().size()) {
+	if (!sensorId.has_value() || sensorId.value() >= _board.sensors().size()) {
 		return { 400, "Invalid Sensor ID" };
 	}
 
-	sensor sensor = _board.sensors().at(sensorId);
+	sensor sensor = _board.sensors().at(sensorId.value());
 	if (method == "GET") {
 		return { map<string, string>{
 			{"Content-Type", "application/json"}

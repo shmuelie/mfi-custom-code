@@ -1,6 +1,6 @@
 #include "mg/connection.h"
 #include <vector>
-#include "join.h"
+#include "string_helpers.h"
 
 using namespace std;
 using namespace mg;
@@ -15,7 +15,7 @@ void connection::reply(const http_response& response) const noexcept {
 		headersVector.push_back(pair.first + ": " + pair.second);
 	}
 	if (headersVector.size() > 0) {
-		headers = join(headersVector.cbegin(), headersVector.cend(), "\r\n", "\r\n").c_str();
+		headers = string_helpers::join(headersVector.cbegin(), headersVector.cend(), "\r\n", "\r\n").c_str();
 	}
 	mg_http_reply(_connection, response.status_code(), headers, response.body().c_str());
 }
