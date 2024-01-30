@@ -29,23 +29,90 @@ static bool validate_ip(const std::string& ip)
 	return true;
 }
 
-int main(int argc, char* argv[]) {
-	std::string ip = defaultIp;
-	std::uint16_t port = defaultPort;
+class options {
+public:
+	explicit options(int argc, char* argv[]) noexcept {
+		for (int i = 1; i < argc; i++) {
+			std::string arg{ argv[i] };
+			if (arg == "--help" || arg == "-h") {
+				_help = true;
+				return;
+			}
 
-	if (argc == 2) {
-		port = string_helpers::try_stoul<uint16_t>(std::string{ argv[1] }, nullptr, 10).value_or(defaultPort);
-	}
-	else if (argc == 3) {
-		std::string potentialIp{ argv[1] };
-		if (validate_ip(potentialIp)) {
-			ip = potentialIp;
+			if (arg == "--ip" || arg == "-i") {
+				if (++i >= argc) {
+					_help = true;
+					return;
+				}
+				std::string ip{ argv[i] };
+				if (!validate_ip(ip)) {
+					_help = true;
+					return;
+				}
+				_ip = ip;
+			}
+			else if (arg == "--port" || arg == "-p") {
+				if (++i >= argc) {
+					_help = true;
+					return;
+				}
+				auto potentialPort = string_helpers::try_stoul<uint16_t>(std::string{ argv[i] });
+				if (!potentialPort) {
+					_help = true;
+					return;
+				}
+				_port = potentialPort.value();
+			}
+			else if (arg == "--log-level" || arg == "-l") {
+				if (++i >= argc) {
+					_help = true;
+					return;
+				}
+				auto potentialLogLevel = string_helpers::try_stoul<uint8_t>(std::string{ argv[i] });
+				if (!potentialLogLevel) {
+					_help = true;
+					return;
+				}
+				_logLevel = potentialLogLevel.value();
+			}
 		}
-		port = string_helpers::try_stoul<uint16_t>(std::string{ argv[2] }, nullptr, 10).value_or(defaultPort);
 	}
+
+	const std::string ip() const noexcept {
+		return _ip;
+	}
+
+	std::uint16_t port() const noexcept {
+		return _port;
+	}
+
+	std::uint8_t log_level() const noexcept {
+		return _logLevel;
+	}
+
+	bool help() const noexcept {
+		return _help;
+	}
+
+private:
+	std::string _ip{ "0.0.0.0" };
+	std::uint16_t _port = 8000;
+	std::uint8_t _logLevel = MG_LL_NONE;
+	bool _help = false;
+};
+
+int main(int argc, char* argv[]) {
+	options o{ argc, argv };
+
+	if (o.help()) {
+		std::cout << "mfi-server [--ip|-i IP_ADDRESS] [--port|-p PORT] [--log-level|-l LOG_LEVEL]" << std::endl;
+		return 0;
+	}
+
+	mg_log_set(o.log_level());
 
 	mfi_server server{};
-	server.listen("http://" + ip + ":" + std::to_string(port));
+	server.listen("http://" + o.ip() + ":" + std::to_string(o.port()));
 	for (;;) {
 		server.poll(1000s);
 	}
