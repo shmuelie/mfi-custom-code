@@ -32,7 +32,7 @@ set_target_properties(${MFI_SERVER_TARGET_NAME} PROPERTIES
 	VERSION 1.0.0.0
 )
 target_include_directories(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_SERVER_INCLUDE})
-target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME})
+target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} docopt)
 add_custom_command(
 	TARGET ${MFI_SERVER_TARGET_NAME} POST_BUILD
 	COMMAND gzip -kf "$<TARGET_FILE:${MFI_SERVER_TARGET_NAME}>"
