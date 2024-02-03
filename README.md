@@ -32,3 +32,13 @@ Uses CMake to build/configure. If `MFI_CROSS_COMPILE` is `ON`, CMake configure
 will also run `make` on the Buildroot submodule and configure CMake to use the
 cross-compiler for MIPS. The resulting binaries can be copied and run on the mFi
 devices.
+
+## Useful mFi Stuff:
+
+- `/var/etc/persistent/` is the home directory when you SSH in and the
+  "persistent" folder.
+- The `save` alias will save the persistent folders data to flash memory, so it
+  will be there after a reboot.
+- If `/var/etc/persistent/profile` exists it will be run on login.
+- If `/var/etc/persistent/rc.poststart` exists it will be run after the device
+  starts up.
