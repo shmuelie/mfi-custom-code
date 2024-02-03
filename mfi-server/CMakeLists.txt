@@ -11,6 +11,7 @@ set(MFI_SERVER_HEADERS
 	${MFI_SERVER_INCLUDE}/mg/http_message.h
 	${MFI_SERVER_INCLUDE}/mg/http_server.h
 	${MFI_SERVER_INCLUDE}/mfi_server.h
+	${MFI_SERVER_INCLUDE}/options.h
 )
 set(MFI_SERVER_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/connection.cpp
@@ -21,6 +22,7 @@ set(MFI_SERVER_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
+	${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
 )
 add_executable(${MFI_SERVER_TARGET_NAME}
 	${MFI_SERVER_HEADERS}
