@@ -45,7 +45,10 @@ int main(int argc, char* argv[]) {
 	mg_log_set(ops.log_level());
 
 	mfi_server server{};
-	server.listen("http://" + ops.ip() + ":" + std::to_string(ops.port()));
+	auto rootConnection = server.listen("http://" + ops.ip() + ":" + std::to_string(ops.port()));
+	if (!rootConnection) {
+		return -2;
+	}
 	for (;;) {
 		server.poll(1000s);
 	}
