@@ -10,6 +10,7 @@ set(MFI_SERVER_HEADERS
 	${MFI_SERVER_INCLUDE}/mg/http_response.h
 	${MFI_SERVER_INCLUDE}/mg/http_message.h
 	${MFI_SERVER_INCLUDE}/mg/http_server.h
+	${MFI_SERVER_INCLUDE}/mg/strings.h
 	${MFI_SERVER_INCLUDE}/mfi_server.h
 	${MFI_SERVER_INCLUDE}/options.h
 )

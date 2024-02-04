@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "mongoose.h"
+#include "mg/strings.h"
 
 namespace mg {
 	class http_message {
@@ -21,7 +22,7 @@ namespace mg {
 					if (mgCapture.len == 0) {
 						break;
 					}
-					captures.push_back(std::string{ mgCapture.ptr, mgCapture.len });
+					captures.push_back(std::to_string(mgCapture));
 				}
 			}
 			return result;

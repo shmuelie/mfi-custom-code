@@ -12,10 +12,10 @@ bool http_message::match_uri(const string& glob) const noexcept {
 
 const string http_message::method() const noexcept {
 	mg_str& method = _message->method;
-	return std::string{ method.ptr, method.len };
+	return to_string(method);
 }
 
 const string http_message::body() const noexcept {
 	mg_str& body = _message->body;
-	return std::string{ body.ptr, body.len };
+	return to_string(body);
 }
