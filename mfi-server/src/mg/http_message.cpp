@@ -19,3 +19,8 @@ const string http_message::body() const noexcept {
 	mg_str& body = _message->body;
 	return to_string(body);
 }
+
+const string http_message::uri() const noexcept {
+	mg_str& uri = _message->uri;
+	return to_string(uri);
+}

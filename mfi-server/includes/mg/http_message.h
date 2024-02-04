@@ -30,6 +30,7 @@ namespace mg {
 
 		const std::string method() const noexcept;
 		const std::string body() const noexcept;
+		const std::string uri() const noexcept;
 	private:
 		mg_http_message* _message;
 	};
