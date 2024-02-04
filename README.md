@@ -41,4 +41,5 @@ devices.
   will be there after a reboot.
 - If `/var/etc/persistent/profile` exists it will be run on login.
 - If `/var/etc/persistent/rc.poststart` exists it will be run after the device
-  starts up.
+  starts up. NOTE, the firmware waits 3 minutes after startup before running
+  your script.
