@@ -16,10 +16,6 @@ for helping me figure this out.
 In `mfi` is a C++ API for the mFi devices, wrapping the file system based API
 they natively support.
 
-### mFi CLI
-
-In `mfi-cli` is a simple CLI program for testing the mFi API.
-
 ### mFi Server
 
 In `mfi-server` is a [Mongoose](https://mongoose.ws/) based HTTP REST API server
