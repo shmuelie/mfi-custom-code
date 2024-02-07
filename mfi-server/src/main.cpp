@@ -4,6 +4,9 @@
 
 using namespace std::chrono_literals;
 
+#define STR_(S) #S
+#define STR(S) STR_(S)
+
 static const char USAGE[] =
 R"(mFi HTTP REST SERVER.
 
@@ -30,7 +33,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (ops.version()) {
-		std::cout << "mFi HTTP REST SERVER 1.0.0.0" << std::endl;
+		std::cout << "mFi HTTP REST SERVER " << STR(MFI_SERVER_VERSION) << std::endl;
 		return 0;
 	}
 
