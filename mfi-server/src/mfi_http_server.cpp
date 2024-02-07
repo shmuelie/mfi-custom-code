@@ -1,4 +1,4 @@
-#include "mfi_server.h"
+#include "mfi_http_server.h"
 #include "mfi/led.h"
 #include <cmath>
 #include "string_helpers.h"
@@ -8,14 +8,14 @@ using namespace mg;
 using namespace mfi;
 using namespace string_helpers;
 
-mfi_server::mfi_server() noexcept : http_server() {
+mfi_http_server::mfi_http_server() noexcept : http_server() {
 }
 
 static const string to_json(sensor sensor) {
 	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + "}";
 }
 
-http_response mfi_server::status_handler() noexcept {
+http_response mfi_http_server::status_handler() noexcept {
 	const vector<sensor>& sensors = _board.sensors();
 	vector<string> sensorsJson{};
 	for (sensor sensor : _board.sensors()) {
@@ -26,7 +26,7 @@ http_response mfi_server::status_handler() noexcept {
 	}, ("[" + join(sensorsJson.cbegin(), sensorsJson.cend(), ",") + "]") };
 }
 
-http_response mfi_server::sensor_handler(const string& method, const vector<string>& captures, const string& body) noexcept {
+http_response mfi_http_server::sensor_handler(const string& method, const vector<string>& captures, const string& body) noexcept {
 	if (captures.size() != 1) {
 		return { 400, "Invalid path" };
 	}
@@ -61,7 +61,7 @@ http_response mfi_server::sensor_handler(const string& method, const vector<stri
 	}
 }
 
-http_response mfi_server::led_handler(const string& method, const string& body) noexcept {
+http_response mfi_http_server::led_handler(const string& method, const string& body) noexcept {
 	led l{};
 	if (method == "GET") {
 		return { map<string, string>{
@@ -96,7 +96,7 @@ http_response mfi_server::led_handler(const string& method, const string& body) 
 	}
 }
 
-http_response mfi_server::http_handler(const http_message& message) noexcept {
+http_response mfi_http_server::http_handler(const http_message& message) noexcept {
 	vector<string> captures{};
 	if (message.match_uri("/api/v2/status")) {
 		return status_handler();

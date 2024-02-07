@@ -1,5 +1,5 @@
 #include <iostream>
-#include "mfi_server.h"
+#include "mfi_http_server.h"
 #include "options.h"
 
 using namespace std::chrono_literals;
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
 	mg_log_set(ops.log_level());
 
-	mfi_server server{};
+	mfi_http_server server{};
 	auto rootConnection = server.listen("http://" + ops.ip() + ":" + std::to_string(ops.port()));
 	if (!rootConnection) {
 		return -2;
