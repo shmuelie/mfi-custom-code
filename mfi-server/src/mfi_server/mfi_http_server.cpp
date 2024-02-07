@@ -44,11 +44,11 @@ http_response mfi_http_server::sensor_handler(const string& method, const vector
 		}, to_json(sensor) };
 	}
 	else if (method == "POST") {
-		if (body == "on") {
+		if (body == "on" || body == "true" || body == "1") {
 			sensor.relay(true);
 			return 200;
 		}
-		else if (body == "off") {
+		else if (body == "off" || body == "false" || body == "0") {
 			sensor.relay(false);
 			return 200;
 		}
