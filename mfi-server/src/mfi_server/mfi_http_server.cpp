@@ -2,6 +2,7 @@
 #include "mfi/led.h"
 #include <cmath>
 #include "string_helpers.h"
+#include <regex>
 
 using namespace std;
 using namespace mg;
@@ -26,12 +27,8 @@ http_response mfi_http_server::status_handler() noexcept {
 	}, ("[" + join(sensorsJson.cbegin(), sensorsJson.cend(), ",") + "]") };
 }
 
-http_response mfi_http_server::sensor_handler(const string& method, const vector<string>& captures, const string& body) noexcept {
-	if (captures.size() != 1) {
-		return { 400, "Invalid path" };
-	}
-
-	auto sensorId = try_stoul<uint8_t>(captures.at(0), nullptr, 10);
+http_response mfi_http_server::sensor_handler(const string& method, const string& sensorId_, const string& body) noexcept {
+	auto sensorId = try_stoul<uint8_t>(sensorId_, nullptr, 10);
 
 	if (!sensorId.has_value() || sensorId.value() > _board.sensors().size()) {
 		return { 400, "Invalid Sensor ID" };
@@ -99,27 +96,34 @@ http_response mfi_http_server::led_handler(const string& method, const string& b
 #define STR_(S) #S
 #define SERVER(V) "mfi-server/" STR_(V)
 
+static http_response add_server_headers(const http_response& response) {
+	map<string, string> headers{ response.headers() };
+	headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
+	return { response.status_code(), headers, response.body() };
+}
+
 http_response mfi_http_server::http_handler(const http_message& message) noexcept {
-	vector<string> captures{};
-	if (message.match_uri("/api/v2/status")) {
-		auto response = status_handler();
-		std::map<std::string, std::string> headers{ response.headers() };
-		headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
-		return { response.status_code(), headers, response.body() };
+	const regex uriRegex{ "^\\/api\\/v2\\/(sensor(?:\\/(0|1|2))?|status|led)$" };
+	smatch uriMatch{};
+	const string& uri = message.uri();
+	if (regex_match(uri, uriMatch, uriRegex)) {
+		const string primaryPath = uriMatch[1].str();
+		if (primaryPath == "status") {
+			auto response = status_handler();
+			return add_server_headers(response);
+		}
+		else if (primaryPath == "led") {
+			auto response = led_handler(message.method(), message.body());
+			return add_server_headers(response);
+		}
+
+		// Must be sensor
+		const string sensorId = uriMatch[2].str();
+		auto response = sensor_handler(message.method(), sensorId, message.body());
+		return add_server_headers(response);
 	}
-	else if (message.match_uri<1>("/api/v2/sensor/*", captures)) {
-		auto response = sensor_handler(message.method(), captures, message.body());
-		std::map<std::string, std::string> headers{ response.headers() };
-		headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
-		return { response.status_code(), headers, response.body() };
-	}
-	else if (message.match_uri("/api/v2/led")) {
-		auto response = led_handler(message.method(), message.body());
-		std::map<std::string, std::string> headers{ response.headers() };
-		headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
-		return { response.status_code(), headers, response.body() };
-	}
-	else {
-		return 404;
-	}
+
+	return { 404, map<string, string>{
+		{ "Server", SERVER(MFI_SERVER_VERSION) }
+	} };
 }

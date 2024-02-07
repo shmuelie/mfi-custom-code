@@ -14,7 +14,7 @@ protected:
 
 private:
 	mg::http_response status_handler() noexcept;
-	mg::http_response sensor_handler(const std::string& method, const std::vector<std::string>& captures, const std::string& body) noexcept;
+	mg::http_response sensor_handler(const std::string& method, const std::string& sensorId, const std::string& body) noexcept;
 	mg::http_response led_handler(const std::string& method, const std::string& body) noexcept;
 
 	mfi::board _board{};
