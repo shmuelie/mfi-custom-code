@@ -96,16 +96,28 @@ http_response mfi_http_server::led_handler(const string& method, const string& b
 	}
 }
 
+#define STR_(S) #S
+#define SERVER(V) "mfi-server/" STR_(V)
+
 http_response mfi_http_server::http_handler(const http_message& message) noexcept {
 	vector<string> captures{};
 	if (message.match_uri("/api/v2/status")) {
-		return status_handler();
+		auto response = status_handler();
+		std::map<std::string, std::string> headers{ response.headers() };
+		headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
+		return { response.status_code(), headers, response.body() };
 	}
 	else if (message.match_uri<1>("/api/v2/sensor/*", captures)) {
-		return sensor_handler(message.method(), captures, message.body());
+		auto response = sensor_handler(message.method(), captures, message.body());
+		std::map<std::string, std::string> headers{ response.headers() };
+		headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
+		return { response.status_code(), headers, response.body() };
 	}
 	else if (message.match_uri("/api/v2/led")) {
-		return led_handler(message.method(), message.body());
+		auto response = led_handler(message.method(), message.body());
+		std::map<std::string, std::string> headers{ response.headers() };
+		headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
+		return { response.status_code(), headers, response.body() };
 	}
 	else {
 		return 404;
