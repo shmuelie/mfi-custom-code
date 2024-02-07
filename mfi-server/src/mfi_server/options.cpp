@@ -1,4 +1,4 @@
-#include "options.h"
+#include "mfi_server/options.h"
 #include "string_helpers.h"
 #include "docopt.h"
 #include "mongoose.h"

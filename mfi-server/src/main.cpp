@@ -1,6 +1,6 @@
 #include <iostream>
-#include "mfi_http_server.h"
-#include "options.h"
+#include "mfi_server/mfi_http_server.h"
+#include "mfi_server/options.h"
 
 using namespace std::chrono_literals;
 
