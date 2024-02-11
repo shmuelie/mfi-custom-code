@@ -2,7 +2,7 @@
 #include "mfi/led.h"
 #include <cmath>
 #include "string_helpers.h"
-#include <regex>
+#include "mg/logger.h"
 
 using namespace std;
 using namespace mg;
@@ -10,13 +10,28 @@ using namespace mfi;
 using namespace string_helpers;
 
 mfi_http_server::mfi_http_server() noexcept : http_server() {
+	string v2Regex{ "^\\/api\\/v2\\/(sensor(?:\\/(" };
+
+	size_t sensorCount = _board.sensors().size();
+	for (size_t i = 1; i <= sensorCount; i++) {
+		v2Regex += to_string(i);
+		if (i < sensorCount) {
+			v2Regex += "|";
+		}
+	}
+
+	v2Regex += "))?|led)$";
+
+	logger::verbose("Final Regex: %s", make_tuple(v2Regex.c_str()));
+
+	_v2Regex.assign(v2Regex);
 }
 
 static const string to_json(sensor sensor) {
 	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + "}";
 }
 
-http_response mfi_http_server::status_handler() noexcept {
+http_response mfi_http_server::sensor_handler() noexcept {
 	const vector<sensor>& sensors = _board.sensors();
 	vector<string> sensorsJson{};
 	for (sensor sensor : _board.sensors()) {
@@ -27,14 +42,8 @@ http_response mfi_http_server::status_handler() noexcept {
 	}, ("[" + join(sensorsJson.cbegin(), sensorsJson.cend(), ",") + "]") };
 }
 
-http_response mfi_http_server::sensor_handler(const string& method, const string& sensorId_, const string& body) noexcept {
-	auto sensorId = try_stoul<uint8_t>(sensorId_, nullptr, 10);
-
-	if (!sensorId.has_value() || sensorId.value() > _board.sensors().size()) {
-		return { 400, "Invalid Sensor ID" };
-	}
-
-	sensor sensor = _board.sensors().at(sensorId.value() - 1);
+http_response mfi_http_server::sensor_handler(const string& method, uint8_t sensorId, const string& body) noexcept {
+	sensor sensor = _board.sensors().at(sensorId - 1);
 	if (method == "GET") {
 		return { map<string, string>{
 			{"Content-Type", "application/json"}
@@ -103,24 +112,24 @@ static http_response add_server_headers(const http_response& response) {
 }
 
 http_response mfi_http_server::http_handler(const http_message& message) noexcept {
-	const regex uriRegex{ "^\\/api\\/v2\\/(sensor(?:\\/(0|1|2))?|status|led)$" };
 	smatch uriMatch{};
 	const string& uri = message.uri();
-	if (regex_match(uri, uriMatch, uriRegex)) {
+	if (regex_match(uri, uriMatch, _v2Regex)) {
 		const string primaryPath = uriMatch[1].str();
-		if (primaryPath == "status") {
-			auto response = status_handler();
-			return add_server_headers(response);
-		}
-		else if (primaryPath == "led") {
+		if (primaryPath == "led") {
 			auto response = led_handler(message.method(), message.body());
 			return add_server_headers(response);
 		}
-
-		// Must be sensor
-		const string sensorId = uriMatch[2].str();
-		auto response = sensor_handler(message.method(), sensorId, message.body());
-		return add_server_headers(response);
+		else {
+			if (uriMatch[2].matched) {
+				auto response = sensor_handler(message.method(), static_cast<uint8_t>(stoul(uriMatch[2].str())), message.body());
+				return add_server_headers(response);
+			}
+			else {
+				auto response = sensor_handler();
+				return add_server_headers(response);
+			}
+		}
 	}
 
 	return { 404, map<string, string>{
