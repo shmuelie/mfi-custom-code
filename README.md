@@ -22,6 +22,22 @@ In `mfi-server` is a [Mongoose](https://mongoose.ws/) based HTTP REST API server
 for the mFi devices built on top of the mFi API. Also includes a simple C++
 wrapper around Mongoose.
 
+```
+mFi HTTP REST SERVER.
+
+  Usage:
+        mfi-server [options]
+        mfi-server (-h | --help)
+        mfi-server --version
+
+  Options:
+        -h --help                  Show this screen.
+        --version                  Show version.
+        -i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
+        -p, --port PORT            Use PORT to listen on [default: 8000].
+        -l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
+```
+
 ## Building
 
 Uses CMake to build/configure. If `MFI_CROSS_COMPILE` is `ON`, CMake configure
