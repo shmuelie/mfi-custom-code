@@ -20,7 +20,7 @@ mfi_http_server::mfi_http_server() noexcept : http_server() {
 		}
 	}
 
-	v2Regex += "))?|led)$";
+	v2Regex += "))?|led|info)$";
 
 	logger::verbose("Final Regex: %s", make_tuple(v2Regex.c_str()));
 
@@ -102,6 +102,15 @@ http_response mfi_http_server::led_handler(const string& method, const string& b
 	}
 }
 
+http_response mfi_http_server::info_handler() noexcept {
+	char hostname[1024]{};
+	hostname[1023] = '\0';
+	gethostname(hostname, 1023);
+	return { map<string, string>{
+		{"Content-Type", "application/json"}
+	}, "{\"hostName\":\"" + string{hostname} + "\",\"modelName\":\"" + _board.name() + "\",\"modelId\":" + to_string(_board.id()) + ",\"sensorCount\":" + to_string(_board.sensors().size()) + "}" };
+}
+
 #define STR_(S) #S
 #define SERVER(V) "mfi-server/" STR_(V)
 
@@ -118,6 +127,10 @@ http_response mfi_http_server::http_handler(const http_message& message) noexcep
 		const string primaryPath = uriMatch[1].str();
 		if (primaryPath == "led") {
 			auto response = led_handler(message.method(), message.body());
+			return add_server_headers(response);
+		}
+		else if (primaryPath == "info") {
+			auto response = info_handler();
 			return add_server_headers(response);
 		}
 		else {

@@ -17,6 +17,7 @@ private:
 	mg::http_response sensor_handler() noexcept;
 	mg::http_response sensor_handler(const std::string& method, std::uint8_t sensorId, const std::string& body) noexcept;
 	mg::http_response led_handler(const std::string& method, const std::string& body) noexcept;
+	mg::http_response info_handler() noexcept;
 
 	mfi::board _board{};
 	std::regex _v2Regex{};
