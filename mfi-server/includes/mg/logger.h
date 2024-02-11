@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <source_location>
+#include <tuple>
+#include <functional>
 #include "mongoose.h"
 
 namespace mg {
@@ -17,22 +20,38 @@ namespace mg {
 		static log_level level() noexcept;
 		static void level(log_level value) noexcept;
 
-		template<typename... TArgs>
-		static void error(const std::string& fmt, TArgs... args) noexcept {
-			MG_ERROR((fmt.c_str(), args...));
+		template<class... TArgs>
+		static void error(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+			logger::log(log_level::error, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
-		template<typename... TArgs>
-		static void info(const std::string& fmt, TArgs... args) noexcept {
-			MG_INFO((fmt.c_str(), args...));
+		template<class... TArgs>
+		static void info(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+			logger::log(log_level::info, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
-		template<typename... TArgs>
-		static void debug(const std::string& fmt, TArgs... args) noexcept {
-			MG_DEBUG((fmt.c_str(), args...));
+		template<class... TArgs>
+		static void debug(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+			logger::log(log_level::debug, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
-		template<typename... TArgs>
-		static void verbose(const std::string& fmt, TArgs... args) noexcept {
-			MG_VERBOSE((fmt.c_str(), args...));
+		template<class... TArgs>
+		static void verbose(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+			logger::log(log_level::verbose, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
 		static void hex_dump(const void* buf, size_t len) noexcept;
+
+	private:
+		template<class Tuple, std::size_t... Is>
+		static void log(
+			log_level level,
+			const std::string& fmt,
+			const std::source_location location,
+			Tuple args,
+			std::index_sequence<Is...>) noexcept {
+#if MG_ENABLE_LOG
+			if (level <= logger::level()) {
+				mg_log_prefix(static_cast<int>(level), location.file_name(), location.line(), location.function_name());
+				mg_log(fmt.c_str(), std::get<Is>(std::forward<Tuple>(args))...);
+			}
+#endif
+		}
 	};
 }
