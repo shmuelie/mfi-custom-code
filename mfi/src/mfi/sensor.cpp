@@ -1,4 +1,5 @@
 #include "mfi/sensor.h"
+#include "mfi/config.h"
 
 #include <iostream>
 #include <fstream>
@@ -12,6 +13,7 @@ const string current_path{ root + "i_rms" };
 const string voltage_path{ root + "v_rms" };
 const string power_factor_path{ root + "pf" };
 const string relay_path{ root + "relay" };
+const string config_file{ "/etc/persistent/cfg/config_file" };
 
 sensor::sensor(uint8_t id) : _id(id) {
 }
@@ -53,4 +55,12 @@ bool sensor::relay() const {
 void sensor::relay(bool value) const {
 	ofstream stream{ relay_path + to_string(_id), ios::out };
 	stream << (value ? 1 : 0);
+}
+
+const string sensor::name() const {
+	return config::read(config_file, "port." + to_string(_id) + ".sensorId");
+}
+
+const string sensor::label() const {
+	return config::read(config_file, "port." + to_string(_id) + ".label");
 }

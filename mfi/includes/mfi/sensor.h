@@ -40,6 +40,16 @@ namespace mfi {
 		 * @param value A value indicating whether the port is on or off.
 		*/
 		void relay(bool value) const;
+
+		/**
+		 * @brief Gets the name of the sensor.
+		 */
+		const std::string name() const;
+
+		/**
+		 * @brief Gets the label of the sensor.
+		 */
+		const std::string label() const;
 	private:
 		uint8_t _id;
 		double read(const std::string& path) const;
