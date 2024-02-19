@@ -2,12 +2,18 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 using namespace std;
 using namespace mfi;
 
 const map<string, string> config::read_all(const string& file) {
 	ifstream stream{ file.c_str() };
+
+	if (stream.bad()) {
+		throw runtime_error{ "Unable to read file" };
+	}
+
 	map<string, string> config{};
 
 	for (string line; getline(stream, line);) {
@@ -28,6 +34,10 @@ const map<string, string> config::read_all(const string& file) {
 
 const string config::read(const string& file, const string& prop) {
 	ifstream stream{ file.c_str() };
+
+	if (stream.bad()) {
+		throw runtime_error{ "Unable to read file" };
+	}
 
 	for (string line; getline(stream, line);) {
 		auto equalityIndex = line.find('=');
