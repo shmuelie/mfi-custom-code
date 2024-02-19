@@ -18,6 +18,9 @@ namespace mfi {
 		 * @brief Gets the ID of the sensor.
 		*/
 		uint8_t id() const;
+		/**
+		 * @brief Gets the watts currently being drawn on the port.
+		 */
 		double power() const;
 		/**
 		 * @brief Gets the current currently being drawn on the port.
