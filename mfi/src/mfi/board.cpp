@@ -1,5 +1,6 @@
 #include "mfi/board.h"
 #include "mfi/sensor.h"
+#include "mfi/config.h"
 
 #include <iostream>
 #include <fstream>
@@ -8,27 +9,11 @@ using namespace std;
 using namespace mfi;
 
 board::board() {
-	ifstream stream{ "/etc/board.info" };
-	for (string line; getline(stream, line);) {
-		auto equalityIndex = line.find('=');
-		if (equalityIndex == -1)
-		{
-			continue;
-		}
 
-		auto key = line.substr(0, equalityIndex);
-		auto value = line.substr(equalityIndex + 1);
-
-		if (key == "board.name") {
-			_name = value;
-		}
-		else if (key == "board.shortname") {
-			_shortName = value;
-		}
-		else if (key == "board.sysid") {
-			_id = static_cast<uint16_t>(stoul(value, nullptr, 16));
-		}
-	}
+	auto boardInfo = config::read_all("/etc/board.info");
+	_name = boardInfo.at("board.name");
+	_shortName = boardInfo.at("board.shortname");
+	_id = static_cast<uint16_t>(stoul(boardInfo.at("board.sysid"), nullptr, 16));
 
 	uint8_t sensorCount = 0;
 	switch (_id) {

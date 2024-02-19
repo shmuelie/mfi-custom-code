@@ -7,11 +7,13 @@ set(MFI_API_HEADERS
 	${MFI_API_INCLUDE}/mfi/board.h
 	${MFI_API_INCLUDE}/mfi/led.h
 	${MFI_API_INCLUDE}/mfi/sensor.h
+	${MFI_API_INCLUDE}/mfi/config.h
 )
 set(MFI_API_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi/board.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi/led.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi/sensor.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi/config.cpp
 )
 
 add_library(${MFI_API_TARGET_NAME} STATIC
