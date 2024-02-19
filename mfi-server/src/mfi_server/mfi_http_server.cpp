@@ -28,7 +28,7 @@ mfi_http_server::mfi_http_server() noexcept : http_server() {
 }
 
 static const string to_json(sensor sensor) {
-	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + "}";
+	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + ",\"name\":\"" + sensor.name() + "\",\"label\":\"" + sensor.label() + "\"}";
 }
 
 http_response mfi_http_server::sensor_handler() noexcept {
