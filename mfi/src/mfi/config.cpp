@@ -56,3 +56,28 @@ const string config::read(const string& file, const string& prop) {
 
 	return string{};
 }
+
+const string config::read(const string& file, const string& prop, const string& defaultValue) noexcept {
+	ifstream stream{ file.c_str() };
+
+	if (stream.bad()) {
+		return defaultValue;
+	}
+
+	for (string line; getline(stream, line);) {
+		auto equalityIndex = line.find('=');
+		if (equalityIndex == -1)
+		{
+			continue;
+		}
+
+		auto key = line.substr(0, equalityIndex);
+		auto value = line.substr(equalityIndex + 1);
+
+		if (key == prop) {
+			return value;
+		}
+	}
+
+	return defaultValue;
+}

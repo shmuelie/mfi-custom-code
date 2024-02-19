@@ -8,5 +8,6 @@ namespace mfi {
 	public:
 		static const std::map<std::string, std::string> read_all(const std::string& file);
 		static const std::string read(const std::string& file, const std::string& prop);
+		static const std::string read(const std::string& file, const std::string& prop, const std::string& defaultValue) noexcept;
 	};
 }
