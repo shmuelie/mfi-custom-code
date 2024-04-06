@@ -11,9 +11,9 @@ static const char USAGE[] =
 R"(mFi HTTP REST SERVER.
 
   Usage:
-	mfi-server [options]
-	mfi-server (-h | --help)
-	mfi-server --version
+	mfi-rest-server [options]
+	mfi-rest-server (-h | --help)
+	mfi-rest-server --version
 
   Options:
 	-h --help                  Show this screen.
