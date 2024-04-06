@@ -12,6 +12,8 @@ set(MGPP_HEADERS
 	${MGPP_INCLUDES}/mg/strings.h
 	${MGPP_INCLUDES}/mg/mqtt_options.h
 	${MGPP_INCLUDES}/mg/mqtt_property.h
+	${MGPP_INCLUDES}/mg/mqtt_message.h
+	${MGPP_INCLUDES}/mg/mqtt_command.h
 	${MGPP_INCLUDES}/mg/eventing_handler.h
 	${MGPP_INCLUDES}/mongoose.h
 	${MGPP_INCLUDES}/string_helpers.h
@@ -25,6 +27,7 @@ set(MGPP_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_options.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_property.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_message.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/eventing_handler.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
 )
