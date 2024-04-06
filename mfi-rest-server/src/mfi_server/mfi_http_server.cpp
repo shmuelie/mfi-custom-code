@@ -116,7 +116,7 @@ http_response mfi_http_server::info_handler() noexcept {
 
 static http_response add_server_headers(const http_response& response) {
 	map<string, string> headers{ response.headers() };
-	headers.emplace("Server", SERVER(MFI_SERVER_VERSION));
+	headers.emplace("Server", SERVER(MFI_REST_SERVER_VERSION));
 	return { response.status_code(), headers, response.body() };
 }
 

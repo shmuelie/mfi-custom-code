@@ -18,8 +18,8 @@ endif()
 project(mFiCustomCode)
 
 set(MFI_API_TARGET_NAME mFiApi)
-set(MFI_SERVER_TARGET_NAME mfi-server)
+set(MFI_SERVER_TARGET_NAME mfi-rest-server)
 
 add_subdirectory(mfi)
 add_subdirectory(docopt)
-add_subdirectory(mfi-server)
+add_subdirectory(mfi-rest-server)
