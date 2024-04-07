@@ -1,6 +1,7 @@
 #include <iostream>
 #include "mfi_server/mfi_http_server.h"
 #include "mfi_server/options.h"
+#include "mg/manager.h"
 
 using namespace std::chrono_literals;
 
@@ -53,6 +54,6 @@ int main(int argc, char* argv[]) {
 		return -2;
 	}
 	for (;;) {
-		server.poll(1000s);
+		server.manager()->poll(1000s);
 	}
 }

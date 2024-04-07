@@ -8,6 +8,8 @@
 namespace mg {
 	class http_server : public server {
 	public:
+		friend class manager;
+
 		explicit http_server() noexcept;
 
 		virtual std::optional<connection> listen(const std::string& url) noexcept override;

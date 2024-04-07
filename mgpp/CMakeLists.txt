@@ -11,11 +11,14 @@ set(MGPP_HEADERS
 	${MGPP_INCLUDES}/mg/logger.h
 	${MGPP_INCLUDES}/mg/server.h
 	${MGPP_INCLUDES}/mg/strings.h
+	${MGPP_INCLUDES}/mg/mqtt_client.h
 	${MGPP_INCLUDES}/mg/mqtt_options.h
 	${MGPP_INCLUDES}/mg/mqtt_property.h
 	${MGPP_INCLUDES}/mg/mqtt_message.h
 	${MGPP_INCLUDES}/mg/mqtt_command.h
 	${MGPP_INCLUDES}/mg/eventing_handler.h
+	${MGPP_INCLUDES}/mg/timer.h
+	${MGPP_INCLUDES}/mg/manager.h
 	${MGPP_INCLUDES}/mongoose.h
 	${MGPP_INCLUDES}/string_helpers.h
 )
@@ -26,10 +29,12 @@ set(MGPP_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/http_server.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/logger.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/server.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_client.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_options.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_property.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_message.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/eventing_handler.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/manager.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
 )
 

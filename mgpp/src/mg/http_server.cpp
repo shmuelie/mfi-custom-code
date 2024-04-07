@@ -1,5 +1,6 @@
 #include "mg/http_server.h"
 #include "mg/logger.h"
+#include "mg/manager.h"
 
 using namespace std;
 using namespace mg;
@@ -8,11 +9,7 @@ http_server::http_server() noexcept : server() {
 }
 
 optional<connection> http_server::listen(const string& url) noexcept {
-	mg_connection* c = mg_http_listen(&_manager, url.c_str(), &server::_event_handler, this);
-	if (c != nullptr) {
-		return c;
-	}
-	return nullopt;
+	return manager()->listen(this, url);
 }
 
 void http_server::event_handler(const connection& connection, event event, void* event_data) noexcept {
