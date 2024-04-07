@@ -35,6 +35,7 @@ set(MGPP_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/mqtt_message.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/eventing_handler.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/manager.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/timer.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
 )
 
