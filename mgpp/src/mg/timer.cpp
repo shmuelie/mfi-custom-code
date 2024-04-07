@@ -5,7 +5,7 @@ using namespace std;
 using namespace std::chrono;
 using namespace mg;
 
-timer::timer(mg_timer* timer) noexcept : _timer(timer) {
+timer::timer(mg_timer* timer, manager* manager) noexcept : _timer(timer), _manager(manager) {
 }
 
 timer::~timer() noexcept {
@@ -14,7 +14,7 @@ timer::~timer() noexcept {
 
 void timer::stop() noexcept {
 	if (running()) {
-		mg_timer_free(_manager->_manager->timers, _timer);
+		mg_timer_free(&_manager->_manager->timers, _timer);
 		_timer = nullptr;
 	}
 }
