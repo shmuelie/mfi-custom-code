@@ -12,6 +12,7 @@ namespace mg {
 		friend class manager;
 
 		explicit mqtt_client(const std::string& url, const mqtt_options& options) noexcept;
+		explicit mqtt_client(const std::shared_ptr<mg::manager>& manager, const std::string& url, const mqtt_options& options) noexcept;
 
 		void start() noexcept;
 		bool is_connected() const noexcept;

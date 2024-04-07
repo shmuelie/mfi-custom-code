@@ -7,6 +7,9 @@ using namespace mg;
 mqtt_client::mqtt_client(const string& url, const mqtt_options& options) noexcept : eventing_handler(), _url(url), _starting_options(options), _connection() {
 }
 
+mqtt_client::mqtt_client(const shared_ptr<mg::manager>& manager, const string& url, const mqtt_options& options) noexcept : eventing_handler(manager), _url(url), _starting_options(options), _connection() {
+}
+
 void mqtt_client::start() noexcept {
 }
 
