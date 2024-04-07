@@ -1,6 +1,8 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
+#include <memory>
 #include "mongoose.h"
 
 namespace mg {
@@ -8,8 +10,7 @@ namespace mg {
 
 	class timer {
 	public:
-		friend manager;
-
+		explicit timer(const std::shared_ptr<mg::manager>& manager, std::chrono::milliseconds period, bool repeating, bool run_now, std::function<void()> callback) noexcept;
 		~timer() noexcept;
 
 		std::chrono::milliseconds period() const noexcept;
@@ -18,9 +19,10 @@ namespace mg {
 		bool running() const noexcept;
 		bool repeating() const noexcept;
 	private:
-		timer(mg_timer* timer, manager* manager) noexcept;
+		static void callback(void* arg) noexcept;
 
 		mg_timer* _timer;
-		manager* _manager;
+		std::shared_ptr<mg::manager> _manager;
+		std::function<void()> _callback;
 	};
 }
