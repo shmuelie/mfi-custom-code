@@ -3,16 +3,9 @@
 #include <chrono>
 #include "mongoose.h"
 #include "mg/connection.h"
+#include "mg/event.h"
 
 namespace mg {
-	enum class event {
-		http_mesesage = MG_EV_HTTP_MSG,
-		connect = MG_EV_CONNECT,
-		mqtt_open = MG_EV_MQTT_OPEN,
-		mqtt_message = MG_EV_MQTT_MSG,
-		mqtt_command = MG_EV_MQTT_CMD
-	};
-
 	class eventing_handler {
 	public:
 		explicit eventing_handler() noexcept;

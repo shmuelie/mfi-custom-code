@@ -3,6 +3,7 @@ project(mFiCustomCode)
 
 set(MGPP_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MGPP_HEADERS
+	${MGPP_INCLUDES}/mg/event.h
 	${MGPP_INCLUDES}/mg/connection.h
 	${MGPP_INCLUDES}/mg/http_message.h
 	${MGPP_INCLUDES}/mg/http_response.h
