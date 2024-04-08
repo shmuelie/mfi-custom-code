@@ -33,5 +33,8 @@ void mqtt_client::event_handler(const connection& connection, event event, void*
 		mqtt_message message = static_cast<mg_mqtt_message*>(event_data);
 		message_handler(message);
 		break;
+	case mg::event::close:
+		_connection = nullopt;
+		break;
 	}
 }
