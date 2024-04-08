@@ -32,10 +32,16 @@ namespace mfi {
 		 * @brief Gets the collection of sensors on the mFi device.
 		*/
 		const std::vector<sensor>& sensors() const;
+
+		/**
+		 * @brief Gets the version of the mFi firmware.
+		 */
+		const std::string& version() const;
 	private:
 		std::string _name;
 		std::string _shortName;
 		uint16_t _id;
 		std::vector<sensor> _sensors{};
+		std::string _version;
 	};
 }

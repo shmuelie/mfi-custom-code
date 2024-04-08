@@ -28,6 +28,9 @@ board::board() {
 	for (uint8_t sensorId = 1; sensorId <= sensorCount; sensorId++) {
 		_sensors.push_back(sensor{ sensorId });
 	}
+
+	ifstream versionStream{ "/etc/version" };
+	getline(versionStream, _version);
 }
 
 const string& board::name() const {
@@ -44,4 +47,8 @@ uint16_t board::id() const {
 
 const std::vector<sensor>& board::sensors() const {
 	return _sensors;
+}
+
+const string& board::version() const {
+	return _version;
 }
