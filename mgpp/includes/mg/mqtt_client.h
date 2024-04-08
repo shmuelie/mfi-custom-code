@@ -17,12 +17,14 @@ namespace mg {
 
 		bool is_connected() const noexcept;
 	protected:
-		virtual void event_handler(const connection& connection, event event, void* event_data) noexcept override;
+		virtual void event_handler(const mg::connection& connection, event event, void* event_data) noexcept override;
 		virtual void message_handler(const mqtt_message& message) noexcept = 0;
 		virtual void open_handler() noexcept = 0;
+
+		std::optional<mg::connection> connection() const noexcept;
 	private:
 		void timer_handler() noexcept;
-		std::optional<connection> _connection;
+		std::optional<mg::connection> _connection;
 		std::string _url;
 		mqtt_options _starting_options;
 		std::shared_ptr<timer> _timer;

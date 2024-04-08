@@ -24,11 +24,11 @@ bool mqtt_client::is_connected() const noexcept {
 
 void mqtt_client::timer_handler() noexcept {
 	if (!is_connected()) {
-		optional<connection> c = manager()->connect(this, _url, _starting_options);
+		_connection = manager()->connect(this, _url, _starting_options);
 	}
 }
 
-void mqtt_client::event_handler(const connection& connection, event event, void* event_data) noexcept {
+void mqtt_client::event_handler(const mg::connection& connection, event event, void* event_data) noexcept {
 	switch (event)
 	{
 	case mg::event::mqtt_open:
@@ -48,4 +48,8 @@ void mqtt_client::event_handler(const connection& connection, event event, void*
 		break;
 	}
 	}
+}
+
+optional<mg::connection> mqtt_client::connection() const noexcept {
+	return _connection;
 }
