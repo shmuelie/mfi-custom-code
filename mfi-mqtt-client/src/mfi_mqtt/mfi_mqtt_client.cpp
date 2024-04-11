@@ -17,7 +17,7 @@ mfi_mqtt_client::mfi_mqtt_client(const shared_ptr<mg::manager>& manager, const s
 		_hostname +
 		"\",\"manufacturer\":\"Ubiquiti\",\"model\":\"" +
 		_board.name() +
-		"\",\"w_version\":\"" +
+		"\",\"sw_version\":\"" +
 		_board.version() + "\"}";
 	_integration_json = "{\"serial_number\":\"" + _hostname + "\",\"device\":" + _device_json + "}";
 	_availability_topic = "homeassistant/sensor/" + _hostname + "/availability";
