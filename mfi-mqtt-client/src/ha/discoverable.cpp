@@ -6,7 +6,7 @@ using namespace ha;
 
 regex safe_object_id{ "[^a-zA-Z0-9_-]" };
 
-discoverable::discoverable() noexcept : _domain(discoverable_domain::sensor), _name(), _topic_name(), _object_id(), _id(), _use_attributes(false) {
+discoverable::discoverable() noexcept : _domain(discoverable_domain::_switch), _name(), _topic_name(), _object_id(), _id(), _use_attributes(false) {
 }
 
 discoverable_domain discoverable::domain() const noexcept {
