@@ -2,6 +2,8 @@
 
 #include "ha/sensor.h"
 
+using namespace std::chrono_literals;
+
 namespace ha {
 	class single_value_sensor : public sensor {
 	public:
