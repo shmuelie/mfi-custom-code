@@ -1,7 +1,10 @@
 #include "ha/discoverable.h"
+#include <regex>
 
 using namespace std;
 using namespace ha;
+
+regex safe_object_id{ "[^a-zA-Z0-9_-]" };
 
 discoverable::discoverable() noexcept : _domain(discoverable_domain::sensor), _name(), _topic_name(), _object_id(), _id(), _use_attributes(false) {
 }
@@ -27,11 +30,14 @@ void discoverable::topic_name(const string& value) noexcept {
 	_topic_name = value;
 }
 
-const string discoverable::object_id() const noexcept {
+const string discoverable::object_id() noexcept {
+	if (_object_id.size() == 0) {
+		object_id(_name);
+	}
 	return _object_id;
 }
 void discoverable::object_id(const string& value) noexcept {
-	_object_id = value;
+	_object_id = regex_replace(value, safe_object_id, "_");
 }
 
 const string discoverable::id() const noexcept {

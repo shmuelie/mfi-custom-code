@@ -9,7 +9,7 @@ namespace ha {
 		discoverable_domain domain() const noexcept;
 		const std::string name() const noexcept;
 		const std::string topic_name() const noexcept;
-		const std::string object_id() const noexcept;
+		const std::string object_id() noexcept;
 		const std::string id() const noexcept;
 		bool use_attributes() const noexcept;
 
