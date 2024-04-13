@@ -14,6 +14,7 @@ set(MFI_MQTT_HEADERS
 set(MFI_MQTT_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt/mfi_mqtt_client.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/ha/discoverable.cpp
 )
 set(MFI_MQTT_CLIENT_VERSION 1.1.0.0)
 add_executable(${MFI_MQTT_TARGET_NAME}
