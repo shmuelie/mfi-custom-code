@@ -28,5 +28,5 @@ set_target_properties(${MFI_MQTT_TARGET_NAME} PROPERTIES
 	VERSION ${MFI_MQTT_CLIENT_VERSION}
 )
 target_include_directories(${MFI_MQTT_TARGET_NAME} PUBLIC ${MFI_MQTT_INCLUDE})
-target_link_libraries(${MFI_MQTT_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} docopt ${MGPP_TARGET_NAME})
+target_link_libraries(${MFI_MQTT_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} docopt hass_mqtt_device)
 target_compile_definitions(${MFI_MQTT_TARGET_NAME} PRIVATE MFI_MQTT_CLIENT_VERSION=${MFI_MQTT_CLIENT_VERSION})
