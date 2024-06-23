@@ -2,6 +2,7 @@
 #include "mfi/sensor.h"
 #include "mfi/config.h"
 
+#include <unistd.h>
 #include <iostream>
 #include <fstream>
 
@@ -51,4 +52,11 @@ const std::vector<sensor>& board::sensors() const {
 
 const string& board::version() const {
 	return _version;
+}
+
+const string board::hostname() const {
+	char hostname[1024]{};
+	hostname[1023] = '\0';
+	gethostname(hostname, 1023);
+	return string{ hostname };
 }

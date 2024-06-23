@@ -37,6 +37,11 @@ namespace mfi {
 		 * @brief Gets the version of the mFi firmware.
 		 */
 		const std::string& version() const;
+
+		/**
+		 * @brief Gets the hostname of the device.
+		 */
+		const std::string hostname() const;
 	private:
 		std::string _name;
 		std::string _shortName;
