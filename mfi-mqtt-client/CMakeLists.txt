@@ -3,19 +3,9 @@ project(mFiCustomCode)
 
 set(MFI_MQTT_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_MQTT_HEADERS
-	${MFI_MQTT_INCLUDE}/mfi_mqtt/mfi_mqtt_client.h
-	${MFI_MQTT_INCLUDE}/ha/command.h
-	${MFI_MQTT_INCLUDE}/ha/discoverable.h
-	${MFI_MQTT_INCLUDE}/ha/discoverable_domain.h
-	${MFI_MQTT_INCLUDE}/ha/sensor.h
-	${MFI_MQTT_INCLUDE}/ha/multi_value_sensor.h
-	${MFI_MQTT_INCLUDE}/ha/single_value_sensor.h
 )
 set(MFI_MQTT_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt/mfi_mqtt_client.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/ha/discoverable.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/ha/sensor.cpp
 )
 set(MFI_MQTT_CLIENT_VERSION 1.1.0.0)
 add_executable(${MFI_MQTT_TARGET_NAME}
