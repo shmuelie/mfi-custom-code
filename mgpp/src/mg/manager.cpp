@@ -33,12 +33,3 @@ optional<connection> manager::listen(http_server* self, const string& url) noexc
 	}
 	return nullopt;
 }
-
-optional<connection> manager::connect(mqtt_client* self, const string& url, const mqtt_options& options) noexcept {
-	const mg_mqtt_opts opts = options;
-	mg_connection* c = mg_mqtt_connect(_manager, url.c_str(), &opts, &mqtt_client::_event_handler, this);
-	if (c != nullptr) {
-		return c;
-	}
-	return nullopt;
-}
