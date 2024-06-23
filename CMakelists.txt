@@ -19,7 +19,7 @@ endif()
 project(mFiCustomCode)
 
 set(MGPP_TARGET_NAME mgpp)
-set(MFI_API_TARGET_NAME mFiApi)
+set(MFI_API_TARGET_NAME mfi)
 set(MFI_SERVER_TARGET_NAME mfi-rest-server)
 set(MFI_MQTT_TARGET_NAME mfi-mqtt-client)
 
