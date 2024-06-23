@@ -4,38 +4,70 @@ Providing custom code to run on Ubiquiti's mFi Devices
 
 ## Projects
 
+`mfi-rest-server` and `mfi-mqtt-client` use
+[docopt.cpp](https://github.com/docopt/docopt.cpp.git) to parse the command line
+options.
+
 ### Buildroot Config
 
-In `br2` is a config file for [Buildroot](https://buildroot.org/) to compile
-C/C++ to run on the mFi devices. Thanks to
+`br2` is a config file for [Buildroot](https://buildroot.org/) to compile C/C++
+to run on the mFi devices. Thanks to
 [cracauer/mFI-mPower-updated-sshd](https://github.com/cracauer/mFI-mPower-updated-sshd)
 for helping me figure this out.
 
 ### mFi API
 
-In `mfi` is a C++ API for the mFi devices, wrapping the file system based API
-they natively support.
+`mfi` is a C++ API for the mFi devices, wrapping the file system based API they
+natively support.
 
-### mFi Server
+### Mongoose C++
 
-In `mfi-server` is a [Mongoose](https://mongoose.ws/) based HTTP REST API server
-for the mFi devices built on top of the mFi API. Also includes a simple C++
-wrapper around Mongoose.
+`mgpp` is a C++ wrapper around [Mongoose](https://mongoose.ws/).
+
+### mFi Rest Server
+
+`mfi-rest-server` is a HTTP REST API server for the mFi devices built on top of
+the mFi API.
 
 ```
 mFi HTTP REST SERVER.
 
   Usage:
-        mfi-server [options]
-        mfi-server (-h | --help)
-        mfi-server --version
+    mfi-rest-server [options]
+    mfi-rest-server (-h | --help)
+    mfi-rest-server --version
 
   Options:
-        -h --help                  Show this screen.
-        --version                  Show version.
-        -i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
-        -p, --port PORT            Use PORT to listen on [default: 8000].
-        -l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
+    -h --help                  Show this screen.
+    --version                  Show version.
+    -i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
+    -p, --port PORT            Use PORT to listen on [default: 8000].
+    -l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
+```
+
+### mFi MQTT Client
+
+`mfi-mqtt-client` is a MQTT client for usage with [Home
+Assistant](https://www.home-assistant.io/). It uses a fork of
+[KodeZ/hass_mqtt_device](https://github.com/KodeZ/hass_mqtt_device) which has
+been tweaked to build as a static library, work as a git submodule, to not build
+examples, and to not require Spdlog.
+
+```
+mFi MQTT Client.
+
+  Usage:
+    mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS
+    mfi-mqtt-client (-h | --help)
+    mfi-mqtt-client --version
+
+  Options:
+    -h --help        Show this screen.
+    --version        Show version.
+    --server SERVER  The MQTT server to connect to.
+    --port PORT      The port to use when connecting to the MQTT server.
+    --username USER  The username to use when connecting to the MQTT server.
+    --password PASS  The password to use when connecting to the MQTT server.
 ```
 
 ## Building
