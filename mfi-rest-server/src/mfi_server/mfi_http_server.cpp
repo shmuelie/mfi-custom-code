@@ -103,12 +103,9 @@ http_response mfi_http_server::led_handler(const string& method, const string& b
 }
 
 http_response mfi_http_server::info_handler() noexcept {
-	char hostname[1024]{};
-	hostname[1023] = '\0';
-	gethostname(hostname, 1023);
 	return { map<string, string>{
 		{"Content-Type", "application/json"}
-	}, "{\"hostName\":\"" + string{hostname} + "\",\"modelName\":\"" + _board.name() + "\",\"modelId\":" + to_string(_board.id()) + ",\"sensorCount\":" + to_string(_board.sensors().size()) + "}" };
+	}, "{\"hostName\":\"" + _board.hostname() + "\",\"modelName\":\"" + _board.name() + "\",\"modelId\":" + to_string(_board.id()) + ",\"sensorCount\":" + to_string(_board.sensors().size()) + "}"};
 }
 
 #define STR_(S) #S
