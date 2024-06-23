@@ -4,46 +4,32 @@ using namespace std;
 using namespace mfi;
 using namespace mfi_mqtt_client;
 
-string get_device_name(const board& board, const sensor& sensor) noexcept {
-	auto hostname = board.hostname();
+string get_device_name(const sensor& sensor) noexcept {
 	auto label = sensor.label();
 	auto name = sensor.name();
 	auto id = sensor.id();
 
-	string deviceName{ hostname };
-	deviceName += "/";
 	if (label != "") {
-		deviceName += label;
+		return label;
 	}
-	else if (name != "") {
-		deviceName += name;
+	if (name != "") {
+		return name;
 	}
-	else {
-		deviceName += id;
-	}
-
-	return deviceName;
+	return to_string(id);
 }
 
-string get_device_id(const board& board, const sensor& sensor) noexcept {
-	auto hostname = board.hostname();
+string get_device_id(const sensor& sensor) noexcept {
 	auto name = sensor.name();
 	auto id = sensor.id();
 
-	string deviceId{ hostname };
-	deviceId += "/";
 	if (name != "") {
-		deviceId += name;
+		return name;
 	}
-	else {
-		deviceId += id;
-	}
-
-	return deviceId;
+	return to_string(id);
 }
 
-mfi_sensor::mfi_sensor(const board& board, const sensor& sensor) noexcept :
-	DeviceBase(get_device_name(board, sensor), get_device_id(board, sensor)),
+mfi_sensor::mfi_sensor(const sensor& sensor) noexcept :
+	DeviceBase(get_device_name(sensor), get_device_id(sensor)),
 	_sensor(sensor),
 	_power(make_shared<functions::power>()),
 	_current(make_shared<functions::current>()),
