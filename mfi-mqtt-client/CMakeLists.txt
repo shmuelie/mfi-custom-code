@@ -19,7 +19,7 @@ set(MFI_MQTT_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/functions/power.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/functions/voltage.cpp
 )
-set(MFI_MQTT_CLIENT_VERSION 1.1.0.0)
+set(MFI_MQTT_CLIENT_VERSION 1.0.0.0)
 add_executable(${MFI_MQTT_TARGET_NAME}
 	${MFI_MQTT_HEADERS}
 	${MFI_MQTT_SOURCE_CODE}
