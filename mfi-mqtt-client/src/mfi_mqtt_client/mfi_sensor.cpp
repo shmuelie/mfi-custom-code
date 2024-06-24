@@ -1,4 +1,5 @@
 #include "mfi_mqtt_client/mfi_sensor.h"
+#include <iostream>
 
 using namespace std;
 using namespace mfi;
@@ -28,6 +29,14 @@ string get_device_id(const sensor& sensor) noexcept {
 	return to_string(id);
 }
 
+#define TRY_REGISTER(FUNC) try {\
+	registerFunction(FUNC);\
+}\
+catch(std::exception& e) {\
+	std::cout << "Error registering " << #FUNC << ": " << e.what() << std::endl;\
+	throw;\
+}
+
 mfi_sensor::mfi_sensor(const sensor& sensor) :
 	DeviceBase(get_device_name(sensor), get_device_id(sensor)),
 	_sensor(sensor),
@@ -36,17 +45,25 @@ mfi_sensor::mfi_sensor(const sensor& sensor) :
 	_voltage(make_shared<functions::voltage>()),
 	_relay(make_shared<SwitchFunction>("relay", [this](auto v) { this->relay(v); })) {
 
-	registerFunction(_power);
-	registerFunction(_current);
-	registerFunction(_voltage);
-	registerFunction(_relay);
+	TRY_REGISTER(_power);
+	TRY_REGISTER(_current);
+	TRY_REGISTER(_voltage);
+	TRY_REGISTER(_relay);
+}
+
+#define TRY_UPDATE(TYPE) try {\
+	_##TYPE->update(_sensor.TYPE());\
+}\
+catch(std::exception& e) {\
+	std::cout << "Error updating " << #TYPE << ": " << e.what() << std::endl;\
+	throw;\
 }
 
 void mfi_sensor::update() {
-	_power->update(_sensor.power());
-	_current->update(_sensor.current());
-	_voltage->update(_sensor.voltage());
-	_relay->update(_sensor.relay());
+	TRY_UPDATE(power);
+	TRY_UPDATE(current);
+	TRY_UPDATE(voltage);
+	TRY_UPDATE(relay);
 }
 
 void mfi_sensor::relay(bool value) noexcept {
