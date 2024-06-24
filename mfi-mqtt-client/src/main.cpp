@@ -45,12 +45,23 @@ int main(int argc, char* argv[]) {
 	mfi::board b{};
 	mfi_mqtt_client::mfi_device device{ b, ops.server(), ops.port(), ops.username(), ops.password() };
 
-	if (!device.connect()) {
+	try {
+		if (!device.connect()) {
+			return -2;
+		}
+	}
+	catch (std::exception& e) {
+		std::cout << "Error connecting: " << e.what() << std::endl;
 		return -2;
 	}
 
 	for (;;) {
-		device.processMessages(1000);
+		try {
+			device.processMessages(1000);
+		}
+		catch (std::exception& e) {
+			std::cout << "Error procssing message: " << e.what() << std::endl;
+		}
 		device.update();
 	}
 
