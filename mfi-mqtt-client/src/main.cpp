@@ -1,4 +1,5 @@
 #include <iostream>
+#include <optional>
 #include "mfi_mqtt_client/options.h"
 #include "mfi_mqtt_client/mfi_device.h"
 
@@ -21,6 +22,19 @@ R"(mFi MQTT Client.
 	--username USER  The username to use when connecting to the MQTT server.
 	--password PASS  The password to use when connecting to the MQTT server.
 )";
+
+std::optional<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::options& ops) {
+	try {
+		mfi::board b{};
+		mfi_mqtt_client::mfi_device device{ b, ops.server(), ops.port(), ops.username(), ops.password() };
+		return device;
+	}
+	catch (std::exception& e) {
+		std::cout << "Error creating devices: " << e.what() << std::endl;
+		return std::nullopt;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	mfi_mqtt_client::options ops{ USAGE, { argv + 1, argv + argc } };
 
@@ -42,28 +56,38 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	mfi::board b{};
-	mfi_mqtt_client::mfi_device device{ b, ops.server(), ops.port(), ops.username(), ops.password() };
+	std::cout << "Starting MQTT client..." << std::endl;
+
+	auto device = create_device(ops);
+	if (!device) {
+		return -2;
+	}
+
+	std::cout << "Connecting to client..." << std::endl;
 
 	try {
-		if (!device.connect()) {
-			return -2;
+		if (!device->connect()) {
+			return -3;
 		}
 	}
 	catch (std::exception& e) {
 		std::cout << "Error connecting: " << e.what() << std::endl;
-		return -2;
+		return -3;
 	}
+
+	std::cout << "Connected to client. Starting polling..." << std::endl;
 
 	for (;;) {
 		try {
-			device.processMessages(1000);
+			device->processMessages(1000);
 		}
 		catch (std::exception& e) {
 			std::cout << "Error procssing message: " << e.what() << std::endl;
 		}
-		device.update();
+		device->update();
 	}
+
+	std::cout << "Exiting" << std::endl;
 
 	return 0;
 }
