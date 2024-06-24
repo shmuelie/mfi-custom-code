@@ -53,4 +53,6 @@ int main(int argc, char* argv[]) {
 		device.processMessages(1000);
 		device.update();
 	}
+
+	return 0;
 }
