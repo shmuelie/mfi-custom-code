@@ -1,4 +1,5 @@
 #include "mfi_mqtt_client/mfi_device.h"
+#include <iostream>
 
 using namespace mfi;
 using namespace mfi_mqtt_client;
@@ -18,17 +19,32 @@ mfi_device::mfi_device(
 	for (auto& sensor : board.sensors()) {
 		auto mfiSensor = make_shared<mfi_sensor>(sensor);
 		_sensors.push_back(mfiSensor);
-		registerDevice(mfiSensor);
+		try {
+			registerDevice(mfiSensor);
+		}
+		catch (std::exception& e) {
+			std::cout << "Error registering sensor " << sensor.id() << ": " << e.what() << std::endl;
+		}
 	}
 	_light = make_shared<OnOffLightDevice>("LED", [this](auto v) { this->led().color(v ? led_color::blue : led_color::off); }, "LED");
-	registerDevice(_light);
+	try {
+		registerDevice(_light);
+	}
+	catch (std::exception& e) {
+		std::cout << "Error registering led: " << e.what() << std::endl;
+	}
 }
 
 void mfi_device::update() {
 	for (auto& sensor : _sensors) {
 		sensor->update();
 	}
-	_light->update(_led.color() != led_color::off);
+	try {
+		_light->update(_led.color() != led_color::off);
+	}
+	catch (std::exception& e) {
+		std::cout << "Error updating led: " << e.what() << std::endl;
+	}
 }
 
 led mfi_device::led() const noexcept {
