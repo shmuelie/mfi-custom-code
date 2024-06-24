@@ -10,9 +10,9 @@
 namespace mfi_mqtt_client {
 	class mfi_device : public MQTTConnector {
 	public:
-		explicit mfi_device(const mfi::board& board, const std::string& server, int port, const std::string& username, const std::string& password) noexcept;
+		explicit mfi_device(const mfi::board& board, const std::string& server, int port, const std::string& username, const std::string& password);
 
-		void update() noexcept;
+		void update();
 		mfi::led led() const noexcept;
 	private:
 		mfi::board _board;

@@ -9,7 +9,7 @@ mfi_device::mfi_device(
 	const string& server,
 	int port,
 	const string& username,
-	const string& password) noexcept :
+	const string& password) :
 	MQTTConnector(server, port, username, password, board.hostname()),
 	_board(board),
 	_sensors(),
@@ -23,7 +23,7 @@ mfi_device::mfi_device(
 	_light = make_shared<OnOffLightDevice>("LED", [this](auto v) { this->led().color(v ? led_color::blue : led_color::off); }, "LED");
 }
 
-void mfi_device::update() noexcept {
+void mfi_device::update() {
 	for (auto& sensor : _sensors) {
 		sensor->update();
 	}

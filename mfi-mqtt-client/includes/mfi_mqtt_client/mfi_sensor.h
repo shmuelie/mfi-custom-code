@@ -11,9 +11,9 @@
 namespace mfi_mqtt_client {
 	class mfi_sensor : public DeviceBase {
 	public:
-		explicit mfi_sensor(const mfi::sensor& sensor) noexcept;
+		explicit mfi_sensor(const mfi::sensor& sensor);
 
-		void update() noexcept;
+		void update();
 		void relay(bool value) noexcept;
 	private:
 		mfi::sensor _sensor;

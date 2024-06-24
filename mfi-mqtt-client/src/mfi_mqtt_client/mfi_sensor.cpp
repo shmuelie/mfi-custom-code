@@ -28,7 +28,7 @@ string get_device_id(const sensor& sensor) noexcept {
 	return to_string(id);
 }
 
-mfi_sensor::mfi_sensor(const sensor& sensor) noexcept :
+mfi_sensor::mfi_sensor(const sensor& sensor) :
 	DeviceBase(get_device_name(sensor), get_device_id(sensor)),
 	_sensor(sensor),
 	_power(make_shared<functions::power>()),
@@ -42,7 +42,7 @@ mfi_sensor::mfi_sensor(const sensor& sensor) noexcept :
 	registerFunction(_relay);
 }
 
-void mfi_sensor::update() noexcept {
+void mfi_sensor::update() {
 	_power->update(_sensor.power());
 	_current->update(_sensor.current());
 	_voltage->update(_sensor.voltage());
