@@ -21,6 +21,7 @@ mfi_device::mfi_device(
 		registerDevice(mfiSensor);
 	}
 	_light = make_shared<OnOffLightDevice>("LED", [this](auto v) { this->led().color(v ? led_color::blue : led_color::off); }, "LED");
+	registerDevice(_light);
 }
 
 void mfi_device::update() {
