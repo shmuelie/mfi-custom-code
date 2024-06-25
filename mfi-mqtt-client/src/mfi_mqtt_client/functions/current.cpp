@@ -6,6 +6,7 @@ using namespace mfi_mqtt_client::functions;
 current::current() noexcept : SensorFunction("current", {
 		.device_class = "current",
 		.state_class = "measurement",
-		.unit_of_measurement = "A"
+		.unit_of_measurement = "A",
+		.suggested_display_precision = 4
 	}) {
 }
