@@ -16,8 +16,13 @@ mfi_device::mfi_device(
 	_sensors(),
 	_led(),
 	_light() {
-	for (auto& sensor : board.sensors()) {
+	_light = make_shared<OnOffLightDevice>("LED", [this](auto v) { this->led().color(v ? led_color::blue : led_color::off); }, "LED");
+}
+
+void mfi_device::init() {
+	for (auto& sensor : _board.sensors()) {
 		auto mfiSensor = make_shared<mfi_sensor>(sensor);
+		mfiSensor->init();
 		_sensors.push_back(mfiSensor);
 		try {
 			registerDevice(mfiSensor);
@@ -26,7 +31,6 @@ mfi_device::mfi_device(
 			std::cout << "Error registering sensor " << sensor.id() << ": " << e.what() << std::endl;
 		}
 	}
-	_light = make_shared<OnOffLightDevice>("LED", [this](auto v) { this->led().color(v ? led_color::blue : led_color::off); }, "LED");
 	try {
 		registerDevice(_light);
 	}

@@ -44,7 +44,9 @@ mfi_sensor::mfi_sensor(const sensor& sensor) :
 	_current(make_shared<functions::current>()),
 	_voltage(make_shared<functions::voltage>()),
 	_relay(make_shared<SwitchFunction>("relay", [this](auto v) { this->relay(v); })) {
+}
 
+void mfi_sensor::init() {
 	TRY_REGISTER(_power);
 	TRY_REGISTER(_current);
 	TRY_REGISTER(_voltage);

@@ -12,6 +12,7 @@ namespace mfi_mqtt_client {
 	public:
 		explicit mfi_device(const mfi::board& board, const std::string& server, int port, const std::string& username, const std::string& password);
 
+		void init();
 		void update();
 		mfi::led led() const noexcept;
 	private:

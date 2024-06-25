@@ -13,6 +13,7 @@ namespace mfi_mqtt_client {
 	public:
 		explicit mfi_sensor(const mfi::sensor& sensor);
 
+		void init();
 		void update();
 		void relay(bool value) noexcept;
 	private:

@@ -27,6 +27,7 @@ std::optional<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::
 	try {
 		mfi::board b{};
 		mfi_mqtt_client::mfi_device device{ b, ops.server(), ops.port(), ops.username(), ops.password() };
+		device.init();
 		return device;
 	}
 	catch (std::exception& e) {
