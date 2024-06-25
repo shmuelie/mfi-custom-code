@@ -12,10 +12,10 @@ string get_device_name(const board& board, const sensor& sensor) noexcept {
 	auto id = sensor.id();
 
 	if (label != "") {
-		return hostname + "/" + label;
+		return label;
 	}
 	if (name != "") {
-		return hostname + "/" + name;
+		return name;
 	}
 	return hostname + "/" + to_string(id);
 }
