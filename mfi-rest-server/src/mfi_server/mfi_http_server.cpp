@@ -1,13 +1,13 @@
 #include "mfi_server/mfi_http_server.h"
 #include "mfi/led.h"
 #include <cmath>
-#include "string_helpers.h"
+#include "shmuelie/string_helpers.hpp"
 #include "mg/logger.h"
 
 using namespace std;
 using namespace mg;
 using namespace mfi;
-using namespace string_helpers;
+using namespace shmuelie;
 
 mfi_http_server::mfi_http_server() noexcept : http_server() {
 	string v2Regex{ "^\\/api\\/v2\\/(sensor(?:\\/(" };

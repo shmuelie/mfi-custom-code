@@ -7,7 +7,7 @@
 #include <iostream>
 #include <vector>
 
-namespace string_helpers {
+namespace shmuelie {
 	template<typename InputIt>
 	static std::string join(InputIt first,
 		InputIt last,

@@ -15,7 +15,6 @@ set(MGPP_HEADERS
 	${MGPP_INCLUDES}/mg/timer.h
 	${MGPP_INCLUDES}/mg/manager.h
 	${MGPP_INCLUDES}/mongoose.h
-	${MGPP_INCLUDES}/string_helpers.h
 )
 set(MGPP_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/connection.cpp
@@ -40,3 +39,4 @@ set_target_properties(${MGPP_TARGET_NAME} PROPERTIES
 	VERSION 1.0.0.0
 )
 target_include_directories(${MGPP_TARGET_NAME} PUBLIC ${MGPP_INCLUDES})
+target_link_libraries(${MGPP_TARGET_NAME} PUBLIC ${SHMUELIE_SHARED_TARGET_NAME})

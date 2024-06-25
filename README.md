@@ -8,6 +8,10 @@ Providing custom code to run on Ubiquiti's mFi Devices
 [docopt.cpp](https://github.com/docopt/docopt.cpp.git) to parse the command line
 options.
 
+### Shared Code
+
+`shmuelie-shared` is a shared library for code that is used in multiple projects.
+
 ### Buildroot Config
 
 `br2` is a config file for [Buildroot](https://buildroot.org/) to compile C/C++

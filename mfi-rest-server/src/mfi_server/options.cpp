@@ -1,11 +1,9 @@
 #include "mfi_server/options.h"
-#include "string_helpers.h"
-#include "docopt.h"
+#include "shmuelie/string_helpers.hpp"
 #include "mongoose.h"
 
 using namespace std;
-using namespace docopt;
-using namespace string_helpers;
+using namespace shmuelie;
 
 static bool validate_ip(const string& ip)
 {
@@ -30,13 +28,13 @@ static bool validate_ip(const string& ip)
 	return true;
 }
 
-options::options(const string& doc, const vector<string>& argv) noexcept {
+options::options(const string& doc, const vector<string>& argv) noexcept : docopt_options(doc, argv) {
 	try {
-		auto args = docopt_parse(doc, argv);
+		auto& args = values();
 
 		auto& ip = args.at("--ip").asString();
 		if (!validate_ip(ip)) {
-			_errors.push_back("Invalid IP address");
+			add_error("Invalid IP address");
 		}
 		else {
 			_ip = ip;
@@ -44,7 +42,7 @@ options::options(const string& doc, const vector<string>& argv) noexcept {
 
 		auto potentialPort = try_stoul<uint16_t>(args.at("--port").asString());
 		if (!potentialPort) {
-			_errors.push_back("Invalid port");
+			add_error("Invalid port");
 		}
 		else {
 			_port = potentialPort.value();
@@ -52,23 +50,14 @@ options::options(const string& doc, const vector<string>& argv) noexcept {
 
 		auto potentialLogLevel = try_stoul<uint8_t>(args.at("--log-level").asString());
 		if (!potentialLogLevel || potentialLogLevel.value() > MG_LL_VERBOSE) {
-			_errors.push_back("Invalid log level");
+			add_error("Invalid log level");
 		}
 		else {
 			_logLevel = potentialLogLevel.value();
 		}
 	}
-	catch (DocoptExitHelp const&) {
-		_help = true;
-	}
-	catch (DocoptExitVersion const&) {
-		_version = true;
-	}
-	catch (DocoptLanguageError const& error) {
-		_errors.push_back(string{ "Docopt usage string could not be parsed\n" } + error.what());
-	}
-	catch (DocoptArgumentError const& error) {
-		_errors.push_back(error.what());
+	catch (exception const& error) {
+		add_error(error.what());
 	}
 }
 
@@ -82,16 +71,4 @@ uint16_t options::port() const noexcept {
 
 uint8_t options::log_level() const noexcept {
 	return _logLevel;
-}
-
-bool options::help() const noexcept {
-	return _help;
-}
-
-bool options::version() const noexcept {
-	return _version;
-}
-
-const vector<string>& options::errors() const noexcept {
-	return _errors;
 }
