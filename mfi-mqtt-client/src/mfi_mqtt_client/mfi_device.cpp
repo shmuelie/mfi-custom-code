@@ -28,7 +28,7 @@ void mfi_device::init() {
 			registerDevice(mfiSensor);
 		}
 		catch (std::exception& e) {
-			std::cout << "Error registering sensor " << sensor.id() << ": " << e.what() << std::endl;
+			std::cout << "Error registering sensor " << to_string(sensor.id()) << ": " << e.what() << std::endl;
 		}
 	}
 	try {
