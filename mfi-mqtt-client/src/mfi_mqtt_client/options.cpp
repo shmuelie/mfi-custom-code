@@ -19,6 +19,7 @@ options::options(const string& doc, const vector<string>& argv) noexcept : docop
 			_port = potentialPort.value();
 		}
 
+		_polling_rate = try_stoul<int>(args.at("--rate").asString()).value_or(1000);
 		_username = args.at("--username").asString();
 		_password = args.at("--password").asString();
 	}

@@ -14,10 +14,13 @@ namespace mfi_mqtt_client {
 		const std::string& username() const noexcept;
 
 		const std::string& password() const noexcept;
+
+		int polling_rate() const noexcept;
 	private:
 		std::string _server{};
 		uint16_t _port = 0;
 		std::string _username{};
 		std::string _password{};
+		int _polling_rate;
 	};
 }

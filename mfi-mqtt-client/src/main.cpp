@@ -9,7 +9,7 @@ static const char USAGE[] =
 R"(mFi MQTT Client.
 
   Usage:
-	mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS
+	mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS [--rate RATE]
 	mfi-mqtt-client (-h | --help)
 	mfi-mqtt-client --version
 
@@ -20,6 +20,7 @@ R"(mFi MQTT Client.
 	--port PORT      The port to use when connecting to the MQTT server.
 	--username USER  The username to use when connecting to the MQTT server.
 	--password PASS  The password to use when connecting to the MQTT server.
+	--rate RATE      The polling rate in milliseconds [default: 1000].
 )";
 
 std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::options& ops) {
@@ -79,7 +80,7 @@ int main(int argc, char* argv[]) {
 
 	for (;;) {
 		try {
-			device->processMessages(1000);
+			device->processMessages(ops.polling_rate());
 		}
 		catch (std::exception& e) {
 			std::cout << "Error procssing message: " << e.what() << std::endl;
