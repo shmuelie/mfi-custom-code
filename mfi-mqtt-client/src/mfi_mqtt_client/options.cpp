@@ -9,7 +9,7 @@ options::options(const string& doc, const vector<string>& argv) noexcept : docop
 	try {
 		auto& args = values();
 
-		_server = args.at("server").asString();
+		_server = args.at("--server").asString();
 
 		auto potentialPort = try_stoul<uint16_t>(args.at("--port").asString());
 		if (!potentialPort) {
@@ -19,8 +19,8 @@ options::options(const string& doc, const vector<string>& argv) noexcept : docop
 			_port = potentialPort.value();
 		}
 
-		_username = args.at("username").asString();
-		_password = args.at("password").asString();
+		_username = args.at("--username").asString();
+		_password = args.at("--password").asString();
 	}
 	catch (exception const& error) {
 		add_error(error.what());
