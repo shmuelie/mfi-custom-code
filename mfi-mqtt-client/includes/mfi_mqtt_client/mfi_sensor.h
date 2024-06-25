@@ -3,7 +3,7 @@
 #include <memory>
 #include "hass_mqtt_device/core/device_base.h"
 #include "hass_mqtt_device/functions/switch.h"
-#include "mfi/sensor.h"
+#include "mfi.h"
 #include "mfi_mqtt_client/functions/current.h"
 #include "mfi_mqtt_client/functions/power.h"
 #include "mfi_mqtt_client/functions/voltage.h"
@@ -11,7 +11,7 @@
 namespace mfi_mqtt_client {
 	class mfi_sensor : public DeviceBase {
 	public:
-		explicit mfi_sensor(const mfi::sensor& sensor);
+		explicit mfi_sensor(const mfi::board& board, const mfi::sensor& sensor);
 
 		void init();
 		void update();

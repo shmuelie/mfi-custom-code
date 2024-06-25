@@ -21,7 +21,7 @@ mfi_device::mfi_device(
 
 void mfi_device::init() {
 	for (auto& sensor : _board.sensors()) {
-		auto mfiSensor = make_shared<mfi_sensor>(sensor);
+		auto mfiSensor = make_shared<mfi_sensor>(_board, sensor);
 		mfiSensor->init();
 		_sensors.push_back(mfiSensor);
 		try {
