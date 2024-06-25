@@ -1,5 +1,4 @@
 #include <iostream>
-#include <optional>
 #include "mfi_mqtt_client/options.h"
 #include "mfi_mqtt_client/mfi_device.h"
 
@@ -23,16 +22,16 @@ R"(mFi MQTT Client.
 	--password PASS  The password to use when connecting to the MQTT server.
 )";
 
-std::optional<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::options& ops) {
+std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::options& ops) {
 	try {
 		mfi::board b{};
-		mfi_mqtt_client::mfi_device device{ b, ops.server(), ops.port(), ops.username(), ops.password() };
-		device.init();
+		auto device = std::make_shared<mfi_mqtt_client::mfi_device>(b, ops.server(), ops.port(), ops.username(), ops.password());
+		device->init();
 		return device;
 	}
 	catch (std::exception& e) {
 		std::cout << "Error creating devices: " << e.what() << std::endl;
-		return std::nullopt;
+		return nullptr;
 	}
 }
 
