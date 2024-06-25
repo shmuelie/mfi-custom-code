@@ -20,15 +20,14 @@ string get_device_name(const board& board, const sensor& sensor) noexcept {
 	return hostname + "/" + to_string(id);
 }
 
-string get_device_id(const board& board, const sensor& sensor) noexcept {
-	auto hostname = board.hostname();
+string get_device_id(const sensor& sensor) noexcept {
 	auto name = sensor.name();
 	auto id = sensor.id();
 
 	if (name != "") {
-		return hostname + "/" + name;
+		return name;
 	}
-	return hostname + "/" + to_string(id);
+	return to_string(id);
 }
 
 #define TRY_REGISTER(FUNC) try {\
@@ -40,7 +39,7 @@ catch(std::exception& e) {\
 }
 
 mfi_sensor::mfi_sensor(const board& board, const sensor& sensor) :
-	DeviceBase(get_device_name(board, sensor), get_device_id(board, sensor)),
+	DeviceBase(get_device_name(board, sensor), get_device_id(sensor)),
 	_sensor(sensor),
 	_power(make_shared<functions::power>()),
 	_current(make_shared<functions::current>()),
