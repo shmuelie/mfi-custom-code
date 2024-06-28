@@ -5,13 +5,11 @@ using namespace std;
 using namespace mfi_mqtt_client;
 using namespace shmuelie;
 
-options::options(const string& doc, const vector<string>& argv) noexcept : docopt_options(doc, argv) {
+options::options(string const& doc, vector<string> const& argv) noexcept : docopt_options(doc, argv) {
 	try {
-		auto& args = values();
+		_server = get_string("--server").value();
 
-		_server = args.at("--server").asString();
-
-		auto potentialPort = try_stoul<uint16_t>(args.at("--port").asString());
+		auto potentialPort = get_uint16("--port");
 		if (!potentialPort) {
 			add_error("Invalid port");
 		}
@@ -19,16 +17,16 @@ options::options(const string& doc, const vector<string>& argv) noexcept : docop
 			_port = potentialPort.value();
 		}
 
-		_polling_rate = try_stoul<int>(args.at("--rate").asString()).value_or(1000);
-		_username = args.at("--username").asString();
-		_password = args.at("--password").asString();
+		_polling_rate = get_int("--polling-rate").value_or(1000);
+		_username = get_string("--username").value();
+		_password = get_string("--password").value();
 	}
 	catch (exception const& error) {
 		add_error(error.what());
 	}
 }
 
-const string& options::server() const noexcept {
+string const& options::server() const noexcept {
 	return _server;
 }
 
@@ -36,11 +34,11 @@ uint16_t options::port() const noexcept {
 	return _port;
 }
 
-const string& options::username() const noexcept {
+string const& options::username() const noexcept {
 	return _username;
 }
 
-const string& options::password() const noexcept {
+string const& options::password() const noexcept {
 	return _password;
 }
 

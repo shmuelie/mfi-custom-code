@@ -4,7 +4,7 @@
 
 class options : public shmuelie::docopt_options {
 public:
-	explicit options(const std::string& doc, const std::vector<std::string>& argv) noexcept;
+	options(const std::string& doc, const std::vector<std::string>& argv) noexcept;
 
 	const std::string& ip() const noexcept;
 

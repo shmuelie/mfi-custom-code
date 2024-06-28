@@ -5,15 +5,15 @@
 namespace mfi_mqtt_client {
 	class options : public shmuelie::docopt_options {
 	public:
-		explicit options(const std::string& doc, const std::vector<std::string>& argv) noexcept;
+		options(std::string const& doc, std::vector<std::string> const& argv) noexcept;
 
-		const std::string& server() const noexcept;
+		std::string const& server() const noexcept;
 
 		uint16_t port() const noexcept;
 
-		const std::string& username() const noexcept;
+		std::string const& username() const noexcept;
 
-		const std::string& password() const noexcept;
+		std::string const& password() const noexcept;
 
 		int polling_rate() const noexcept;
 	private:

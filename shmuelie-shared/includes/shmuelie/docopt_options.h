@@ -3,22 +3,26 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <optional>
 #include "docopt.h"
 
 namespace shmuelie {
 	class docopt_options {
 	public:
-		explicit docopt_options(const std::string& doc, const std::vector<std::string>& argv) noexcept;
+		docopt_options(std::string const& doc, std::vector<std::string> const& argv) noexcept;
 
 		bool help() const noexcept;
 
 		bool version() const noexcept;
 
-		const std::vector<std::string>& errors() const noexcept;
+		std::vector<std::string> const& errors() const noexcept;
 
 	protected:
-		const std::map<std::string, docopt::value>& values() const noexcept;
-		void add_error(const std::string& error_str) noexcept;
+		std::optional<std::string> const get_string(std::string const& key) const noexcept;
+		std::optional<uint16_t> get_uint16(std::string const& key) const noexcept;
+		std::optional<int> get_int(std::string const& key) const noexcept;
+		std::optional<uint8_t> get_uint8(std::string const& key) const noexcept;
+		void add_error(std::string const& error_str) noexcept;
 
 	private:
 		std::map<std::string, docopt::value> _values;

@@ -36,7 +36,7 @@ namespace shmuelie {
 	}
 
 	template<typename NumberType>
-	static std::optional<NumberType> try_stoul(const std::string& __str, size_t* __idx = nullptr, int __base = 10) {
+	static std::optional<NumberType> try_stoul(std::string const& __str, size_t* __idx = nullptr, int __base = 10) {
 		try {
 			return static_cast<NumberType>(std::stoul(__str, __idx, __base));
 		}
@@ -48,14 +48,27 @@ namespace shmuelie {
 		}
 	}
 
-	static bool is_number(const std::string& str)
+	template<typename NumberType>
+	static std::optional<NumberType> try_stoi(std::string const& __str, size_t* __idx = nullptr, int __base = 10) {
+		try {
+			return static_cast<NumberType>(std::stoi(__str, __idx, __base));
+		}
+		catch (std::invalid_argument) {
+			return std::nullopt;
+		}
+		catch (std::out_of_range) {
+			return std::nullopt;
+		}
+	}
+
+	static bool is_number(std::string const& str)
 	{
 		// `std::find_first_not_of` searches the string for the first character
 		// that does not match any of the characters specified in its arguments
 		return !str.empty() && (str.find_first_not_of("[0123456789]") == std::string::npos);
 	}
 
-	static std::vector<std::string> split(const std::string& str, char delim)
+	static std::vector<std::string> split(std::string const& str, char delim)
 	{
 		auto i = 0;
 		std::vector<std::string> list;

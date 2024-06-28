@@ -30,9 +30,7 @@ static bool validate_ip(const string& ip)
 
 options::options(const string& doc, const vector<string>& argv) noexcept : docopt_options(doc, argv) {
 	try {
-		auto& args = values();
-
-		auto& ip = args.at("--ip").asString();
+		auto& ip = get_string("--ip").value();
 		if (!validate_ip(ip)) {
 			add_error("Invalid IP address");
 		}
@@ -40,7 +38,7 @@ options::options(const string& doc, const vector<string>& argv) noexcept : docop
 			_ip = ip;
 		}
 
-		auto potentialPort = try_stoul<uint16_t>(args.at("--port").asString());
+		auto potentialPort = get_uint16("--port");
 		if (!potentialPort) {
 			add_error("Invalid port");
 		}
@@ -48,7 +46,7 @@ options::options(const string& doc, const vector<string>& argv) noexcept : docop
 			_port = potentialPort.value();
 		}
 
-		auto potentialLogLevel = try_stoul<uint8_t>(args.at("--log-level").asString());
+		auto potentialLogLevel = get_uint8("--log-level");
 		if (!potentialLogLevel || potentialLogLevel.value() > MG_LL_VERBOSE) {
 			add_error("Invalid log level");
 		}
