@@ -11,11 +11,11 @@
 namespace mfi_mqtt_client {
 	class mfi_sensor : public DeviceBase {
 	public:
-		explicit mfi_sensor(const mfi::board& board, const mfi::sensor& sensor);
+		mfi_sensor(mfi::board const& board, mfi::sensor const& sensor);
 
 		void init();
 		void update();
-		void relay(bool value) noexcept;
+		void relay(bool value);
 	private:
 		mfi::sensor _sensor;
 		std::shared_ptr<functions::power> _power;

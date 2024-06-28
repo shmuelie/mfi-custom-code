@@ -5,6 +5,6 @@
 namespace mfi_mqtt_client::functions {
 	class voltage : public SensorFunction<double> {
 	public:
-		explicit voltage() noexcept;
+		voltage() noexcept;
 	};
 }

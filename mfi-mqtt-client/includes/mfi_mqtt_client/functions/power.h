@@ -5,6 +5,6 @@
 namespace mfi_mqtt_client::functions {
 	class power : public SensorFunction<double> {
 	public:
-		explicit power() noexcept;
+		power() noexcept;
 	};
 }

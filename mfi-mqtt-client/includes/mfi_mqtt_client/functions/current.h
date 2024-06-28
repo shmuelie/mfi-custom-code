@@ -5,6 +5,6 @@
 namespace mfi_mqtt_client::functions {
 	class current : public SensorFunction<double> {
 	public:
-		explicit current() noexcept;
+		current() noexcept;
 	};
 }

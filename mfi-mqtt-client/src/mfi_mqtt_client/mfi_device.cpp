@@ -6,11 +6,11 @@ using namespace mfi_mqtt_client;
 using namespace std;
 
 mfi_device::mfi_device(
-	const board& board,
-	const string& server,
+	board const& board,
+	string const& server,
 	int port,
-	const string& username,
-	const string& password) :
+	string const& username,
+	string const& password) :
 	MQTTConnector(server, port, username, password, board.hostname()),
 	_board(board),
 	_sensors(),
