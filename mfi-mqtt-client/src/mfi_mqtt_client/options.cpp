@@ -43,3 +43,7 @@ const string& options::username() const noexcept {
 const string& options::password() const noexcept {
 	return _password;
 }
+
+int options::polling_rate() const noexcept {
+	return _polling_rate;
+}
