@@ -9,21 +9,21 @@ namespace mfi {
 	/**
 	 * @brief Reprsents the mFi device.
 	*/
-	class board {
+	class board final {
 	public:
 		/**
 		 * @brief Initializes a new instance of the mfi::board class.
 		*/
-		explicit board();
+		board();
 
 		/**
 		 * @brief Gets the model name of the mFi device.
 		*/
-		const std::string& name() const;
+		std::string const& name() const;
 		/**
 		 * @brief Gets the model short name of the mFi device.
 		*/
-		const std::string& short_name() const;
+		std::string const& short_name() const;
 		/**
 		 * @brief Gets the model ID of the mFi device.
 		*/
@@ -31,22 +31,23 @@ namespace mfi {
 		/**
 		 * @brief Gets the collection of sensors on the mFi device.
 		*/
-		const std::vector<sensor>& sensors() const;
+		std::vector<sensor> const& sensors() const;
 
 		/**
 		 * @brief Gets the version of the mFi firmware.
 		 */
-		const std::string& version() const;
+		std::string const& version() const;
 
 		/**
 		 * @brief Gets the hostname of the device.
 		 */
-		const std::string hostname() const;
+		std::string const& hostname() const;
 	private:
 		std::string _name;
 		std::string _shortName;
 		uint16_t _id;
 		std::vector<sensor> _sensors{};
 		std::string _version;
+		std::string _hostname;
 	};
 }

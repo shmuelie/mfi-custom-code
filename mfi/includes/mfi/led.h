@@ -32,12 +32,12 @@ namespace mfi {
 	/**
 	 * @brief Represents the LED on an mFi device.
 	*/
-	class led {
+	class led final {
 	public:
 		/**
 		 * @brief Initializes a new instance of the mfi::led class.
 		*/
-		explicit led() noexcept;
+		led() noexcept;
 
 		/**
 		 * @brief Gets the color/style of the LED.

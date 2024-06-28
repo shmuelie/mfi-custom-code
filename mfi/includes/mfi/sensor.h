@@ -6,7 +6,7 @@ namespace mfi {
 	/**
 	 * @brief Represents a port or switch on the mFi device.
 	*/
-	class sensor {
+	class sensor final {
 	public:
 		/**
 		 * @brief Initializes a new instance of the mfi::sensor class.
@@ -43,13 +43,15 @@ namespace mfi {
 
 		/**
 		 * @brief Gets the name of the sensor.
+		 * @remarks Value is read from the system on every call.
 		 */
-		const std::string name() const;
+		std::string const name() const;
 
 		/**
 		 * @brief Gets the label of the sensor.
+		 * @remarks Value is read from the system on every call.
 		 */
-		const std::string label() const;
+		std::string const label() const;
 	private:
 		uint8_t _id;
 		double read(const std::string& path) const;

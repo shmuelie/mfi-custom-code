@@ -32,13 +32,18 @@ board::board() {
 
 	ifstream versionStream{ "/etc/version" };
 	getline(versionStream, _version);
+
+	char hostname[1024]{};
+	hostname[1023] = '\0';
+	gethostname(hostname, 1023);
+	_hostname = string{ hostname };
 }
 
-const string& board::name() const {
+string const& board::name() const {
 	return _name;
 }
 
-const string& board::short_name() const {
+string const& board::short_name() const {
 	return _shortName;
 }
 
@@ -46,17 +51,14 @@ uint16_t board::id() const {
 	return _id;
 }
 
-const std::vector<sensor>& board::sensors() const {
+std::vector<sensor> const& board::sensors() const {
 	return _sensors;
 }
 
-const string& board::version() const {
+string const& board::version() const {
 	return _version;
 }
 
-const string board::hostname() const {
-	char hostname[1024]{};
-	hostname[1023] = '\0';
-	gethostname(hostname, 1023);
-	return string{ hostname };
+string const& board::hostname() const {
+	return _hostname;
 }

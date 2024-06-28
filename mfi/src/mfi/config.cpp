@@ -7,7 +7,7 @@
 using namespace std;
 using namespace mfi;
 
-const map<string, string> config::read_all(const string& file) {
+map<string, string> const config::read_all(const string& file) {
 	ifstream stream{ file.c_str() };
 
 	if (stream.bad()) {
@@ -32,7 +32,7 @@ const map<string, string> config::read_all(const string& file) {
 	return config;
 }
 
-const string config::read(const string& file, const string& prop) {
+string const config::read(const string& file, const string& prop) {
 	ifstream stream{ file.c_str() };
 
 	if (stream.bad()) {
@@ -57,7 +57,7 @@ const string config::read(const string& file, const string& prop) {
 	return string{};
 }
 
-const string config::read(const string& file, const string& prop, const string& defaultValue) noexcept {
+string const config::read(const string& file, const string& prop, const string& defaultValue) {
 	ifstream stream{ file.c_str() };
 
 	if (stream.bad()) {
