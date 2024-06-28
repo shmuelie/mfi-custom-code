@@ -27,14 +27,14 @@ void mfi_device::init() {
 		try {
 			registerDevice(mfiSensor);
 		}
-		catch (std::exception& e) {
+		catch (std::exception const& e) {
 			std::cout << "Error registering sensor " << to_string(sensor.id()) << ": " << e.what() << std::endl;
 		}
 	}
 	try {
 		registerDevice(_light);
 	}
-	catch (std::exception& e) {
+	catch (std::exception const& e) {
 		std::cout << "Error registering led: " << e.what() << std::endl;
 	}
 }
@@ -46,7 +46,7 @@ void mfi_device::update() {
 	try {
 		_light->update(_led.color() != led_color::off);
 	}
-	catch (std::exception& e) {
+	catch (std::exception const& e) {
 		std::cout << "Error updating led: " << e.what() << std::endl;
 	}
 }

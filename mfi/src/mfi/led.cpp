@@ -7,9 +7,9 @@
 using namespace std;
 using namespace mfi;
 
-const string root{ "/proc/led/" };
-const string status_path{ root + "status" };
-const string frequency_path{ root + "freq" };
+string const root{ "/proc/led/" };
+string const status_path{ root + "status" };
+string const frequency_path{ root + "freq" };
 
 led::led() noexcept {
 }

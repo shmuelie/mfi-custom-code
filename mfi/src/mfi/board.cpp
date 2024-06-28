@@ -10,7 +10,6 @@ using namespace std;
 using namespace mfi;
 
 board::board() {
-
 	auto boardInfo = config::read_all("/etc/board.info");
 	_name = boardInfo.at("board.name");
 	_shortName = boardInfo.at("board.shortname");

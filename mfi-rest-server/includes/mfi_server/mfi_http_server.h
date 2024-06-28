@@ -8,15 +8,15 @@
 
 class mfi_http_server : public mg::http_server {
 public:
-	explicit mfi_http_server() noexcept;
+	mfi_http_server() noexcept;
 
 protected:
-	virtual mg::http_response http_handler(const mg::http_message& message) noexcept override;
+	virtual mg::http_response http_handler(mg::http_message const& message) noexcept override;
 
 private:
 	mg::http_response sensor_handler() noexcept;
-	mg::http_response sensor_handler(const std::string& method, std::uint8_t sensorId, const std::string& body) noexcept;
-	mg::http_response led_handler(const std::string& method, const std::string& body) noexcept;
+	mg::http_response sensor_handler(std::string const& method, std::uint8_t sensorId, std::string const& body) noexcept;
+	mg::http_response led_handler(std::string const& method, std::string const& body) noexcept;
 	mg::http_response info_handler() noexcept;
 
 	mfi::board _board{};

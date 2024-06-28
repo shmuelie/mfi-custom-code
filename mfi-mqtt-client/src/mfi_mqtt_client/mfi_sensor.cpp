@@ -33,7 +33,7 @@ string get_device_id(sensor const& sensor) {
 #define TRY_REGISTER(FUNC) try {\
 	registerFunction(FUNC);\
 }\
-catch(std::exception& e) {\
+catch(std::exception const& e) {\
 	std::cout << "Error registering " << #FUNC << ": " << e.what() << std::endl;\
 	throw;\
 }
@@ -57,7 +57,7 @@ void mfi_sensor::init() {
 #define TRY_UPDATE(TYPE) try {\
 	_##TYPE->update(_sensor.TYPE());\
 }\
-catch(std::exception& e) {\
+catch(std::exception const& e) {\
 	std::cout << "Error updating " << #TYPE << ": " << e.what() << std::endl;\
 	throw;\
 }

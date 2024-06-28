@@ -5,7 +5,7 @@
 using namespace std;
 using namespace shmuelie;
 
-static bool validate_ip(const string& ip)
+static bool validate_ip(string const& ip)
 {
 	// split the string into tokens
 	vector<string> list = split(ip, '.');
@@ -28,7 +28,7 @@ static bool validate_ip(const string& ip)
 	return true;
 }
 
-options::options(const string& doc, const vector<string>& argv) noexcept : docopt_options(doc, argv) {
+options::options(string const& doc, vector<string> const& argv) noexcept : docopt_options(doc, argv) {
 	try {
 		auto& ip = get_string("--ip").value();
 		if (!validate_ip(ip)) {

@@ -8,7 +8,7 @@ using namespace std::chrono_literals;
 #define STR_(S) #S
 #define STR(S) STR_(S)
 
-static const char USAGE[] =
+static char const USAGE[] =
 R"(mFi HTTP REST SERVER.
 
   Usage:

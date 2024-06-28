@@ -27,7 +27,7 @@ mfi_http_server::mfi_http_server() noexcept : http_server() {
 	_v2Regex.assign(v2Regex);
 }
 
-static const string to_json(sensor sensor) {
+static string const to_json(sensor sensor) {
 	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + ",\"name\":\"" + sensor.name() + "\",\"label\":\"" + sensor.label() + "\"}";
 }
 
@@ -42,7 +42,7 @@ http_response mfi_http_server::sensor_handler() noexcept {
 	}, ("[" + join(sensorsJson.cbegin(), sensorsJson.cend(), ",") + "]") };
 }
 
-http_response mfi_http_server::sensor_handler(const string& method, uint8_t sensorId, const string& body) noexcept {
+http_response mfi_http_server::sensor_handler(string const& method, uint8_t sensorId, string const& body) noexcept {
 	sensor sensor = _board.sensors().at(sensorId - 1);
 	if (method == "GET") {
 		return { map<string, string>{
@@ -67,7 +67,7 @@ http_response mfi_http_server::sensor_handler(const string& method, uint8_t sens
 	}
 }
 
-http_response mfi_http_server::led_handler(const string& method, const string& body) noexcept {
+http_response mfi_http_server::led_handler(string const& method, string const& body) noexcept {
 	led l{};
 	if (method == "GET") {
 		return { map<string, string>{
@@ -111,17 +111,17 @@ http_response mfi_http_server::info_handler() noexcept {
 #define STR_(S) #S
 #define SERVER(V) "mfi-server/" STR_(V)
 
-static http_response add_server_headers(const http_response& response) {
+static http_response add_server_headers(http_response const& response) {
 	map<string, string> headers{ response.headers() };
 	headers.emplace("Server", SERVER(MFI_REST_SERVER_VERSION));
 	return { response.status_code(), headers, response.body() };
 }
 
-http_response mfi_http_server::http_handler(const http_message& message) noexcept {
+http_response mfi_http_server::http_handler(http_message const& message) noexcept {
 	smatch uriMatch{};
-	const string& uri = message.uri();
+	string const& uri = message.uri();
 	if (regex_match(uri, uriMatch, _v2Regex)) {
-		const string primaryPath = uriMatch[1].str();
+		string const primaryPath = uriMatch[1].str();
 		if (primaryPath == "led") {
 			auto response = led_handler(message.method(), message.body());
 			return add_server_headers(response);

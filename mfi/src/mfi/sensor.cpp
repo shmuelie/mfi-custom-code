@@ -7,13 +7,13 @@
 using namespace std;
 using namespace mfi;
 
-const string root{ "/proc/power/" };
-const string power_path{ root + "active_pwr" };
-const string current_path{ root + "i_rms" };
-const string voltage_path{ root + "v_rms" };
-const string power_factor_path{ root + "pf" };
-const string relay_path{ root + "relay" };
-const string config_file{ "/etc/persistent/cfg/config_file" };
+string const root{ "/proc/power/" };
+string const power_path{ root + "active_pwr" };
+string const current_path{ root + "i_rms" };
+string const voltage_path{ root + "v_rms" };
+string const power_factor_path{ root + "pf" };
+string const relay_path{ root + "relay" };
+string const config_file{ "/etc/persistent/cfg/config_file" };
 
 sensor::sensor(uint8_t id) : _id(id) {
 }
@@ -22,7 +22,7 @@ uint8_t sensor::id() const {
 	return _id;
 }
 
-double sensor::read(const string& path) const {
+double sensor::read(string const& path) const {
 	ifstream stream{ path + to_string(_id) };
 	double value;
 	stream >> value;
@@ -57,10 +57,10 @@ void sensor::relay(bool value) const {
 	stream << (value ? 1 : 0);
 }
 
-const string sensor::name() const {
+string const sensor::name() const {
 	return config::read(config_file, "port." + to_string(_id) + ".sensorId", "");
 }
 
-const string sensor::label() const {
+string const sensor::label() const {
 	return config::read(config_file, "port." + to_string(_id) + ".label", "");
 }
