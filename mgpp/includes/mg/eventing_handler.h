@@ -12,12 +12,12 @@ namespace mg {
 	public:
 		friend mg::manager;
 
-		explicit eventing_handler() noexcept;
-		explicit eventing_handler(const std::shared_ptr<mg::manager>& manager) noexcept;
+		eventing_handler() noexcept;
+		explicit eventing_handler(std::shared_ptr<mg::manager> const& manager) noexcept;
 
-		const std::shared_ptr<mg::manager> manager() const noexcept;
+		std::shared_ptr<mg::manager> const manager() const noexcept;
 	protected:
-		virtual void event_handler(const connection& connection, event event, void* event_data) noexcept = 0;
+		virtual void event_handler(connection const& connection, event event, void* event_data) noexcept = 0;
 		static void _event_handler(mg_connection* c, int event, void* event_data) noexcept;
 	private:
 		std::shared_ptr<mg::manager> _manager;

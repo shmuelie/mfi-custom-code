@@ -15,13 +15,13 @@ namespace mg {
 	public:
 		friend timer;
 
-		explicit manager() noexcept;
+		manager() noexcept;
 		~manager() noexcept;
 
 		void poll(std::chrono::milliseconds timeout) const noexcept;
 
-		std::optional<connection> listen(eventing_handler* self, const std::string& url) noexcept;
-		std::optional<connection> listen(http_server* self, const std::string& url) noexcept;
+		std::optional<connection> listen(eventing_handler* self, std::string const& url) noexcept;
+		std::optional<connection> listen(http_server* self, std::string const& url) noexcept;
 	private:
 		mg_mgr* _manager;
 	};

@@ -10,7 +10,7 @@ namespace mg {
 	public:
 		connection(mg_connection* c) noexcept;
 
-		void reply(const mg::http_response& response) const noexcept;
+		void reply(mg::http_response const& response) const noexcept;
 	private:
 		mg_connection* _connection;
 	};

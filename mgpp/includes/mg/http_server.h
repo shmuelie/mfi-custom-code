@@ -10,12 +10,12 @@ namespace mg {
 	public:
 		friend class manager;
 
-		explicit http_server() noexcept;
+		http_server() noexcept;
 
-		virtual std::optional<connection> listen(const std::string& url) noexcept override;
+		virtual std::optional<connection> listen(std::string const& url) noexcept override;
 
 	protected:
-		virtual void event_handler(const connection& connection, event event, void* event_data) noexcept override;
-		virtual http_response http_handler(const http_message& message) noexcept = 0;
+		virtual void event_handler(connection const& connection, event event, void* event_data) noexcept override;
+		virtual http_response http_handler(http_message const& message) noexcept = 0;
 	};
 }

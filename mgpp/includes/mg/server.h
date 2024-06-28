@@ -9,8 +9,8 @@
 namespace mg {
 	class server : public eventing_handler {
 	public:
-		explicit server() noexcept;
+		server() noexcept;
 
-		virtual std::optional<connection> listen(const std::string& url) noexcept;
+		virtual std::optional<connection> listen(std::string const& url) noexcept;
 	};
 }

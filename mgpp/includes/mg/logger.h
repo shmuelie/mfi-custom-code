@@ -21,29 +21,29 @@ namespace mg {
 		static void level(log_level value) noexcept;
 
 		template<class... TArgs>
-		static void error(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+		static void error(std::string const& fmt, std::tuple<TArgs...> args, std::source_location const location = std::source_location::current()) noexcept {
 			logger::log(log_level::error, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
 		template<class... TArgs>
-		static void info(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+		static void info(std::string const& fmt, std::tuple<TArgs...> args, std::source_location const location = std::source_location::current()) noexcept {
 			logger::log(log_level::info, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
 		template<class... TArgs>
-		static void debug(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+		static void debug(std::string const& fmt, std::tuple<TArgs...> args, std::source_location const location = std::source_location::current()) noexcept {
 			logger::log(log_level::debug, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
 		template<class... TArgs>
-		static void verbose(const std::string& fmt, std::tuple<TArgs...> args, const std::source_location location = std::source_location::current()) noexcept {
+		static void verbose(std::string const& fmt, std::tuple<TArgs...> args, std::source_location const location = std::source_location::current()) noexcept {
 			logger::log(log_level::verbose, fmt, location, args, std::index_sequence_for<TArgs...>{});
 		}
-		static void hex_dump(const void* buf, size_t len) noexcept;
+		static void hex_dump(void const* buf, size_t len) noexcept;
 
 	private:
 		template<class Tuple, std::size_t... Is>
 		static void log(
 			log_level level,
-			const std::string& fmt,
-			const std::source_location location,
+			std::string const& fmt,
+			std::source_location const location,
 			Tuple args,
 			std::index_sequence<Is...>) noexcept {
 #if MG_ENABLE_LOG

@@ -10,10 +10,10 @@ namespace mg {
 	public:
 		http_message(mg_http_message* message) noexcept;
 
-		bool match_uri(const std::string& glob) const noexcept;
+		bool match_uri(std::string const& glob) const noexcept;
 
 		template<std::size_t _Nm>
-		bool match_uri(const std::string& glob, std::vector<std::string>& captures) const noexcept {
+		bool match_uri(std::string const& glob, std::vector<std::string>& captures) const noexcept {
 			mg_str mgCaptures[_Nm + 1]{};
 			bool result = mg_match(_message->uri, std::to_mg_str(glob), mgCaptures);
 			if (result) {
@@ -28,9 +28,9 @@ namespace mg {
 			return result;
 		}
 
-		const std::string method() const noexcept;
-		const std::string body() const noexcept;
-		const std::string uri() const noexcept;
+		std::string const method() const noexcept;
+		std::string const body() const noexcept;
+		std::string const uri() const noexcept;
 	private:
 		mg_http_message* _message;
 	};

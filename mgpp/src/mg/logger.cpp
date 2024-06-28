@@ -11,6 +11,6 @@ void logger::level(log_level value) noexcept {
 	mg_log_level = static_cast<int>(value);
 }
 
-void logger::hex_dump(const void* buf, size_t len) noexcept {
+void logger::hex_dump(void const* buf, size_t len) noexcept {
 	mg_hexdump(buf, len);
 }

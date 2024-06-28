@@ -16,7 +16,7 @@ void manager::poll(milliseconds timeout) const noexcept {
 	mg_mgr_poll(_manager, timeout.count());
 }
 
-optional<connection> manager::listen(eventing_handler* self, const string& url) noexcept {
+optional<connection> manager::listen(eventing_handler* self, string const& url) noexcept {
 	mg_connection* c = mg_listen(_manager, url.c_str(), &eventing_handler::_event_handler, self);
 
 	if (c != nullptr) {
@@ -25,7 +25,7 @@ optional<connection> manager::listen(eventing_handler* self, const string& url) 
 	return nullopt;
 }
 
-optional<connection> manager::listen(http_server* self, const string& url) noexcept {
+optional<connection> manager::listen(http_server* self, string const& url) noexcept {
 	mg_connection* c = mg_http_listen(_manager, url.c_str(), &http_server::_event_handler, self);
 
 	if (c != nullptr) {

@@ -10,7 +10,7 @@ namespace mg {
 
 	class timer {
 	public:
-		explicit timer(const std::shared_ptr<mg::manager>& manager, std::chrono::milliseconds period, bool repeating, bool run_now, std::function<void()> callback) noexcept;
+		timer(std::shared_ptr<mg::manager> const& manager, std::chrono::milliseconds period, bool repeating, bool run_now, std::function<void()> callback) noexcept;
 		~timer() noexcept;
 
 		std::chrono::milliseconds period() const noexcept;

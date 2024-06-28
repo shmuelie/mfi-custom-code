@@ -9,10 +9,10 @@ using namespace mg;
 connection::connection(mg_connection* c) noexcept : _connection(c) {
 }
 
-void connection::reply(const http_response& response) const noexcept {
-	const char* headers = nullptr;
+void connection::reply(http_response const& response) const noexcept {
+	char const* headers = nullptr;
 	vector<string> headersVector{};
-	for (const map<string, string>::const_iterator::reference pair : response.headers()) {
+	for (map<string, string>::const_iterator::reference const pair : response.headers()) {
 		headersVector.push_back(pair.first + ": " + pair.second);
 	}
 	if (headersVector.size() > 0) {

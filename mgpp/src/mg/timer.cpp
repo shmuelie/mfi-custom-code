@@ -5,7 +5,7 @@ using namespace std;
 using namespace std::chrono;
 using namespace mg;
 
-timer::timer(const shared_ptr<manager>& manager, milliseconds period, bool repeating, bool run_now, function<void()> callback) noexcept : _manager(manager), _callback(callback) {
+timer::timer(shared_ptr<manager> const& manager, milliseconds period, bool repeating, bool run_now, function<void()> callback) noexcept : _manager(manager), _callback(callback) {
 	unsigned int flags = MG_TIMER_ONCE;
 	if (repeating) {
 		flags |= MG_TIMER_REPEAT;

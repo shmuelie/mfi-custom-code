@@ -7,6 +7,6 @@ using namespace mg;
 server::server() noexcept : eventing_handler() {
 }
 
-optional<connection> server::listen(const string& url) noexcept {
+optional<connection> server::listen(string const& url) noexcept {
 	return manager()->listen(this, url);
 }
