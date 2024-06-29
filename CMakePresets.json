@@ -1,0 +1,103 @@
+﻿{
+  "version": 3,
+  "configurePresets": [
+    {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MFI_CROSS_COMPILE": {
+          "value": true,
+          "type": "BOOL"
+        }
+      },
+      "name": "WSL-GCC-Debug-MIPS",
+      "displayName": "WSL GCC Debug MIPS",
+      "description": "WSL GCC Debug MIPS",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Unix Makefiles",
+      "installDir": "${sourceDir}/install/${presetName}"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel",
+        "MFI_CROSS_COMPILE": {
+          "value": true,
+          "type": "BOOL"
+        }
+      },
+      "name": "WSL-GCC-Release-MIPS",
+      "displayName": "WSL GCC Release MIPS",
+      "description": "WSL GCC Release MIPS",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Unix Makefiles",
+      "installDir": "${sourceDir}/install/${presetName}"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "name": "WSL-GCC-Debug",
+      "displayName": "WSL GCC Debug",
+      "description": "WSL GCC Debug",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Unix Makefiles",
+      "installDir": "${sourceDir}/install/${presetName}"
+    },
+    {
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "name": "WSL-GCC-Release",
+      "displayName": "WSL GCC Release",
+      "description": "WSL GCC Release",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Unix Makefiles",
+      "installDir": "${sourceDir}/install/${presetName}"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "MipsDebug",
+      "configurePreset": "WSL-GCC-Debug-MIPS",
+      "displayName": "MIPS Debug",
+      "description": "MIPS Debug"
+    },
+    {
+      "name": "MipsRelease",
+      "configurePreset": "WSL-GCC-Release-MIPS",
+      "displayName": "MIPS Release",
+      "description": "MipsRelease"
+    },
+    {
+      "name": "LocalDebug",
+      "configurePreset": "WSL-GCC-Debug",
+      "displayName": "Local Debug",
+      "description": "LocalDebug"
+    },
+    {
+      "name": "LocalRelease",
+      "configurePreset": "WSL-GCC-Release",
+      "displayName": "Local Release",
+      "description": "LocalDebug"
+    }
+  ]
+}
