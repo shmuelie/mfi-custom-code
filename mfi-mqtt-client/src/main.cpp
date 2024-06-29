@@ -14,13 +14,13 @@ R"(mFi MQTT Client.
 	mfi-mqtt-client --version
 
   Options:
-	-h --help        Show this screen.
-	--version        Show version.
-	--server SERVER  The MQTT server to connect to.
-	--port PORT      The port to use when connecting to the MQTT server.
-	--username USER  The username to use when connecting to the MQTT server.
-	--password PASS  The password to use when connecting to the MQTT server.
-	--rate RATE      The polling rate in milliseconds [default: 1000].
+	-h --help            Show this screen.
+	--version            Show version.
+	--server SERVER      The MQTT server to connect to.
+	--port PORT          The port to use when connecting to the MQTT server.
+	--username USER      The username to use when connecting to the MQTT server.
+	--password PASS      The password to use when connecting to the MQTT server.
+	--polling-rate RATE  The polling rate in milliseconds [default: 1000].
 )";
 
 std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::options& ops) {

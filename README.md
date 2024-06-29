@@ -37,16 +37,16 @@ the mFi API.
 mFi HTTP REST SERVER.
 
   Usage:
-    mfi-rest-server [options]
-    mfi-rest-server (-h | --help)
-    mfi-rest-server --version
+        mfi-rest-server [options]
+        mfi-rest-server (-h | --help)
+        mfi-rest-server --version
 
   Options:
-    -h --help                  Show this screen.
-    --version                  Show version.
-    -i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
-    -p, --port PORT            Use PORT to listen on [default: 8000].
-    -l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
+        -h --help                  Show this screen.
+        --version                  Show version.
+        -i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
+        -p, --port PORT            Use PORT to listen on [default: 8000].
+        -l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
 ```
 
 ### mFi MQTT Client
@@ -61,17 +61,18 @@ examples, and to not require Spdlog.
 mFi MQTT Client.
 
   Usage:
-    mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS
-    mfi-mqtt-client (-h | --help)
-    mfi-mqtt-client --version
+        mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS [--rate RATE]
+        mfi-mqtt-client (-h | --help)
+        mfi-mqtt-client --version
 
   Options:
-    -h --help        Show this screen.
-    --version        Show version.
-    --server SERVER  The MQTT server to connect to.
-    --port PORT      The port to use when connecting to the MQTT server.
-    --username USER  The username to use when connecting to the MQTT server.
-    --password PASS  The password to use when connecting to the MQTT server.
+        -h --help            Show this screen.
+        --version            Show version.
+        --server SERVER      The MQTT server to connect to.
+        --port PORT          The port to use when connecting to the MQTT server.
+        --username USER      The username to use when connecting to the MQTT server.
+        --password PASS      The password to use when connecting to the MQTT server.
+        --polling-rate RATE  The polling rate in milliseconds [default: 1000].
 ```
 
 ## Building
