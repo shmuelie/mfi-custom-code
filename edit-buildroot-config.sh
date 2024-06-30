@@ -1,3 +1,3 @@
 #!/bin/sh
 
-make -C buildroot/ O=../br2 nconfig
+make -C buildroot BR2_EXTERNAL=../br2 O=../build/br nconfig

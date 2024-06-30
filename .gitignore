@@ -426,8 +426,3 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,cmake,vs,visualstudiocode
-
-# Buildroot
-br2/**/*
-!br2/.config
-!br2/build/uclibc-1.0.45/.config
