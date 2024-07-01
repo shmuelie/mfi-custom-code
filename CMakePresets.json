@@ -9,9 +9,9 @@
           "type": "BOOL"
         }
       },
-      "name": "WSL-GCC-Debug-MIPS",
-      "displayName": "WSL GCC Debug MIPS",
-      "description": "WSL GCC Debug MIPS",
+      "name": "mips-debug",
+      "displayName": "MIPS Debug",
+      "description": "Cross compile for MIPS Debug",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -29,9 +29,9 @@
           "type": "BOOL"
         }
       },
-      "name": "WSL-GCC-Release-MIPS",
-      "displayName": "WSL GCC Release MIPS",
-      "description": "WSL GCC Release MIPS",
+      "name": "mips-release",
+      "displayName": "MIPS Release",
+      "description": "Cross compile for MIPS Release",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -45,9 +45,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       },
-      "name": "WSL-GCC-Debug",
-      "displayName": "WSL GCC Debug",
-      "description": "WSL GCC Debug",
+      "name": "local-debug",
+      "displayName": "Local Debug",
+      "description": "Compile for Local Debug",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -61,9 +61,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       },
-      "name": "WSL-GCC-Release",
-      "displayName": "WSL GCC Release",
-      "description": "WSL GCC Release",
+      "name": "local-release",
+      "displayName": "Local Release",
+      "description": "Compile for Local Release",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -76,28 +76,28 @@
   ],
   "buildPresets": [
     {
-      "name": "MipsDebug",
-      "configurePreset": "WSL-GCC-Debug-MIPS",
+      "name": "mips-debug",
+      "configurePreset": "mips-debug",
       "displayName": "MIPS Debug",
       "description": "MIPS Debug"
     },
     {
-      "name": "MipsRelease",
-      "configurePreset": "WSL-GCC-Release-MIPS",
+      "name": "mips-release",
+      "configurePreset": "mips-release",
       "displayName": "MIPS Release",
-      "description": "MipsRelease"
+      "description": "MIPS Release"
     },
     {
-      "name": "LocalDebug",
-      "configurePreset": "WSL-GCC-Debug",
+      "name": "local-debug",
+      "configurePreset": "local-debug",
       "displayName": "Local Debug",
-      "description": "LocalDebug"
+      "description": "Local Debug"
     },
     {
-      "name": "LocalRelease",
-      "configurePreset": "WSL-GCC-Release",
+      "name": "local-release",
+      "configurePreset": "local-release",
       "displayName": "Local Release",
-      "description": "LocalDebug"
+      "description": "Local Release"
     }
   ]
 }
