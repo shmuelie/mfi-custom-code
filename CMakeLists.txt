@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.21)
 
 option(MFI_CROSS_COMPILE "Cross Compile for MIPS" OFF)
 
