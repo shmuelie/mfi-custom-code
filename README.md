@@ -14,8 +14,8 @@ options.
 
 ### Buildroot Config
 
-`br2` is a config file for [Buildroot](https://buildroot.org/) to compile C/C++
-to run on the mFi devices. Thanks to
+`br2` is an external tree for [Buildroot](https://buildroot.org/) to compile
+C/C++ to run on the mFi devices. Thanks to
 [cracauer/mFI-mPower-updated-sshd](https://github.com/cracauer/mFI-mPower-updated-sshd)
 for helping me figure this out.
 
@@ -81,6 +81,8 @@ Uses CMake to build/configure. If `MFI_CROSS_COMPILE` is `ON`, CMake configure
 will also run `make` on the Buildroot submodule and configure CMake to use the
 cross-compiler for MIPS. The resulting binaries can be copied and run on the mFi
 devices.
+
+
 
 ## Useful mFi Stuff:
 
