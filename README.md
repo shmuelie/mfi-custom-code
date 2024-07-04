@@ -2,6 +2,43 @@
 
 Providing custom code to run on Ubiquiti's mFi Devices
 
+## Building
+
+Uses CMake to build/configure. If `MFI_CROSS_COMPILE` is `ON`, CMake configure
+will also run `make` on the Buildroot submodule and configure CMake to use the
+cross-compiler for MIPS. The resulting binaries can be copied and run on the mFi
+devices.
+
+### Required Packages
+
+- `bc`
+- `binutils`
+- `build-essential`
+- `bzip2`
+- `cmake`
+- `diffutils`
+- `findutils`
+- `pkg-config`
+- `rsync`
+- `unzip`
+
+### Optional Packages
+
+These packages are required to build for the host system. They are not required
+to build for the mFi devices, as the Buildroot submodule will handle that.
+
+- `libmosquitto`
+- `nlohmann_json`
+
+### Presets
+
+`CMakePresets.json` has four presets:
+
+- `local-debug` to build for the host system with debug symbols.
+- `local-release` to build for the host system with optimizations.
+- `mips-debug` to build for the mFi devices with debug symbols.
+- `mips-release` to build for the mFi devices with optimizations.
+
 ## Projects
 
 `mfi-rest-server` and `mfi-mqtt-client` use
@@ -18,6 +55,10 @@ options.
 C/C++ to run on the mFi devices. Thanks to
 [cracauer/mFI-mPower-updated-sshd](https://github.com/cracauer/mFI-mPower-updated-sshd)
 for helping me figure this out.
+
+The `CMakeLists.txt` in the folder will load the Buildroot configuration and run
+`make` to build the toolchain. If the toolchain builds sucessfully, it will
+configure cmake to use the toolchain.
 
 ### mFi API
 
@@ -74,15 +115,6 @@ mFi MQTT Client.
         --password PASS      The password to use when connecting to the MQTT server.
         --polling-rate RATE  The polling rate in milliseconds [default: 1000].
 ```
-
-## Building
-
-Uses CMake to build/configure. If `MFI_CROSS_COMPILE` is `ON`, CMake configure
-will also run `make` on the Buildroot submodule and configure CMake to use the
-cross-compiler for MIPS. The resulting binaries can be copied and run on the mFi
-devices.
-
-
 
 ## Useful mFi Stuff:
 
