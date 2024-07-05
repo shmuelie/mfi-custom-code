@@ -6,7 +6,7 @@ using namespace mfi;
 using namespace mfi_mqtt_client;
 
 string get_device_name(board const& board, sensor const& sensor) {
-	auto hostname = board.hostname();
+	auto& hostname = board.hostname();
 	auto label = sensor.label();
 	auto name = sensor.name();
 	auto id = sensor.id();
