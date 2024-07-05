@@ -16,11 +16,17 @@ namespace mfi_mqtt_client {
 		void init();
 		void update();
 		void relay(bool value);
+	protected:
+		virtual std::string getManufacturer() const override;
+		virtual std::string getModel() const override;
+		virtual std::string getVersion() const override;
 	private:
 		mfi::sensor _sensor;
 		std::shared_ptr<functions::power> _power;
 		std::shared_ptr<functions::current> _current;
 		std::shared_ptr<functions::voltage> _voltage;
 		std::shared_ptr<SwitchFunction> _relay;
+		std::string _model;
+		std::string _version;
 	};
 }
