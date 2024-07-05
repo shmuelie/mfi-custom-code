@@ -94,9 +94,7 @@ mFi HTTP REST SERVER.
 
 `mfi-mqtt-client` is a MQTT client for usage with [Home
 Assistant](https://www.home-assistant.io/). It uses a fork of
-[KodeZ/hass_mqtt_device](https://github.com/KodeZ/hass_mqtt_device) which has
-been tweaked to build as a static library, work as a git submodule, to not build
-examples, and to not require Spdlog.
+[KodeZ/hass_mqtt_device](https://github.com/KodeZ/hass_mqtt_device).
 
 ```
 mFi MQTT Client.
