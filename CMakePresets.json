@@ -9,9 +9,9 @@
           "type": "BOOL"
         }
       },
-      "name": "mips-debug",
-      "displayName": "MIPS Debug",
-      "description": "Cross compile for MIPS Debug",
+      "name": "mips-debug-config",
+      "displayName": "MIPS Debug Configuration",
+      "description": "Configure for cross compile for MIPS Debug",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -29,9 +29,9 @@
           "type": "BOOL"
         }
       },
-      "name": "mips-release",
-      "displayName": "MIPS Release",
-      "description": "Cross compile for MIPS Release",
+      "name": "mips-release-config",
+      "displayName": "MIPS Release Configuration",
+      "description": "Configure for cross compile for MIPS Release",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -45,9 +45,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       },
-      "name": "local-debug",
-      "displayName": "Local Debug",
-      "description": "Compile for Local Debug",
+      "name": "local-debug-config",
+      "displayName": "Local Debug Configuration",
+      "description": "Configure for compile for Local Debug",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -61,9 +61,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       },
-      "name": "local-release",
-      "displayName": "Local Release",
-      "description": "Compile for Local Release",
+      "name": "local-release-config",
+      "displayName": "Local Release Configuration",
+      "description": "Configure for compile for Local Release",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -76,28 +76,28 @@
   ],
   "buildPresets": [
     {
-      "name": "mips-debug",
-      "configurePreset": "mips-debug",
-      "displayName": "MIPS Debug",
-      "description": "MIPS Debug"
+      "name": "mips-debug-build",
+      "configurePreset": "mips-debug-config",
+      "displayName": "MIPS Debug Build",
+      "description": "Build for MIPS Debug"
     },
     {
-      "name": "mips-release",
-      "configurePreset": "mips-release",
-      "displayName": "MIPS Release",
-      "description": "MIPS Release"
+      "name": "mips-release-build",
+      "configurePreset": "mips-release-config",
+      "displayName": "MIPS Release Build",
+      "description": "Build for MIPS Release"
     },
     {
-      "name": "local-debug",
-      "configurePreset": "local-debug",
-      "displayName": "Local Debug",
-      "description": "Local Debug"
+      "name": "local-debug-build",
+      "configurePreset": "local-debug-config",
+      "displayName": "Local Debug Build",
+      "description": "Build Local Debug"
     },
     {
-      "name": "local-release",
-      "configurePreset": "local-release",
-      "displayName": "Local Release",
-      "description": "Local Release"
+      "name": "local-release-build",
+      "configurePreset": "local-release-config",
+      "displayName": "Local Release Build",
+      "description": "Build for Local Release"
     }
   ]
 }
