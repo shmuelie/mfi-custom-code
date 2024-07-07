@@ -7,7 +7,8 @@
         "MFI_CROSS_COMPILE": {
           "value": true,
           "type": "BOOL"
-        }
+        },
+        "BUILDROOT_BINARY_DIR": "${sourceDir}/build/br"
       },
       "name": "mips-debug-config",
       "displayName": "MIPS Debug Configuration",
@@ -27,7 +28,8 @@
         "MFI_CROSS_COMPILE": {
           "value": true,
           "type": "BOOL"
-        }
+        },
+        "BUILDROOT_BINARY_DIR": "${sourceDir}/build/br"
       },
       "name": "mips-release-config",
       "displayName": "MIPS Release Configuration",

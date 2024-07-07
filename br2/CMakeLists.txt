@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.21)
 
 option(MFI_CROSS_COMPILE "Cross Compile for MIPS" OFF)
 
-set(BUILDROOT_BINARY_DIR ${CMAKE_BINARY_DIR}/br)
+if(NOT DEFINED BUILDROOT_BINARY_DIR)
+	set(BUILDROOT_BINARY_DIR ${CMAKE_BINARY_DIR}/br)
+endif()
+
 set(MIPS_TOOLCHAIN_FILE  ${BUILDROOT_BINARY_DIR}/host/share/buildroot/toolchainfile.cmake)
 set(MIPS_DEFAULT_CONFIG  ${CMAKE_CURRENT_SOURCE_DIR}/configs/mfi_defconfig)
 set(BUILDROOT_CONFIG     ${BUILDROOT_BINARY_DIR}/.config)
