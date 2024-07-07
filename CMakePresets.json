@@ -2,38 +2,47 @@
   "version": 3,
   "configurePresets": [
     {
+      "name": "mips-config",
+      "description": "Configure for cross compile for MIPS",
+      "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "MFI_CROSS_COMPILE": {
           "value": true,
           "type": "BOOL"
         },
         "BUILDROOT_BINARY_DIR": "${sourceDir}/build/br"
       },
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "generator": "Unix Makefiles",
+      "installDir": "${sourceDir}/install/${presetName}"
+    },
+    {
       "name": "mips-debug-config",
       "displayName": "MIPS Debug Configuration",
       "description": "Configure for cross compile for MIPS Debug",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "generator": "Unix Makefiles",
-      "installDir": "${sourceDir}/install/${presetName}"
+      "inherits": "mips-config",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
     },
     {
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "MinSizeRel",
-        "MFI_CROSS_COMPILE": {
-          "value": true,
-          "type": "BOOL"
-        },
-        "BUILDROOT_BINARY_DIR": "${sourceDir}/build/br"
-      },
       "name": "mips-release-config",
       "displayName": "MIPS Release Configuration",
       "description": "Configure for cross compile for MIPS Release",
+      "inherits": "mips-config",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "MinSizeRel"
+      }
+    },
+    {
+      "name": "local-config",
+      "description": "Configure for compile for Local",
+      "hidden": true,
       "binaryDir": "${sourceDir}/build/${presetName}",
       "condition": {
         "type": "equals",
@@ -44,36 +53,22 @@
       "installDir": "${sourceDir}/install/${presetName}"
     },
     {
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      },
       "name": "local-debug-config",
       "displayName": "Local Debug Configuration",
       "description": "Configure for compile for Local Debug",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "generator": "Unix Makefiles",
-      "installDir": "${sourceDir}/install/${presetName}"
+      "inherits": "local-config",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
     },
     {
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      },
       "name": "local-release-config",
       "displayName": "Local Release Configuration",
       "description": "Configure for compile for Local Release",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "generator": "Unix Makefiles",
-      "installDir": "${sourceDir}/install/${presetName}"
+      "inherits": "local-config",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
