@@ -14,7 +14,6 @@ set(MGPP_HEADERS
 	${MGPP_INCLUDES}/mg/eventing_handler.h
 	${MGPP_INCLUDES}/mg/timer.h
 	${MGPP_INCLUDES}/mg/manager.h
-	${MGPP_INCLUDES}/mongoose.h
 )
 set(MGPP_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/connection.cpp
@@ -26,8 +25,9 @@ set(MGPP_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/eventing_handler.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/manager.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mg/timer.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mongoose.c
 )
+
+find_package(mongoose REQUIRED)
 
 add_library(${MGPP_TARGET_NAME} STATIC
 	${MGPP_HEADERS}
@@ -39,4 +39,4 @@ set_target_properties(${MGPP_TARGET_NAME} PROPERTIES
 	VERSION 1.0.0.0
 )
 target_include_directories(${MGPP_TARGET_NAME} PUBLIC ${MGPP_INCLUDES})
-target_link_libraries(${MGPP_TARGET_NAME} PUBLIC ${SHMUELIE_SHARED_TARGET_NAME})
+target_link_libraries(${MGPP_TARGET_NAME} PUBLIC ${SHMUELIE_SHARED_TARGET_NAME} mongoose)

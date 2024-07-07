@@ -8,6 +8,8 @@ add_subdirectory(br2)
 
 project(mFiCustomCode)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 set(MGPP_TARGET_NAME mgpp)
 set(MFI_API_TARGET_NAME mfi)
 set(MFI_SERVER_TARGET_NAME mfi-rest-server)
