@@ -1,3 +1,6 @@
+# BR2_EXTERNAL_mFi_PATH points to the location of the mFi external tree, the br2
+# directory of the repo
+
 BR2_mips=y
 BR2_TOOLCHAIN_BUILDROOT_UCLIBC=y
 BR2_UCLIBC_CONFIG="$(BR2_EXTERNAL_mFi_PATH)/board/ubiquiti/mfi/uclibc.config"
