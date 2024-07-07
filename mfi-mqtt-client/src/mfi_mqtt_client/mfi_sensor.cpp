@@ -6,10 +6,8 @@ using namespace mfi;
 using namespace mfi_mqtt_client;
 
 string get_device_name(board const& board, sensor const& sensor) {
-	auto& hostname = board.hostname();
 	auto label = sensor.label();
 	auto name = sensor.name();
-	auto id = sensor.id();
 
 	if (label != "") {
 		return label;
@@ -17,17 +15,11 @@ string get_device_name(board const& board, sensor const& sensor) {
 	if (name != "") {
 		return name;
 	}
-	return hostname + "/" + to_string(id);
+	return board.hostname() + "/" + to_string(sensor.id());
 }
 
-string get_device_id(sensor const& sensor) {
-	auto name = sensor.name();
-	auto id = sensor.id();
-
-	if (name != "") {
-		return name;
-	}
-	return to_string(id);
+string get_device_id(board const& board, sensor const& sensor) {
+	return board.hostname() + "/" + to_string(sensor.id());
 }
 
 #define TRY_REGISTER(FUNC) try {\
@@ -39,7 +31,7 @@ catch(std::exception const& e) {\
 }
 
 mfi_sensor::mfi_sensor(board const& board, sensor const& sensor) :
-	DeviceBase(get_device_name(board, sensor), get_device_id(sensor)),
+	DeviceBase(get_device_name(board, sensor), get_device_id(board, sensor)),
 	_model(board.name()),
 	_version(board.version()),
 	_sensor(sensor),
