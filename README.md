@@ -18,7 +18,6 @@ devices.
 - `cmake`
 - `diffutils`
 - `findutils`
-- `pkg-config`
 - `rsync`
 - `unzip`
 
@@ -27,8 +26,10 @@ devices.
 These packages are required to build for the host system. They are not required
 to build for the mFi devices, as the Buildroot submodule will handle that.
 
-- `libmosquitto`
-- `nlohmann_json`
+- `libdocopt-dev`
+- `libmosquitto-dev`
+- `nlohmann-json3-dev`
+- `pkg-config`
 
 ### Presets
 

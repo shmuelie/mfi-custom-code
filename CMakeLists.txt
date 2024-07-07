@@ -18,7 +18,6 @@ set(HASS_MQTT_DEVICE_STATIC ON)
 set(HASS_MQTT_DEVICE_SPDLOG OFF)
 
 add_subdirectory(mfi)
-add_subdirectory(docopt)
 add_subdirectory(mgpp)
 add_subdirectory(hass_mqtt_device)
 add_subdirectory(shmuelie-shared)
