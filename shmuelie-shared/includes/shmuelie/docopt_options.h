@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <optional>
+#include <cstdint>
 #include "docopt.h"
 
 namespace shmuelie {
