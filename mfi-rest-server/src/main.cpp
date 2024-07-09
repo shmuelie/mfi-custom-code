@@ -43,6 +43,13 @@ int main(int argc, char* argv[]) {
 	uint8_t log_level;
 	app.add_option("-l,--log-level", log_level, "The log level to use")->default_val(0);
 
+	try {
+		app.parse(argc, argv);
+	}
+	catch (CLI::ParseError const& e) {
+		return app.exit(e);
+	}
+
 	mg_log_set(log_level);
 
 	mfi_http_server server{};
