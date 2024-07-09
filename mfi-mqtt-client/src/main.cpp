@@ -1,32 +1,14 @@
 #include <iostream>
-#include "mfi_mqtt_client/options.h"
 #include "mfi_mqtt_client/mfi_device.h"
+#include <CLI/CLI.hpp>
 
 #define STR_(S) #S
 #define STR(S) STR_(S)
 
-static const char USAGE[] =
-R"(mFi MQTT Client.
-
-  Usage:
-	mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS [--rate RATE]
-	mfi-mqtt-client (-h | --help)
-	mfi-mqtt-client --version
-
-  Options:
-	-h --help            Show this screen.
-	--version            Show version.
-	--server SERVER      The MQTT server to connect to.
-	--port PORT          The port to use when connecting to the MQTT server.
-	--username USER      The username to use when connecting to the MQTT server.
-	--password PASS      The password to use when connecting to the MQTT server.
-	--polling-rate RATE  The polling rate in milliseconds [default: 1000].
-)";
-
-std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client::options& ops) {
+std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(std::string const& server, uint16_t port, std::string const& username, std::string const& password) {
 	try {
 		mfi::board b{};
-		auto device = std::make_shared<mfi_mqtt_client::mfi_device>(b, ops.server(), ops.port(), ops.username(), ops.password());
+		auto device = std::make_shared<mfi_mqtt_client::mfi_device>(b, server, port, username, password);
 		device->init();
 		return device;
 	}
@@ -37,29 +19,30 @@ std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(const mfi_mqtt_client
 }
 
 int main(int argc, char* argv[]) {
-	mfi_mqtt_client::options ops{ USAGE, { argv + 1, argv + argc } };
+	CLI::App app{ "mFi MQTT Client" };
+	app.set_version_flag("--version", "mFi MQTT Client " STR(MFI_MQTT_CLIENT_VERSION));
 
-	if (ops.help()) {
-		std::cout << USAGE << std::endl;
-		return 0;
+	std::string server;
+	app.add_option("--server", server, "The MQTT server to connect to")->required();
+	uint16_t port;
+	app.add_option("--port", port, "The port to use when connecting to the MQTT server")->required();
+	std::string username;
+	app.add_option("--username", username, "The username to use when connecting to the MQTT server")->required();
+	std::string password;
+	app.add_option("--password", password, "The password to use when connecting to the MQTT server")->required();
+	uint32_t polling_rate;
+	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000);
+
+	try {
+		app.parse(argc, argv);
 	}
-
-	if (ops.version()) {
-		std::cout << "mFI MQTT Client " << STR(MFI_MQTT_CLIENT_VERSION) << std::endl;
-		return 0;
-	}
-
-	if (ops.errors().size() > 0) {
-		for (auto const& error : ops.errors()) {
-			std::cout << error << std::endl;
-		}
-		std::cout << USAGE << std::endl;
-		return -1;
+	catch (CLI::ParseError const& e) {
+		return app.exit(e);
 	}
 
 	std::cout << "Starting MQTT client..." << std::endl;
 
-	auto device = create_device(ops);
+	auto device = create_device(server, port, username, password);
 	if (!device) {
 		return -2;
 	}
@@ -80,7 +63,7 @@ int main(int argc, char* argv[]) {
 
 	for (;;) {
 		try {
-			device->processMessages(ops.polling_rate());
+			device->processMessages(polling_rate);
 		}
 		catch (std::exception& e) {
 			std::cout << "Error procssing message: " << e.what() << std::endl;

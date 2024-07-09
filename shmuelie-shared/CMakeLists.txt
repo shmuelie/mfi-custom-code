@@ -3,14 +3,11 @@ project(mFiCustomCode)
 
 set(SHMUELIE_SHARED_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(SHMUELIE_SHARED_HEADERS
-	${SHMUELIE_SHARED_INCLUDES}/shmuelie/string_helpers.hpp
-	${SHMUELIE_SHARED_INCLUDES}/shmuelie/docopt_options.h
+	${SHMUELIE_SHARED_INCLUDES}/shmuelie/string_helpers.h
 )
 set(SHMUELIE_SHARED_SOURCE_CODE
-	${CMAKE_CURRENT_SOURCE_DIR}/src/shmuelie/docopt_options.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/shmuelie/string_helpers.cpp
 )
-
-find_package(docopt REQUIRED)
 
 add_library(${SHMUELIE_SHARED_TARGET_NAME} STATIC
 	${SHMUELIE_SHARED_HEADERS}
@@ -22,4 +19,3 @@ set_target_properties(${SHMUELIE_SHARED_TARGET_NAME} PROPERTIES
 	VERSION 1.0.0.0
 )
 target_include_directories(${SHMUELIE_SHARED_TARGET_NAME} PUBLIC ${SHMUELIE_SHARED_INCLUDES})
-target_link_libraries(${SHMUELIE_SHARED_TARGET_NAME} PUBLIC docopt)

@@ -1,6 +1,6 @@
 #include "mg/connection.h"
 #include <vector>
-#include "shmuelie/string_helpers.hpp"
+#include "shmuelie/string_helpers.h"
 #include "mg/logger.h"
 
 using namespace std;

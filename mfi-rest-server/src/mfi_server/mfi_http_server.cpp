@@ -1,7 +1,7 @@
 #include "mfi_server/mfi_http_server.h"
 #include "mfi/led.h"
 #include <cmath>
-#include "shmuelie/string_helpers.hpp"
+#include "shmuelie/string_helpers.h"
 #include "mg/logger.h"
 
 using namespace std;

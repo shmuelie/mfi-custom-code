@@ -26,7 +26,6 @@ devices.
 These packages are required to build for the host system. They are not required
 to build for the mFi devices, as the Buildroot submodule will handle that.
 
-- `libdocopt-dev`
 - `libmosquitto-dev`
 - `nlohmann-json3-dev`
 - `pkg-config`
@@ -43,8 +42,7 @@ to build for the mFi devices, as the Buildroot submodule will handle that.
 ## Projects
 
 `mfi-rest-server` and `mfi-mqtt-client` use
-[docopt.cpp](https://github.com/docopt/docopt.cpp.git) to parse the command line
-options.
+[CLI11](https://github.com/CLIUtils/CLI11) to parse the command line options.
 
 ### Shared Code
 

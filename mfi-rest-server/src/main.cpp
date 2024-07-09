@@ -1,55 +1,52 @@
 #include <iostream>
+#include <CLI/CLI.hpp>
 #include "mfi_server/mfi_http_server.h"
-#include "mfi_server/options.h"
 #include "mg/manager.h"
+#include "shmuelie/string_helpers.h"
 
 using namespace std::chrono_literals;
 
 #define STR_(S) #S
 #define STR(S) STR_(S)
 
-static char const USAGE[] =
-R"(mFi HTTP REST SERVER.
+static std::string validate_ip(std::string const& ip)
+{
+	// split the string into tokens
+	std::vector<std::string> list = shmuelie::split(ip, '.');
 
-  Usage:
-	mfi-rest-server [options]
-	mfi-rest-server (-h | --help)
-	mfi-rest-server --version
+	// if the token size is not equal to four
+	if (list.size() != 4) {
+		return "Invalid IP address";
+	}
 
-  Options:
-	-h --help                  Show this screen.
-	--version                  Show version.
-	-i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
-	-p, --port PORT            Use PORT to listen on [default: 8000].
-	-l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
-)";
+	// validate each token
+	for (std::string str : list)
+	{
+		// verify that the string is a number or not, and the numbers
+		// are in the valid range
+		if (!shmuelie::is_number(str) || stoi(str) > 255 || stoi(str) < 0) {
+			return "Invalid IP address";
+		}
+	}
+
+	return "";
+}
 
 int main(int argc, char* argv[]) {
-	options ops{ USAGE, { argv + 1, argv + argc } };
+	CLI::App app{ "mFi HTTP RESET Server" };
+	app.set_version_flag("--version", "mFi HTTP REST Server " STR(MFI_SERVER_VERSION));
 
-	if (ops.help())
-	{
-		std::cout << USAGE << std::endl;
-		return 0;
-	}
+	std::string ip;
+	app.add_option("-i,--ip", ip, "The IP address to listen on")->default_val("0.0.0.0")->check(validate_ip);
+	uint16_t port;
+	app.add_option("-p,--port", port, "The port to listen on")->default_val(8000);
+	uint8_t log_level;
+	app.add_option("-l,--log-level", log_level, "The log level to use")->default_val(0);
 
-	if (ops.version()) {
-		std::cout << "mFi HTTP REST SERVER " << STR(MFI_SERVER_VERSION) << std::endl;
-		return 0;
-	}
-
-	if (ops.errors().size() > 0) {
-		for (auto const& error : ops.errors()) {
-			std::cout << error << std::endl;
-		}
-		std::cout << USAGE << std::endl;
-		return -1;
-	}
-
-	mg_log_set(ops.log_level());
+	mg_log_set(log_level);
 
 	mfi_http_server server{};
-	auto rootConnection = server.listen("http://" + ops.ip() + ":" + std::to_string(ops.port()));
+	auto rootConnection = server.listen("http://" + ip + ":" + std::to_string(port));
 	if (!rootConnection) {
 		return -2;
 	}
