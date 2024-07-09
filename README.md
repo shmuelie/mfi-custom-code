@@ -74,19 +74,15 @@ natively support.
 the mFi API.
 
 ```
-mFi HTTP REST SERVER.
+mFi HTTP RESET Server
+Usage: ./mfi-rest-server/mfi-rest-server [OPTIONS]
 
-  Usage:
-        mfi-rest-server [options]
-        mfi-rest-server (-h | --help)
-        mfi-rest-server --version
-
-  Options:
-        -h --help                  Show this screen.
-        --version                  Show version.
-        -i, --ip IP_ADDRESS        Use IP_ADDRESS to listen on [default: 0.0.0.0].
-        -p, --port PORT            Use PORT to listen on [default: 8000].
-        -l, --log-level LOG_LEVEL  Logging level 0-4 [default: 0].
+Options:
+  -h,--help                   Print this help message and exit
+  --version                   Display program version information and exit
+  -i,--ip TEXT [0.0.0.0]      The IP address to listen on
+  -p,--port UINT [8000]       The port to listen on
+  -l,--log-level UINT [0]     The log level to use
 ```
 
 ### mFi MQTT Client
@@ -96,21 +92,17 @@ Assistant](https://www.home-assistant.io/). It uses a fork of
 [KodeZ/hass_mqtt_device](https://github.com/KodeZ/hass_mqtt_device).
 
 ```
-mFi MQTT Client.
+mFi MQTT Client
+Usage: ./mfi-mqtt-client [OPTIONS]
 
-  Usage:
-        mfi-mqtt-client --server SERVER --port PORT --username USER --password PASS [--rate RATE]
-        mfi-mqtt-client (-h | --help)
-        mfi-mqtt-client --version
-
-  Options:
-        -h --help            Show this screen.
-        --version            Show version.
-        --server SERVER      The MQTT server to connect to.
-        --port PORT          The port to use when connecting to the MQTT server.
-        --username USER      The username to use when connecting to the MQTT server.
-        --password PASS      The password to use when connecting to the MQTT server.
-        --polling-rate RATE  The polling rate in milliseconds [default: 1000].
+Options:
+  -h,--help                   Print this help message and exit
+  --version                   Display program version information and exit
+  --server TEXT REQUIRED      The MQTT server to connect to
+  --port UINT REQUIRED        The port to use when connecting to the MQTT server
+  --username TEXT REQUIRED    The username to use when connecting to the MQTT server
+  --password TEXT REQUIRED    The password to use when connecting to the MQTT server
+  --polling-rate UINT [1000]  The polling rate in milliseconds
 ```
 
 ## Useful mFi Stuff:
