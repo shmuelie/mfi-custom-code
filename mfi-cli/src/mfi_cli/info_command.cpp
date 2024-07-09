@@ -7,11 +7,11 @@ using namespace CLI;
 using namespace mfi_cli;
 using namespace mfi;
 
-info_command::info_command(App& app) {
+info_command::info_command(App& app) : _all_option{ false } {
 	auto command = app.
 		add_subcommand("info", "Display information about the mFi device")->
 		callback([this]() { run(); });
-	command->add_flag("--all, -a", _all_option, "Display all information");
+	command->add_flag("--all, -a", _all_option, "Display all information")->default_val(false);
 }
 
 void info_command::run() {
@@ -28,12 +28,12 @@ void info_command::run() {
 		cout << "Sensors:" << endl;
 		for (auto& s : b.sensors()) {
 			cout
-				<< "\tID: " << s.id() << "\n"
+				<< "\tID: " << to_string(s.id()) << "\n"
 				<< "\tName: " << s.name() << "\n"
 				<< "\tLabel: " << s.label() << "\n"
-				<< "\tPower: " << s.power() << " W\n"
-				<< "\tCurrent: " << s.current() << " A\n"
-				<< "\tVoltage: " << s.voltage() << " V\n"
+				<< "\tPower: " << s.power() << "W\n"
+				<< "\tCurrent: " << s.current() << "A\n"
+				<< "\tVoltage: " << s.voltage() << "V\n"
 				<< "\tPower Factor: " << s.power_factor() << "\n"
 				<< "\tRelay: " << (s.relay() ? "On" : "Off") << "\n" << endl;
 		}
