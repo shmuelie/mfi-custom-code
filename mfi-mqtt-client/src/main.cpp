@@ -21,6 +21,7 @@ std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(std::string const& se
 int main(int argc, char* argv[]) {
 	CLI::App app{ "mFi MQTT Client" };
 	app.set_version_flag("--version", "mFi MQTT Client " STR(MFI_MQTT_CLIENT_VERSION));
+	app.set_config("--config", "", "Configuration file to load options from", false);
 
 	std::string server;
 	app.add_option("--server", server, "The MQTT server to connect to")->required();
