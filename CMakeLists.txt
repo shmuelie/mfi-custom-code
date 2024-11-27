@@ -17,9 +17,6 @@ set(MFI_MQTT_TARGET_NAME mfi-mqtt-client)
 set(SHMUELIE_SHARED_TARGET_NAME shmuelie-shared)
 set(MFI_CLI_TARGET_NAME mfi-cli)
 
-set(HASS_MQTT_DEVICE_STATIC ON)
-set(HASS_MQTT_DEVICE_SPDLOG OFF)
-
 add_subdirectory(mfi)
 add_subdirectory(mgpp)
 add_subdirectory(hass_mqtt_device)

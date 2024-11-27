@@ -1,7 +1,3 @@
 [submodule "buildroot"]
 	path = buildroot
 	url = git://git.buildroot.net/buildroot
-[submodule "hass_mqtt_device"]
-	path = hass_mqtt_device
-	url = https://github.com/shmuelie/hass_mqtt_device.git
-	branch = more-control
