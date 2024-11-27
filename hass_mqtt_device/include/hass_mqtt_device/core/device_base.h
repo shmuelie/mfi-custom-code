@@ -162,7 +162,7 @@ protected:
 
     virtual std::string getManufacturer() const;
     virtual std::string getModel() const;
-    virtual std::string getVersion() const;
+    virtual std::string getSoftwareVersion() const;
 
 private:
     friend void MQTTConnector::registerDevice(std::shared_ptr<DeviceBase> device);

@@ -75,6 +75,6 @@ string mfi_sensor::getModel() const {
 	return _model;
 }
 
-string mfi_sensor::getVersion() const {
+string mfi_sensor::getSoftwareVersion() const {
 	return _version;
 }

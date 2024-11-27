@@ -147,7 +147,7 @@ void DeviceBase::sendDiscovery()
                                    {"identifiers", {m_id}},
                                    {"manufacturer", getManufacturer()},
                                    {"model", getModel()},
-                                   {"sw_version", getVersion()}};
+                                   {"sw_version", getSoftwareVersion()}};
 
         discoveryParts[discoveryTopic] = discoveryJson;
     }
@@ -177,7 +177,7 @@ std::string DeviceBase::getModel() const
     return "hass_mqtt_device";
 }
 
-std::string DeviceBase::getVersion() const
+std::string DeviceBase::getSoftwareVersion() const
 {
     return "0.1.0";
 }
