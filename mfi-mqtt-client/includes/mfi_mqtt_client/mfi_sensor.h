@@ -20,6 +20,7 @@ namespace mfi_mqtt_client {
 		virtual std::string getManufacturer() const override;
 		virtual std::string getModel() const override;
 		virtual std::string getSoftwareVersion() const override;
+		virtual std::string getModelId() const override;
 	private:
 		mfi::sensor _sensor;
 		std::shared_ptr<functions::power> _power;
@@ -28,5 +29,6 @@ namespace mfi_mqtt_client {
 		std::shared_ptr<SwitchFunction> _relay;
 		std::string _model;
 		std::string _version;
+		std::string _modelId;
 	};
 }

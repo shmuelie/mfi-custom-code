@@ -33,6 +33,7 @@ catch(std::exception const& e) {\
 mfi_sensor::mfi_sensor(board const& board, sensor const& sensor) :
 	DeviceBase(get_device_name(board, sensor), get_device_id(board, sensor)),
 	_model(board.name()),
+	_modelId(to_string(board.id())),
 	_version(board.version()),
 	_sensor(sensor),
 	_power(make_shared<functions::power>()),
@@ -77,4 +78,8 @@ string mfi_sensor::getModel() const {
 
 string mfi_sensor::getSoftwareVersion() const {
 	return _version;
+}
+
+string mfi_sensor::getModelId() const {
+	return _modelId;
 }
