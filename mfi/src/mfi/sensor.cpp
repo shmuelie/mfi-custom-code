@@ -58,9 +58,9 @@ void sensor::relay(bool value) const {
 }
 
 string const sensor::name() const {
-	return config::read(config_file, "port." + to_string(_id) + ".sensorId", "");
+	return config::read(config_file, "port." + to_string(_id - 1) + ".sensorId", "");
 }
 
 string const sensor::label() const {
-	return config::read(config_file, "port." + to_string(_id) + ".label", "");
+	return config::read(config_file, "port." + to_string(_id - 1) + ".label", "");
 }
