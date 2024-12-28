@@ -1,5 +1,6 @@
 #include "mfi_mqtt_client/mfi_device.h"
 #include <iostream>
+#include <hass_mqtt_device/logger/logger.hpp>
 
 using namespace mfi;
 using namespace mfi_mqtt_client;
@@ -28,14 +29,14 @@ void mfi_device::init() {
 			registerDevice(mfiSensor);
 		}
 		catch (std::exception const& e) {
-			std::cout << "Error registering sensor " << to_string(sensor.id()) << ": " << e.what() << std::endl;
+			LOG_ERROR("Error registering sensor {}: {}", to_string(sensor.id()), e.what());
 		}
 	}
 	try {
 		registerDevice(_light);
 	}
 	catch (std::exception const& e) {
-		std::cout << "Error registering led: " << e.what() << std::endl;
+		LOG_ERROR("Error registering led: {}", e.what());
 	}
 }
 
@@ -47,7 +48,7 @@ void mfi_device::update() {
 		_light->update(_led.color() != led_color::off);
 	}
 	catch (std::exception const& e) {
-		std::cout << "Error updating led: " << e.what() << std::endl;
+		LOG_ERROR("Error updating led: {}", e.what());
 	}
 }
 

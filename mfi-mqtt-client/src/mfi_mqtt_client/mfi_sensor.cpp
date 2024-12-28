@@ -1,5 +1,6 @@
 #include "mfi_mqtt_client/mfi_sensor.h"
 #include <iostream>
+#include <hass_mqtt_device/logger/logger.hpp>
 
 using namespace std;
 using namespace mfi;
@@ -15,18 +16,18 @@ string get_device_name(board const& board, sensor const& sensor) {
 	if (name != "") {
 		return name;
 	}
-	return board.hostname() + "/" + to_string(sensor.id());
+	return board.hostname() + "-" + to_string(sensor.id());
 }
 
 string get_device_id(board const& board, sensor const& sensor) {
-	return board.hostname() + "/" + to_string(sensor.id());
+	return board.hostname() + "-" + to_string(sensor.id());
 }
 
 #define TRY_REGISTER(FUNC) try {\
 	registerFunction(FUNC);\
 }\
 catch(std::exception const& e) {\
-	std::cout << "Error registering " << #FUNC << ": " << e.what() << std::endl;\
+	LOG_ERROR("Error registering {}: {}", #FUNC, e.what());\
 	throw;\
 }
 
@@ -53,7 +54,7 @@ void mfi_sensor::init() {
 	_##TYPE->update(_sensor.TYPE());\
 }\
 catch(std::exception const& e) {\
-	std::cout << "Error updating " << #TYPE << ": " << e.what() << std::endl;\
+	LOG_ERROR("Error updating {}: {}", #TYPE, e.what());\
 	throw;\
 }
 

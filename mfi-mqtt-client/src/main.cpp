@@ -1,6 +1,7 @@
 #include <iostream>
 #include "mfi_mqtt_client/mfi_device.h"
 #include <CLI/CLI.hpp>
+#include <hass_mqtt_device/logger/logger.hpp>
 
 #define STR_(S) #S
 #define STR(S) STR_(S)
@@ -18,6 +19,18 @@ std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(std::string const& se
 	}
 }
 
+CLI::CheckedTransformer spdlog_level_transformer{
+	CLI::TransformPairs<spdlog::level::level_enum>{
+		{ "trace", spdlog::level::trace },
+		{ "debug", spdlog::level::debug },
+		{ "info", spdlog::level::info },
+		{ "warn", spdlog::level::warn },
+		{ "error", spdlog::level::err },
+		{ "critical", spdlog::level::critical },
+		{ "off", spdlog::level::off }
+	}
+};
+
 int main(int argc, char* argv[]) {
 	CLI::App app{ "mFi MQTT Client" };
 	app.set_version_flag("--version", "mFi MQTT Client " STR(MFI_MQTT_CLIENT_VERSION));
@@ -33,6 +46,8 @@ int main(int argc, char* argv[]) {
 	app.add_option("--password", password, "The password to use when connecting to the MQTT server")->required();
 	uint32_t polling_rate;
 	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000);
+	spdlog::level::level_enum log_level;
+	app.add_option("--log-level", log_level, "The log level to use")->transform(spdlog_level_transformer)->default_val(spdlog::level::info);
 
 	try {
 		app.parse(argc, argv);
@@ -41,14 +56,18 @@ int main(int argc, char* argv[]) {
 		return app.exit(e);
 	}
 
-	std::cout << "Starting MQTT client..." << std::endl;
+	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+	spdlog::stdout_color_mt("console");
+	spdlog::set_level(log_level);
+
+	LOG_INFO("Starting MQTT client...");
 
 	auto device = create_device(server, port, username, password);
 	if (!device) {
 		return -2;
 	}
 
-	std::cout << "Connecting to client..." << std::endl;
+	LOG_INFO("Connecting to client...");
 
 	try {
 		if (!device->connect()) {
@@ -56,23 +75,23 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	catch (std::exception& e) {
-		std::cout << "Error connecting: " << e.what() << std::endl;
+		LOG_ERROR("Error connecting: {}", e.what());
 		return -3;
 	}
 
-	std::cout << "Connected to client. Starting polling..." << std::endl;
+	LOG_INFO("Connected to client. Starting polling...");
 
 	for (;;) {
 		try {
 			device->processMessages(polling_rate);
 		}
 		catch (std::exception& e) {
-			std::cout << "Error procssing message: " << e.what() << std::endl;
+			LOG_ERROR("Error procssing message: {}", e.what());
 		}
 		device->update();
 	}
 
-	std::cout << "Exiting" << std::endl;
+	LOG_INFO("Exiting");
 
 	return 0;
 }
