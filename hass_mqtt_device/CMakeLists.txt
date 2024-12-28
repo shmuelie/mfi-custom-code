@@ -21,7 +21,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_library(hass_mqtt_device STATIC ${SOURCES})
 set_target_properties(hass_mqtt_device PROPERTIES
     # Specify the required C++ standard
-    CXX_STANDARD 17
+    CXX_STANDARD 20
 )
 
 # Compiler flags
@@ -44,9 +44,13 @@ target_include_directories(hass_mqtt_device PUBLIC ${MOSQUITTO_INCLUDE_DIRS})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 find_package(nlohmann_json REQUIRED)
+find_package(spdlog)
 
 # Link libraries
 target_link_libraries(hass_mqtt_device ${MOSQUITTO_LIBRARIES} nlohmann_json::nlohmann_json)
+if(spdlog_FOUND)
+    target_link_libraries(hass_mqtt_device spdlog::spdlog)
+endif()
 
 
 # Specify where the library should be installed
