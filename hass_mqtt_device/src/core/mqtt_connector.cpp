@@ -43,7 +43,7 @@ bool MQTTConnector::connect()
 {
     LOG_DEBUG("Connecting to MQTT server: {}", m_server);
 
-    m_mosquitto = mosquitto_new(nullptr, true, this);
+    m_mosquitto = mosquitto_new(m_unique_id.c_str(), true, this);
     if(m_mosquitto == nullptr)
     {
         LOG_ERROR("Failed to create mosquitto instance");
