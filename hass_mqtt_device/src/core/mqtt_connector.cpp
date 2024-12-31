@@ -255,7 +255,7 @@ void MQTTConnector::messageCallback(mosquitto*  /*mosq*/, void* obj, const mosqu
 // on_connect
 void MQTTConnector::connectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 {
-    LOG_DEBUG("Connected to MQTT server callback");
+    LOG_DEBUG("Connected to MQTT server callback: {}", mosquitto_reason_string(rc));
     auto* connector = static_cast<MQTTConnector*>(obj);
 
     // Subscribe to the topics of the registered devices
