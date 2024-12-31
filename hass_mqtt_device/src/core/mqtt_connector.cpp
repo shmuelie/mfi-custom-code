@@ -59,6 +59,7 @@ bool MQTTConnector::connect()
     mosquitto_subscribe_callback_set(m_mosquitto, subscribeCallback);
     mosquitto_unsubscribe_callback_set(m_mosquitto, unsubscribeCallback);
     mosquitto_message_callback_set(m_mosquitto, messageCallback);
+    mosquitto_log_callback_set(m_mosquitto, logCallback);
 
     // Set the lwt availability topic for all devices
     publishLWT();
@@ -286,9 +287,9 @@ void MQTTConnector::connectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 
 // Callback for disconnection from the MQTT server, implementing
 // on_disconnect
-void MQTTConnector::disconnectCallback(mosquitto*  /*mosq*/, void* obj, int  /*rc*/)
+void MQTTConnector::disconnectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 {
-    LOG_INFO("Disconnected from MQTT server");
+    LOG_INFO("Disconnected from MQTT server: {}", mosquitto_strerror(rc));
     auto* connector = static_cast<MQTTConnector*>(obj);
     connector->m_is_connected = false;
 }
@@ -305,4 +306,29 @@ void MQTTConnector::subscribeCallback(mosquitto*  /*mosq*/, void*  /*obj*/, int 
 void MQTTConnector::unsubscribeCallback(mosquitto*  /*mosq*/, void*  /*obj*/, int  /*mid*/)
 {
     LOG_ERROR("Unsubscribed from MQTT topic");
+}
+
+void MQTTConnector::logCallback(mosquitto* /*mosq*/, void* /*obj*/, int level, const char* str)
+{
+    switch (level)
+    {
+    case MOSQ_LOG_DEBUG:
+        LOG_DEBUG("MQTT: {}", str);
+        break;
+    case MOSQ_LOG_INFO:
+        LOG_INFO("MQTT: {}", str);
+        break;
+    case MOSQ_LOG_NOTICE:
+        LOG_INFO("MQTT: {}", str);
+        break;
+    case MOSQ_LOG_WARNING:
+        LOG_WARN("MQTT: {}", str);
+        break;
+    case MOSQ_LOG_ERR:
+        LOG_ERROR("MQTT: {}", str);
+        break;
+    default:
+        LOG_DEBUG("MQTT: {}", str);
+        break;
+    }
 }

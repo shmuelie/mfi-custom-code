@@ -175,6 +175,8 @@ private:
      */
     static void unsubscribeCallback(mosquitto* mosq, void* obj, int mid);
 
+    static void logCallback(mosquitto* msoq, void* obj, int level, const char* str);
+
     std::string m_server;
     int m_port;
     std::string m_username;
