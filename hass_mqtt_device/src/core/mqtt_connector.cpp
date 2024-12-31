@@ -313,22 +313,19 @@ void MQTTConnector::logCallback(mosquitto* /*mosq*/, void* /*obj*/, int level, c
     switch (level)
     {
     case MOSQ_LOG_DEBUG:
-        LOG_DEBUG("MQTT: {}", str);
+        LOG_DEBUG("Mosquitto: {}", str);
         break;
     case MOSQ_LOG_INFO:
-        LOG_INFO("MQTT: {}", str);
+        LOG_INFO("Mosquitto: {}", str);
         break;
     case MOSQ_LOG_NOTICE:
-        LOG_INFO("MQTT: {}", str);
+        LOG_INFO("Mosquitto: {}", str);
         break;
     case MOSQ_LOG_WARNING:
-        LOG_WARN("MQTT: {}", str);
+        LOG_WARN("Mosquitto: {}", str);
         break;
     case MOSQ_LOG_ERR:
-        LOG_ERROR("MQTT: {}", str);
-        break;
-    default:
-        LOG_DEBUG("MQTT: {}", str);
+        LOG_ERROR("Mosquitto: {}", str);
         break;
     }
 }
