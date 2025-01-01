@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
 		return app.exit(e);
 	}
 
-	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
+	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%-5l%$] [%s:%#] %v");
 	spdlog::stdout_color_mt("console");
 	spdlog::set_level(log_level);
 
