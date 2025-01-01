@@ -194,7 +194,7 @@ std::string DeviceBase::getHardwareVersion() const
 
 std::string DeviceBase::getConfigurationUrl() const
 {
-	return "";
+	return "https://www.example.com/";
 }
 
 std::string DeviceBase::getModelId() const
