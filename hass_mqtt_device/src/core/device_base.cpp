@@ -145,14 +145,35 @@ void DeviceBase::sendDiscovery()
 		// Add the device info to the discovery json
 		discoveryJson["device"] = {{"name", getName()},
 								   {"identifiers", {m_id}},
-								   {"manufacturer", getManufacturer()},
-								   {"model", getModel()},
-								   {"sw_version", getSoftwareVersion()},
-								   {"model_id", getModelId()},
-								   {"hw_version", getHardwareVersion()},
-								   {"configuration_url", getConfigurationUrl()},
-								   {"serial_number", getSerialNumber()}
 		};
+		auto manufacturer = getManufacturer();
+		if (manufacturer) {
+			discoveryJson["device"]["manufacturer"] = manufacturer.value();
+		}
+		auto model = getModel();
+		if (model) {
+			discoveryJson["device"]["model"] = model.value();
+		}
+		auto sw_version = getSoftwareVersion();
+		if (sw_version) {
+			discoveryJson["device"]["sw_version"] = sw_version.value();
+		}
+		auto hw_version = getHardwareVersion();
+		if (hw_version) {
+			discoveryJson["device"]["hw_version"] = hw_version.value();
+		}
+		auto configuration_url = getConfigurationUrl();
+		if (configuration_url) {
+			discoveryJson["device"]["configuration_url"] = configuration_url.value();
+		}
+		auto model_id = getModelId();
+		if (model_id) {
+			discoveryJson["device"]["model_id"] = model_id.value();
+		}
+		auto serial_number = getSerialNumber();
+		if (serial_number) {
+			discoveryJson["device"]["serial_number"] = serial_number.value();
+		}
 
 		discoveryParts[discoveryTopic] = discoveryJson;
 	}
@@ -172,39 +193,39 @@ void DeviceBase::sendDiscovery()
 	}
 }
 
-std::string DeviceBase::getManufacturer() const
+std::optional<std::string> DeviceBase::getManufacturer() const
 {
-	return "Homebrew";
+	return std::nullopt;
 }
 
-std::string DeviceBase::getModel() const
+std::optional<std::string> DeviceBase::getModel() const
 {
-	return "hass_mqtt_device";
+	return std::nullopt;
 }
 
-std::string DeviceBase::getSoftwareVersion() const
+std::optional<std::string> DeviceBase::getSoftwareVersion() const
 {
-	return "0.1.0";
+	return std::nullopt;
 }
 
-std::string DeviceBase::getHardwareVersion() const
+std::optional<std::string> DeviceBase::getHardwareVersion() const
 {
-	return "0.1.0";
+	return std::nullopt;
 }
 
-std::string DeviceBase::getConfigurationUrl() const
+std::optional<std::string> DeviceBase::getConfigurationUrl() const
 {
-	return "https://www.example.com/";
+	return std::nullopt;
 }
 
-std::string DeviceBase::getModelId() const
+std::optional<std::string> DeviceBase::getModelId() const
 {
-	return "hass_mqtt_device";
+	return std::nullopt;
 }
 
-std::string DeviceBase::getSerialNumber() const
+std::optional<std::string> DeviceBase::getSerialNumber() const
 {
-	return getId();
+	return std::nullopt;
 }
 
 void DeviceBase::processMessage(const std::string& topic, const std::string& payload)

@@ -16,11 +16,11 @@ namespace mfi_mqtt_client {
 		bool connect();
 		void processMessages(int timeout);
 	protected:
-		virtual std::string getManufacturer() const override;
-		virtual std::string getModel() const override;
-		virtual std::string getSoftwareVersion() const override;
-		virtual std::string getModelId() const override;
-		virtual std::string getConfigurationUrl() const override;
+		virtual std::optional<std::string> getManufacturer() const override;
+		virtual std::optional<std::string> getModel() const override;
+		virtual std::optional<std::string> getSoftwareVersion() const override;
+		virtual std::optional<std::string> getModelId() const override;
+		virtual std::optional<std::string> getConfigurationUrl() const override;
 	private:
 		std::shared_ptr<MQTTConnector> _connector;
 		std::vector<std::shared_ptr<port>> _ports;

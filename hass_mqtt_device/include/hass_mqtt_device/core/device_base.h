@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include <optional>
 
 using json = nlohmann::json;
 
@@ -160,13 +161,13 @@ protected:
     std::vector<std::shared_ptr<FunctionBase>> m_functions;
     std::weak_ptr<MQTTConnector> m_connector;
 
-    virtual std::string getManufacturer() const;
-    virtual std::string getModel() const;
-    virtual std::string getSoftwareVersion() const;
-    virtual std::string getHardwareVersion() const;
-    virtual std::string getConfigurationUrl() const;
-    virtual std::string getModelId() const;
-    virtual std::string getSerialNumber() const;
+    virtual std::optional<std::string> getManufacturer() const;
+    virtual std::optional<std::string> getModel() const;
+    virtual std::optional<std::string> getSoftwareVersion() const;
+    virtual std::optional<std::string> getHardwareVersion() const;
+    virtual std::optional<std::string> getConfigurationUrl() const;
+    virtual std::optional<std::string> getModelId() const;
+    virtual std::optional<std::string> getSerialNumber() const;
 
 private:
     friend void MQTTConnector::registerDevice(std::shared_ptr<DeviceBase> device);

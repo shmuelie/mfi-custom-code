@@ -34,23 +34,23 @@ void device::update() {
 	}
 }
 
-string device::getManufacturer() const {
+optional<string> device::getManufacturer() const {
 	return "Ubiquiti Networks";
 }
 
-string device::getModel() const {
+optional<string> device::getModel() const {
 	return _board.name();
 }
 
-string device::getSoftwareVersion() const {
+optional<string> device::getSoftwareVersion() const {
 	return _board.version();
 }
 
-string device::getModelId() const {
+optional<string> device::getModelId() const {
 	return to_string(_board.id());
 }
 
-string device::getConfigurationUrl() const {
+optional<string> device::getConfigurationUrl() const {
 	return "http://" + _board.hostname();
 }
 
