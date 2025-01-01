@@ -64,7 +64,7 @@ bool MQTTConnector::connect()
     // Set the lwt availability topic for all devices
     publishLWT();
 
-    int rc = mosquitto_connect(m_mosquitto, m_server.c_str(), m_port, 60);
+    int rc = mosquitto_connect(m_mosquitto, m_server.c_str(), m_port, 0);
     if(rc != MOSQ_ERR_SUCCESS)
     {
         LOG_ERROR("Failed to connect to MQTT server: {}", mosquitto_strerror(rc));
