@@ -2,9 +2,7 @@
 #include "mfi_mqtt_client/device.h"
 #include <CLI/CLI.hpp>
 #include <hass_mqtt_device/logger/logger.hpp>
-
-#define STR_(S) #S
-#define STR(S) STR_(S)
+#include "version_info.h"
 
 std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port, std::string const& username, std::string const& password) {
 	try {
@@ -32,8 +30,8 @@ CLI::CheckedTransformer spdlog_level_transformer{
 };
 
 int main(int argc, char* argv[]) {
-	CLI::App app{ "mFi MQTT Client" };
-	app.set_version_flag("--version", "mFi MQTT Client " STR(MFI_MQTT_CLIENT_VERSION));
+	CLI::App app{ PROJECT_DESCRIPTION };
+	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_DESCRIPTION);
 	app.set_config("--config", "", "Configuration file to load options from", false);
 
 	std::string server;

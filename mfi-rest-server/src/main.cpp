@@ -3,11 +3,9 @@
 #include "mfi_server/mfi_http_server.h"
 #include "mg/manager.h"
 #include "shmuelie/string_helpers.h"
+#include "version_info.h"
 
 using namespace std::chrono_literals;
-
-#define STR_(S) #S
-#define STR(S) STR_(S)
 
 static std::string validate_ip(std::string const& ip)
 {
@@ -33,8 +31,8 @@ static std::string validate_ip(std::string const& ip)
 }
 
 int main(int argc, char* argv[]) {
-	CLI::App app{ "mFi HTTP RESET Server" };
-	app.set_version_flag("--version", "mFi HTTP REST Server " STR(MFI_SERVER_VERSION));
+	CLI::App app{ PROJECT_DESCRIPTION };
+	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_VERSION);
 
 	std::string ip;
 	app.add_option("-i,--ip", ip, "The IP address to listen on")->default_val("0.0.0.0")->check(validate_ip);

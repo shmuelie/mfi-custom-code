@@ -1,12 +1,10 @@
 #include <CLI/CLI.hpp>
 #include "mfi_cli/info_command.h"
-
-#define STR_(S) #S
-#define STR(S) STR_(S)
+#include "version_info.h"
 
 int main(int argc, char* argv[]) {
-	CLI::App app{ "mFi command line tool" };
-	app.set_version_flag("--version", "mFi CLI " STR(MFI_CLI_VERSION));
+	CLI::App app{ PROJECT_DESCRIPTION };
+	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_VERSION);
 	app.require_subcommand();
 	mfi_cli::info_command info{ app };
 

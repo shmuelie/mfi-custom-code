@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
-project(mFiCustomCode)
+project(
+	${MFI_API_TARGET_NAME}
+	VERSION 1.0.0.0
+	DESCRIPTION "API for Ubiquiti's mFi Devices"
+	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
+)
 
 set(MFI_API_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_API_HEADERS
@@ -23,6 +28,6 @@ add_library(${MFI_API_TARGET_NAME} STATIC
 set_target_properties(${MFI_API_TARGET_NAME} PROPERTIES
 	CXX_STANDARD 20
 	CXX_EXTENSIONS OFF
-	VERSION 1.0.0.0
 )
+ADD_VERSION_INFO(${MFI_API_TARGET_NAME})
 target_include_directories(${MFI_API_TARGET_NAME} PUBLIC ${MFI_API_INCLUDE})

@@ -6,9 +6,15 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 add_subdirectory(br2)
 
-project(mFiCustomCode)
+project(
+	mfi-custom-code
+	DESCRIPTION "Providing custom code to run on Ubiquiti's mFi Devices"
+	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
+)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include(AddProjectVersionData)
 
 set(MGPP_TARGET_NAME mgpp)
 set(MFI_API_TARGET_NAME mfi)
