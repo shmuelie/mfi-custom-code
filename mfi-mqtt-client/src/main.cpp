@@ -31,7 +31,7 @@ CLI::CheckedTransformer spdlog_level_transformer{
 
 int main(int argc, char* argv[]) {
 	CLI::App app{ PROJECT_DESCRIPTION };
-	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_DESCRIPTION);
+	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_VERSION);
 	app.set_config("--config", "", "Configuration file to load options from", false);
 
 	std::string server;
