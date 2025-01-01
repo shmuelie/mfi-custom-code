@@ -1,20 +1,20 @@
 #include <iostream>
-#include "mfi_mqtt_client/mfi_device.h"
+#include "mfi_mqtt_client/device.h"
 #include <CLI/CLI.hpp>
 #include <hass_mqtt_device/logger/logger.hpp>
 
 #define STR_(S) #S
 #define STR(S) STR_(S)
 
-std::shared_ptr<mfi_mqtt_client::mfi_device> create_device(std::string const& server, uint16_t port, std::string const& username, std::string const& password) {
+std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port, std::string const& username, std::string const& password) {
 	try {
 		mfi::board b{};
-		auto device = std::make_shared<mfi_mqtt_client::mfi_device>(b, server, port, username, password);
+		auto device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password);
 		device->init();
 		return device;
 	}
 	catch (std::exception& e) {
-		std::cout << "Error creating devices: " << e.what() << std::endl;
+		std::cout << "Error creating device: " << e.what() << std::endl;
 		return nullptr;
 	}
 }

@@ -3,19 +3,13 @@ project(mFiCustomCode)
 
 set(MFI_MQTT_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_MQTT_HEADERS
-	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/mfi_device.h
-	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/mfi_sensor.h
-	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/functions/current.h
-	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/functions/power.h
-	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/functions/voltage.h
+	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/device.h
+	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/port.h
 )
 set(MFI_MQTT_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/mfi_device.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/mfi_sensor.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/functions/current.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/functions/power.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/functions/voltage.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/device.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/port.cpp
 )
 set(MFI_MQTT_CLIENT_VERSION 1.0.0.0)
 
