@@ -18,25 +18,25 @@ static string get_sensor_name(sensor const& sensor) {
 
 port::port(board const& board, sensor const& sensor) :
 	_sensor(sensor),
-	_power(make_shared<SensorFunction<double>>(get_sensor_name(sensor) + " power", SensorAttributes{
+	_power(make_shared<SensorFunction<double>>(get_sensor_name(sensor) + " Power", SensorAttributes{
 		.device_class = "power",
 		.state_class = "measurement",
 		.unit_of_measurement = "W",
 		.suggested_display_precision = 4
 		})),
-	_current(make_shared<SensorFunction<double>>(get_sensor_name(sensor) + " current", SensorAttributes{
+	_current(make_shared<SensorFunction<double>>(get_sensor_name(sensor) + " Current", SensorAttributes{
 		.device_class = "current",
 		.state_class = "measurement",
 		.unit_of_measurement = "A",
 		.suggested_display_precision = 4
 		})),
-	_voltage(make_shared<SensorFunction<double>>(get_sensor_name(sensor) + " voltage", SensorAttributes{
+	_voltage(make_shared<SensorFunction<double>>(get_sensor_name(sensor) + " Voltage", SensorAttributes{
 		.device_class = "voltage",
 		.state_class = "measurement",
 		.unit_of_measurement = "V",
 		.suggested_display_precision = 4
 		})),
-	_relay(make_shared<SwitchFunction>(get_sensor_name(sensor) + " relay", [this](auto v) { this->relay(v); })) {
+	_relay(make_shared<SwitchFunction>(get_sensor_name(sensor) + " Relay", [this](auto v) { this->relay(v); })) {
 }
 
 void port::init(shared_ptr<DeviceBase> const& device) {
