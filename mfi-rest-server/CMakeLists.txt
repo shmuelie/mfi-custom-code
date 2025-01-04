@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(
 	${MFI_SERVER_TARGET_NAME}
-	VERSION 1.0.0.0
+	VERSION 1.1.0.0
 	DESCRIPTION "REST API for Ubiquiti's mFi Devices"
 	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
 )
@@ -14,7 +14,6 @@ set(MFI_SERVER_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_server/mfi_http_server.cpp
 )
-set(MFI_REST_SERVER_VERSION 1.1.0.0)
 find_package(CLI11 REQUIRED)
 add_executable(${MFI_SERVER_TARGET_NAME}
 	${MFI_SERVER_HEADERS}
