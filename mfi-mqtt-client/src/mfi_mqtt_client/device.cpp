@@ -10,7 +10,7 @@ device::device(
 	int port,
 	string const& username,
 	string const& password) :
-	DeviceBase(board.hostname()),
+	DeviceBase(board.hostname(), board.hostname()),
 	_ports(),
 	_board(board),
 	_connector(make_shared<MQTTConnector>(server, port, username, password, board.hostname())) {
