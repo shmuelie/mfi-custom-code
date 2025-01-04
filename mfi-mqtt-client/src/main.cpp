@@ -32,7 +32,7 @@ CLI::CheckedTransformer spdlog_level_transformer{
 int main(int argc, char* argv[]) {
 	CLI::App app{ PROJECT_DESCRIPTION };
 	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_VERSION);
-	app.set_config("--config", "", "Configuration file to load options from", false);
+	app.set_config("--config", "", "Configuration file to load options from", false)->check(CLI::ExistingFile);
 
 	std::string server;
 	app.add_option("--server", server, "The MQTT server to connect to")->required();
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
 	std::string password;
 	app.add_option("--password", password, "The password to use when connecting to the MQTT server")->required();
 	uint32_t polling_rate;
-	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000);
+	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000)->check(CLI::Range(0U, UINT32_MAX));
 	spdlog::level::level_enum log_level;
 	app.add_option("--log-level", log_level, "The log level to use")->transform(spdlog_level_transformer)->default_val(spdlog::level::info);
 

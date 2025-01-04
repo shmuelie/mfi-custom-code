@@ -135,12 +135,13 @@ Usage: ./mfi-mqtt-client [OPTIONS]
 Options:
   -h,--help                   Print this help message and exit
   --version                   Display program version information and exit
-  --config                    Configuration file to load options from
+  --config :FILE              Configuration file to load options from
   --server TEXT REQUIRED      The MQTT server to connect to
   --port UINT [1883]          The port to use when connecting to the MQTT server
   --username TEXT REQUIRED    The username to use when connecting to the MQTT server
   --password TEXT REQUIRED    The password to use when connecting to the MQTT server
-  --polling-rate UINT [1000]  The polling rate in milliseconds
+  --polling-rate UINT:UINT in [0 - 4294967295] [1000]
+                              The polling rate in milliseconds
   --log-level ENUM:value in {trace->0,debug->1,info->2,warn->3,error->4,critical->5,off->6} OR {0,1,2,3,4,5,6} [2]
                               The log level to use
 ```
