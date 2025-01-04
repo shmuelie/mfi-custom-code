@@ -29,6 +29,7 @@ to build for the mFi devices, as the Buildroot submodule will handle that.
 - `libmosquitto-dev`
 - `nlohmann-json3-dev`
 - `pkg-config`
+- `libspdlog-dev`
 
 ### Presets
 
@@ -41,7 +42,7 @@ to build for the mFi devices, as the Buildroot submodule will handle that.
 
 ## Projects
 
-`mfi-rest-server` and `mfi-mqtt-client` use
+`mfi-clid`, `mfi-rest-server`, and `mfi-mqtt-client` use
 [CLI11](https://github.com/CLIUtils/CLI11) to parse the command line options.
 
 ### Shared Code
@@ -64,6 +65,34 @@ configure cmake to use the toolchain.
 `mfi` is a C++ API for the mFi devices, wrapping the file system based API they
 natively support.
 
+### mFi CLI
+
+`mfi-cli` is a CLI tool for Ubiquiti's mFi Devices, mostly exists to test the
+API.
+
+```
+CLI tool for Ubiquiti's mFi Devices
+Usage: ./mfi-cli [OPTIONS] SUBCOMMAND
+
+Options:
+  -h,--help                   Print this help message and exit
+  --version                   Display program version information and exit
+
+Subcommands:
+  info                        Display information about the mFi device
+```
+
+#### Info Command
+
+```
+Display information about the mFi device
+Usage: ./mfi-cli info [OPTIONS]
+
+Options:
+  -h,--help                   Print this help message and exit
+  -a,--all [0]                Display all information
+```
+
 ### Mongoose C++
 
 `mgpp` is a C++ wrapper around [Mongoose](https://mongoose.ws/).
@@ -74,8 +103,8 @@ natively support.
 the mFi API.
 
 ```
-mFi HTTP RESET Server
-Usage: ./mfi-rest-server/mfi-rest-server [OPTIONS]
+REST API for Ubiquiti's mFi Devices
+Usage: ./mfi-rest-server [OPTIONS]
 
 Options:
   -h,--help                   Print this help message and exit
@@ -85,6 +114,14 @@ Options:
   -l,--log-level UINT [0]     The log level to use
 ```
 
+### HASS MQTT Device
+
+`hass-mqtt-device` is a fork of
+[KodeZ/hass_mqtt_device](https://github.com/KodeZ/hass_mqtt_device), a C++
+library for creating Home Assistant MQTT devices. The fork is used to support
+rapid changes. The changes will eventually(?) backported to the original
+repository.
+
 ### mFi MQTT Client
 
 `mfi-mqtt-client` is a MQTT client for usage with [Home
@@ -92,17 +129,44 @@ Assistant](https://www.home-assistant.io/). It uses a fork of
 [KodeZ/hass_mqtt_device](https://github.com/KodeZ/hass_mqtt_device).
 
 ```
-mFi MQTT Client
+MQTT Client for Ubiquiti's mFi Devices
 Usage: ./mfi-mqtt-client [OPTIONS]
 
 Options:
   -h,--help                   Print this help message and exit
   --version                   Display program version information and exit
+  --config                    Configuration file to load options from
   --server TEXT REQUIRED      The MQTT server to connect to
-  --port UINT REQUIRED        The port to use when connecting to the MQTT server
+  --port UINT [1883]          The port to use when connecting to the MQTT server
   --username TEXT REQUIRED    The username to use when connecting to the MQTT server
   --password TEXT REQUIRED    The password to use when connecting to the MQTT server
   --polling-rate UINT [1000]  The polling rate in milliseconds
+  --log-level ENUM:value in {trace->0,debug->1,info->2,warn->3,error->4,critical->5,off->6} OR {0,1,2,3,4,5,6} [2]
+                              The log level to use
+```
+
+The configuration file is in in TOML or INI formats:
+
+#### TOML Format
+
+```toml
+server = "mqtt.example.com"
+port = 1883
+username = "username"
+password = "password"
+polling_rate = 1000
+log_level = 2
+```
+
+#### INI Format
+
+```ini
+server = "mqtt.example.com"
+port = 1883
+username = "username"
+password = "password"
+polling_rate = 1000
+log_level = 2
 ```
 
 ## Useful mFi Stuff:
