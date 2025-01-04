@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 	std::string server;
 	app.add_option("--server", server, "The MQTT server to connect to")->required();
 	uint16_t port;
-	app.add_option("--port", port, "The port to use when connecting to the MQTT server")->required();
+	app.add_option("--port", port, "The port to use when connecting to the MQTT server")->default_val(1883);
 	std::string username;
 	app.add_option("--username", username, "The username to use when connecting to the MQTT server")->required();
 	std::string password;
