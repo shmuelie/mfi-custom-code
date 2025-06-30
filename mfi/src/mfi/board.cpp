@@ -10,7 +10,13 @@ using namespace std;
 using namespace mfi;
 
 board::board() {
-	auto boardInfo = config::read_all("/etc/board.info");
+	auto boardInfo = config::read_all(
+#ifdef __TARGET_mips__
+		"/etc/board.info"
+#else
+		"./etc/board.info"
+#endif
+	);
 	_name = boardInfo.at("board.name");
 	_shortName = boardInfo.at("board.shortname");
 	_id = static_cast<uint16_t>(stoul(boardInfo.at("board.sysid"), nullptr, 16));
@@ -29,7 +35,13 @@ board::board() {
 		_sensors.push_back(sensor{ sensorId });
 	}
 
-	ifstream versionStream{ "/etc/version" };
+	ifstream versionStream{
+#ifdef __TARGET_mips__
+		"/etc/version"
+#else
+		"./etc/version"
+#endif
+	};
 	getline(versionStream, _version);
 
 	char hostname[1024]{};

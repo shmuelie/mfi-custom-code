@@ -7,13 +7,26 @@
 using namespace std;
 using namespace mfi;
 
-string const root{ "/proc/power/" };
+string const root{
+#ifdef __TARGET_mips__
+	"/proc/power/"
+#else
+	"./proc/power/"
+#endif
+};
+string const config_file{
+#ifdef __TARGET_mips__
+	"/etc/persistent/cfg/config_file"
+#else
+	"./etc/persistent/cfg/config_file"
+#endif
+};
+
 string const power_path{ root + "active_pwr" };
 string const current_path{ root + "i_rms" };
 string const voltage_path{ root + "v_rms" };
 string const power_factor_path{ root + "pf" };
 string const relay_path{ root + "relay" };
-string const config_file{ "/etc/persistent/cfg/config_file" };
 
 sensor::sensor(uint8_t id) : _id(id) {
 }

@@ -7,7 +7,13 @@
 using namespace std;
 using namespace mfi;
 
-string const root{ "/proc/led/" };
+string const root{
+#ifdef __TARGET_mips__
+	"/proc/led/"
+#else
+	"./proc/led/"
+#endif
+};
 string const status_path{ root + "status" };
 string const frequency_path{ root + "freq" };
 
