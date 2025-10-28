@@ -44,13 +44,10 @@ target_include_directories(hass_mqtt_device PUBLIC ${MOSQUITTO_INCLUDE_DIRS})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 find_package(nlohmann_json REQUIRED)
-find_package(spdlog)
+find_package(spdlog REQUIRED)
 
 # Link libraries
-target_link_libraries(hass_mqtt_device ${MOSQUITTO_LIBRARIES} nlohmann_json::nlohmann_json)
-if(spdlog_FOUND)
-    target_link_libraries(hass_mqtt_device spdlog::spdlog)
-endif()
+target_link_libraries(hass_mqtt_device ${MOSQUITTO_LIBRARIES} nlohmann_json::nlohmann_json spdlog::spdlog)
 
 
 # Specify where the library should be installed

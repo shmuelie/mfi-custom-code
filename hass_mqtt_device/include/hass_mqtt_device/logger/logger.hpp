@@ -6,8 +6,6 @@
 
 #pragma once
 
-#if __has_include(<spdlog/spdlog.h>)
-
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
@@ -28,14 +26,3 @@
 						spdlog::level::level_enum::debug, __VA_ARGS__)
 #define LOG_TRACE(...) spdlog::log(spdlog::source_loc(__FILE__, __LINE__, __func__), \
 						spdlog::level::level_enum::trace, __VA_ARGS__)
-
-#else
-
-#define INIT_LOGGER(debug)
-#define LOG_INFO(...)
-#define LOG_WARN(...)
-#define LOG_ERROR(...)
-#define LOG_DEBUG(...)
-#define LOG_TRACE(...)
-
-#endif
