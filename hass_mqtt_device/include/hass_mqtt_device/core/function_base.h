@@ -108,6 +108,7 @@ protected:
 
     std::string m_function_name;
     std::weak_ptr<DeviceBase> m_parent_device;
+    std::shared_ptr<spdlog::logger> m_logger;
 
 private:
     friend void DeviceBase::registerFunction(std::shared_ptr<FunctionBase> function);

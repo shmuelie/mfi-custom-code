@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 using json = nlohmann::json;
 
@@ -185,4 +186,5 @@ private:
     bool m_is_connected = false;
     std::vector<std::shared_ptr<DeviceBase>> m_registered_devices; // List of registered devices using smart pointers
     mosquitto* m_mosquitto;
+    std::shared_ptr<spdlog::logger> m_logger;
 };

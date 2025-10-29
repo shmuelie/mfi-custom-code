@@ -13,38 +13,38 @@
 #include <vector>
 
 FunctionBase::FunctionBase(const std::string& function_name)
-    : m_function_name(function_name)
+	: m_function_name(function_name), m_logger(spdlog::default_logger()->clone(function_name))
 {
 }
 
 std::string FunctionBase::getName() const
 {
-    return m_function_name;
+	return m_function_name;
 }
 
 std::string FunctionBase::getCleanName() const
 {
-    return getValidHassString(getName());
+	return getValidHassString(getName());
 }
 
 std::string FunctionBase::getId() const
 {
-    auto parent = m_parent_device.lock();
-    if(!parent)
-    {
-        LOG_ERROR("Parent device is not available.");
-        return "";
-    }
-    return parent->getFullId() + "_" + getCleanName();
+	auto parent = m_parent_device.lock();
+	if(!parent)
+	{
+		LOG_ERROR("Parent device is not available.");
+		return "";
+	}
+	return parent->getFullId() + "_" + getCleanName();
 }
 
 std::string FunctionBase::getBaseTopic() const
 {
-    auto parent = m_parent_device.lock();
-    if(!parent)
-    {
-        LOG_ERROR("Parent device is not available.");
-        return "";
-    }
-    return "home/" + parent->getFullId() + "/" + getCleanName() + "/";
+	auto parent = m_parent_device.lock();
+	if(!parent)
+	{
+		LOG_ERROR("Parent device is not available.");
+		return "";
+	}
+	return "home/" + parent->getFullId() + "/" + getCleanName() + "/";
 };

@@ -1,8 +1,15 @@
 #include <iostream>
 #include "mfi_mqtt_client/device.h"
 #include <CLI/CLI.hpp>
-#include <hass_mqtt_device/logger/logger.hpp>
 #include "version_info.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+
+#define log_info(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::info, __VA_ARGS__)
+#define log_warn(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::warn, __VA_ARGS__)
+#define log_error(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::err, __VA_ARGS__)
+#define log_debug(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::debug, __VA_ARGS__)
+#define log_trace(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::trace, __VA_ARGS__)
 
 std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port, std::string const& username, std::string const& password) {
 	try {
@@ -12,7 +19,7 @@ std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server
 		return device;
 	}
 	catch (std::exception& e) {
-		std::cout << "Error creating device: " << e.what() << std::endl;
+		spdlog::default_logger()->log_error("Error creating device: {}", e.what());
 		return nullptr;
 	}
 }
@@ -54,18 +61,19 @@ int main(int argc, char* argv[]) {
 		return app.exit(e);
 	}
 
-	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%-5l%$] [%s:%#] %v");
-	spdlog::stdout_color_mt("console");
-	spdlog::set_level(log_level);
+	auto logger = spdlog::stdout_color_mt("main");
+	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%-5l%$] [%s:%#] %v");
+	logger->set_level(log_level);
+	spdlog::set_default_logger(logger);
 
-	LOG_INFO("Starting MQTT client...");
+	logger->log_info("Starting MQTT client...");
 
 	auto device = create_device(server, port, username, password);
 	if (!device) {
 		return -2;
 	}
 
-	LOG_INFO("Connecting to client...");
+	logger->log_info("Connecting to client...");
 
 	try {
 		if (!device->connect()) {
@@ -73,23 +81,23 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	catch (std::exception& e) {
-		LOG_ERROR("Error connecting: {}", e.what());
+		logger->log_error("Error connecting: {}", e.what());
 		return -3;
 	}
 
-	LOG_INFO("Connected to client. Starting polling...");
+	logger->log_info("Connected to client. Starting polling...");
 
 	for (;;) {
 		try {
 			device->processMessages(polling_rate);
 		}
 		catch (std::exception& e) {
-			LOG_ERROR("Error procssing message: {}", e.what());
+			logger->log_error("Error procssing message: {}", e.what());
 		}
 		device->update();
 	}
 
-	LOG_INFO("Exiting");
+	logger->log_info("Exiting");
 
 	return 0;
 }
