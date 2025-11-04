@@ -235,8 +235,8 @@ void MQTTConnector::publishLWT()
 // Callback for incoming MQTT messages, implementing the on_message
 void MQTTConnector::messageCallback(mosquitto*  /*mosq*/, void* obj, const mosquitto_message* message)
 {
-	LOG_DEBUG("Received MQTT message on topic: {}", message->topic);
 	auto* connector = static_cast<MQTTConnector*>(obj);
+	connector->LOG_DEBUG("Received MQTT message on topic: {}", message->topic);
 	// Convert the topic and message to a string
 	std::string topic(message->topic);
 	std::string payload(static_cast<char*>(message->payload), message->payloadlen);
@@ -256,32 +256,32 @@ void MQTTConnector::messageCallback(mosquitto*  /*mosq*/, void* obj, const mosqu
 // on_connect
 void MQTTConnector::connectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 {
-	LOG_DEBUG("Connected to MQTT server callback: {}", mosquitto_reason_string(rc));
 	auto* connector = static_cast<MQTTConnector*>(obj);
+	connector->LOG_DEBUG("Connected to MQTT server callback: {}", mosquitto_reason_string(rc));
 
 	// Subscribe to the topics of the registered devices
 	for(auto& device : connector->m_registered_devices)
 	{
 		for(auto& topic : device->getSubscribeTopics())
 		{
-			LOG_DEBUG("Subscribing to topic: {}", topic);
+			connector->LOG_DEBUG("Subscribing to topic: {}", topic);
 			rc = mosquitto_subscribe(connector->m_mosquitto, nullptr, topic.c_str(), 0);
 			if(rc != MOSQ_ERR_SUCCESS)
 			{
-				LOG_ERROR("Failed to subscribe to topic: {}", mosquitto_strerror(rc));
+				connector->LOG_ERROR("Failed to subscribe to topic: {}", mosquitto_strerror(rc));
 				return;
 			}
 		}
 	}
 
 	// Send the discovery messages for the registered devices
-	LOG_DEBUG("Sending discovery messages for {} devices", connector->m_registered_devices.size());
+	connector->LOG_DEBUG("Sending discovery messages for {} devices", connector->m_registered_devices.size());
 	for(auto& device : connector->m_registered_devices)
 	{
 		device->sendDiscovery();
 		device->sendStatus();
 	}
-	LOG_DEBUG("Discovery messages sent for {} devices", connector->m_registered_devices.size());
+	connector->LOG_DEBUG("Discovery messages sent for {} devices", connector->m_registered_devices.size());
 
 	connector->m_is_connected = true;
 }
@@ -290,43 +290,46 @@ void MQTTConnector::connectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 // on_disconnect
 void MQTTConnector::disconnectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 {
-	LOG_INFO("Disconnected from MQTT server: {}", mosquitto_strerror(rc));
 	auto* connector = static_cast<MQTTConnector*>(obj);
+	connector->LOG_INFO("Disconnected from MQTT server: {}", mosquitto_strerror(rc));
 	connector->m_is_connected = false;
 }
 
 // Callback for successful subscription to an MQTT topic, implementing
 // on_subscribe
-void MQTTConnector::subscribeCallback(mosquitto*  /*mosq*/, void*  /*obj*/, int  /*mid*/, int  /*qos_count*/, const int*  /*granted_qos*/)
+void MQTTConnector::subscribeCallback(mosquitto*  /*mosq*/, void*  obj, int  /*mid*/, int  /*qos_count*/, const int*  /*granted_qos*/)
 {
-	LOG_DEBUG("Subscribed to MQTT topic");
+	auto* connector = static_cast<MQTTConnector*>(obj);
+	connector->LOG_DEBUG("Subscribed to MQTT topic");
 }
 
 // Callback for successful unsubscription to an MQTT topic, implementing
 // on_unsubscribe
-void MQTTConnector::unsubscribeCallback(mosquitto*  /*mosq*/, void*  /*obj*/, int  /*mid*/)
+void MQTTConnector::unsubscribeCallback(mosquitto*  /*mosq*/, void* obj, int  /*mid*/)
 {
-	LOG_ERROR("Unsubscribed from MQTT topic");
+	auto* connector = static_cast<MQTTConnector*>(obj);
+	connector->LOG_ERROR("Unsubscribed from MQTT topic");
 }
 
-void MQTTConnector::logCallback(mosquitto* /*mosq*/, void* /*obj*/, int level, const char* str)
+void MQTTConnector::logCallback(mosquitto* /*mosq*/, void* obj, int level, const char* str)
 {
+	auto* connector = static_cast<MQTTConnector*>(obj);
 	switch (level)
 	{
 	case MOSQ_LOG_DEBUG:
-		LOG_DEBUG("Mosquitto: {}", str);
+		connector->LOG_DEBUG("Mosquitto: {}", str);
 		break;
 	case MOSQ_LOG_INFO:
-		LOG_INFO("Mosquitto: {}", str);
+		connector->LOG_INFO("Mosquitto: {}", str);
 		break;
 	case MOSQ_LOG_NOTICE:
-		LOG_INFO("Mosquitto: {}", str);
+		connector->LOG_INFO("Mosquitto: {}", str);
 		break;
 	case MOSQ_LOG_WARNING:
-		LOG_WARN("Mosquitto: {}", str);
+		connector->LOG_WARN("Mosquitto: {}", str);
 		break;
 	case MOSQ_LOG_ERR:
-		LOG_ERROR("Mosquitto: {}", str);
+		connector->LOG_ERROR("Mosquitto: {}", str);
 		break;
 	}
 }

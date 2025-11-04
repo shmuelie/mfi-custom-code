@@ -172,7 +172,6 @@ protected:
 	virtual std::optional<std::string> getSerialNumber() const;
 
 private:
-	std::shared_ptr<spdlog::logger> m_logger;
 	friend void MQTTConnector::registerDevice(std::shared_ptr<DeviceBase> device);
 	void setParentConnector(std::weak_ptr<MQTTConnector> connector)
 	{
