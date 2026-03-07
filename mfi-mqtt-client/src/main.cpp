@@ -92,9 +92,14 @@ int main(int argc, char* argv[]) {
 			device->processMessages(polling_rate);
 		}
 		catch (std::exception& e) {
-			logger->log_error("Error procssing message: {}", e.what());
+			logger->log_error("Error processing message: {}", e.what());
 		}
-		device->update();
+		try {
+			device->update();
+		}
+		catch (std::exception& e) {
+			logger->log_error("Error updating device: {}", e.what());
+		}
 	}
 
 	logger->log_info("Exiting");

@@ -11,7 +11,6 @@
 #include <thread>
 
 constexpr std::array<int, 8> backoff_ladder = {1000, 1000, 5000, 5000, 5000, 15000, 30000, 30000};
-int backoff_state = 0;
 
 // Constructor implementation
 MQTTConnector::MQTTConnector(const std::string& server,
@@ -26,11 +25,24 @@ MQTTConnector::MQTTConnector(const std::string& server,
 	, m_unique_id(unique_id)
 	, m_mosquitto(nullptr)
 	, m_logger(spdlog::default_logger()->clone("MQTTConnector"))
+	, m_backoff_state(0)
+	, m_slept_for(0)
 {
 	LOG_DEBUG("MQTTConnector created with server: {}", server);
 
 	// Initialize the MQTT library
 	mosquitto_lib_init();
+}
+
+MQTTConnector::~MQTTConnector()
+{
+	if(m_mosquitto != nullptr)
+	{
+		mosquitto_disconnect(m_mosquitto);
+		mosquitto_destroy(m_mosquitto);
+		m_mosquitto = nullptr;
+	}
+	mosquitto_lib_cleanup();
 }
 
 std::string MQTTConnector::getAvailabilityTopic() const
@@ -43,6 +55,13 @@ std::string MQTTConnector::getAvailabilityTopic() const
 bool MQTTConnector::connect()
 {
 	LOG_DEBUG("Connecting to MQTT server: {}", m_server);
+
+	// Destroy any existing mosquitto instance to prevent resource leaks
+	if(m_mosquitto != nullptr)
+	{
+		mosquitto_destroy(m_mosquitto);
+		m_mosquitto = nullptr;
+	}
 
 	m_mosquitto = mosquitto_new(m_unique_id.c_str(), true, this);
 	if(m_mosquitto == nullptr)
@@ -65,7 +84,7 @@ bool MQTTConnector::connect()
 	// Set the lwt availability topic for all devices
 	publishLWT();
 
-	int rc = mosquitto_connect(m_mosquitto, m_server.c_str(), m_port, 0);
+	int rc = mosquitto_connect(m_mosquitto, m_server.c_str(), m_port, 60);
 	if(rc != MOSQ_ERR_SUCCESS)
 	{
 		LOG_ERROR("Failed to connect to MQTT server: {}", mosquitto_strerror(rc));
@@ -148,19 +167,18 @@ void MQTTConnector::processMessages(int timeout, bool exit_on_event)
 	if(!isConnected())
 	{
 		LOG_DEBUG("Not connected to MQTT server. Attempting to reconnect.");
-		static int slept_for = 0;
-		LOG_DEBUG("Slept since last reconnect try {}ms", slept_for);
+		LOG_DEBUG("Slept since last reconnect try {}ms", m_slept_for);
 		std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
-		slept_for += timeout;
-		if(slept_for < backoff_ladder[backoff_state])
+		m_slept_for += timeout;
+		if(m_slept_for < backoff_ladder[m_backoff_state])
 		{
 			return;
 		}
-		slept_for = 0;
-		backoff_state++;
-		if(backoff_state >= backoff_ladder.size())
+		m_slept_for = 0;
+		m_backoff_state++;
+		if(m_backoff_state >= static_cast<int>(backoff_ladder.size()))
 		{
-			backoff_state = backoff_ladder.size() - 1;
+			m_backoff_state = backoff_ladder.size() - 1;
 		}
 
 		bool rc = connect();
@@ -171,7 +189,7 @@ void MQTTConnector::processMessages(int timeout, bool exit_on_event)
 					  mosquitto_strerror(rc));
 			return;
 		}
-		backoff_state = 0;
+		m_backoff_state = 0;
 	}
 
 	// At this point, we are connected to the MQTT server

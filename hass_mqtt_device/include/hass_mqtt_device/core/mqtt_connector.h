@@ -44,6 +44,8 @@ public:
                   const std::string& password,
                   const std::string& unique_id);
 
+    ~MQTTConnector();
+
     /**
      * @brief Get the unique id of the connection
      *
@@ -187,4 +189,6 @@ private:
     std::vector<std::shared_ptr<DeviceBase>> m_registered_devices; // List of registered devices using smart pointers
     mosquitto* m_mosquitto;
     std::shared_ptr<spdlog::logger> m_logger;
+    int m_backoff_state;
+    int m_slept_for;
 };
