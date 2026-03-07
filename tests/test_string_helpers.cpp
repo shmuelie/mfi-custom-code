@@ -98,6 +98,13 @@ TEST_CASE("is_number: strings with non-digits", "[string_helpers][is_number]") {
 	CHECK_FALSE(shmuelie::is_number("-1"));
 }
 
+TEST_CASE("is_number: brackets are not digits", "[string_helpers][is_number]") {
+	CHECK_FALSE(shmuelie::is_number("[123]"));
+	CHECK_FALSE(shmuelie::is_number("[]"));
+	CHECK_FALSE(shmuelie::is_number("["));
+	CHECK_FALSE(shmuelie::is_number("]"));
+}
+
 // --- try_stoul ---
 
 TEST_CASE("try_stoul: valid conversion", "[string_helpers][try_stoul]") {

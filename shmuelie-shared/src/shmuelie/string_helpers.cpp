@@ -6,7 +6,7 @@ bool shmuelie::is_number(string const& str)
 {
 	// `std::find_first_not_of` searches the string for the first character
 	// that does not match any of the characters specified in its arguments
-	return !str.empty() && (str.find_first_not_of("[0123456789]") == string::npos);
+	return !str.empty() && (str.find_first_not_of("0123456789") == string::npos);
 }
 
 vector<string> shmuelie::split(string const& str, char delim)

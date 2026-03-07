@@ -10,7 +10,7 @@ using namespace mfi;
 map<string, string> const config::read_all(string const& file) {
 	ifstream stream{ file.c_str() };
 
-	if (stream.bad()) {
+	if (!stream.is_open()) {
 		throw runtime_error{ "Unable to read file" };
 	}
 
@@ -35,7 +35,7 @@ map<string, string> const config::read_all(string const& file) {
 string const config::read(string const& file, string const& prop) {
 	ifstream stream{ file.c_str() };
 
-	if (stream.bad()) {
+	if (!stream.is_open()) {
 		throw runtime_error{ "Unable to read file" };
 	}
 
@@ -60,7 +60,7 @@ string const config::read(string const& file, string const& prop) {
 string const config::read(string const& file, string const& prop, string const& defaultValue) {
 	ifstream stream{ file.c_str() };
 
-	if (stream.bad()) {
+	if (!stream.is_open()) {
 		return defaultValue;
 	}
 
