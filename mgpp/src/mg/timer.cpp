@@ -14,7 +14,7 @@ timer::timer(shared_ptr<manager> const& manager, milliseconds period, bool repea
 		flags |= MG_TIMER_RUN_NOW;
 	}
 
-	_timer = mg_timer_add(manager->_manager, period.count(), flags, &timer::callback, this);
+	_timer = mg_timer_add(&manager->_manager, period.count(), flags, &timer::callback, this);
 }
 
 timer::~timer() noexcept {
@@ -23,7 +23,7 @@ timer::~timer() noexcept {
 
 void timer::stop() noexcept {
 	if (running()) {
-		mg_timer_free(&_manager->_manager->timers, _timer);
+		mg_timer_free(&_manager->_manager.timers, _timer);
 		_timer = nullptr;
 	}
 }

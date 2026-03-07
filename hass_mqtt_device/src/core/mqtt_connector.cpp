@@ -184,9 +184,8 @@ void MQTTConnector::processMessages(int timeout, bool exit_on_event)
 		bool rc = connect();
 		if(!rc)
 		{
-			LOG_ERROR("Failed to reconnect to MQTT server: {}. Continuing to sleep "
-					  "and retry.",
-					  mosquitto_strerror(rc));
+			LOG_ERROR("Failed to reconnect to MQTT server. Continuing to sleep "
+					  "and retry.");
 			return;
 		}
 		m_backoff_state = 0;

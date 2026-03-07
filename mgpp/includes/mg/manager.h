@@ -23,6 +23,6 @@ namespace mg {
 		std::optional<connection> listen(eventing_handler* self, std::string const& url) noexcept;
 		std::optional<connection> listen(http_server* self, std::string const& url) noexcept;
 	private:
-		mg_mgr* _manager;
+		mg_mgr _manager;
 	};
 }

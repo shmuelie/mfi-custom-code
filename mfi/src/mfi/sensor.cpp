@@ -37,7 +37,7 @@ uint8_t sensor::id() const {
 
 double sensor::read(string const& path) const {
 	ifstream stream{ path + to_string(_id) };
-	double value;
+	double value = 0;
 	stream >> value;
 	return value;
 }
@@ -60,7 +60,7 @@ double sensor::power_factor() const {
 
 bool sensor::relay() const {
 	ifstream stream{ relay_path + to_string(_id) };
-	int value;
+	int value = 0;
 	stream >> value;
 	return value == 1;
 }

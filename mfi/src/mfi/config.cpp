@@ -18,7 +18,7 @@ map<string, string> const config::read_all(string const& file) {
 
 	for (string line; getline(stream, line);) {
 		auto equalityIndex = line.find('=');
-		if (equalityIndex == -1)
+		if (equalityIndex == string::npos)
 		{
 			continue;
 		}
@@ -41,7 +41,7 @@ string const config::read(string const& file, string const& prop) {
 
 	for (string line; getline(stream, line);) {
 		auto equalityIndex = line.find('=');
-		if (equalityIndex == -1)
+		if (equalityIndex == string::npos)
 		{
 			continue;
 		}
@@ -66,7 +66,7 @@ string const config::read(string const& file, string const& prop, string const& 
 
 	for (string line; getline(stream, line);) {
 		auto equalityIndex = line.find('=');
-		if (equalityIndex == -1)
+		if (equalityIndex == string::npos)
 		{
 			continue;
 		}

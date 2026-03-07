@@ -90,7 +90,7 @@ public:
      *
      * @return The brightness of this function
      */
-    bool getBrightness() const
+    double getBrightness() const
     {
         return m_brightness;
     };
