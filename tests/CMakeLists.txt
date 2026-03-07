@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.21)
 
 find_package(Catch2 REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MOSQUITTO REQUIRED libmosquitto)
 
 add_executable(tests
 	test_string_helpers.cpp
 	test_config.cpp
 	test_helper_functions.cpp
+	test_hass_functions.cpp
+	test_device_base.cpp
+	test_mfi_hardware.cpp
 )
 set_target_properties(tests PROPERTIES
 	CXX_STANDARD 20
@@ -15,6 +22,7 @@ target_link_libraries(tests PRIVATE
 	Catch2::Catch2WithMain
 	${SHMUELIE_SHARED_TARGET_NAME}
 	${MFI_API_TARGET_NAME}
+	hass_mqtt_device
 )
 target_include_directories(tests PRIVATE
 	${CMAKE_SOURCE_DIR}/hass_mqtt_device/include
