@@ -94,7 +94,7 @@ public:
 private:
 protected:
     bool m_has_data = false;
-    double m_number;
+    double m_number = 0.0;
     double m_max;
     double m_min;
     double m_step;

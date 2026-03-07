@@ -92,3 +92,13 @@ TEST_CASE("config::read: returns default for nonexistent file", "[config][read_d
 	auto result = mfi::config::read("/nonexistent/path/file", "key", "default_val");
 	CHECK(result == "default_val");
 }
+
+// --- regression: nonexistent file detection (was using .bad() instead of .is_open()) ---
+
+TEST_CASE("config::read_all: throws on nonexistent file", "[config][read_all]") {
+	CHECK_THROWS_AS(mfi::config::read_all("/nonexistent/path/file"), std::runtime_error);
+}
+
+TEST_CASE("config::read: throws on nonexistent file (2-arg)", "[config][read]") {
+	CHECK_THROWS_AS(mfi::config::read("/nonexistent/path/file", "key"), std::runtime_error);
+}

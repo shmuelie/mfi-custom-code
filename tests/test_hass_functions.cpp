@@ -503,3 +503,38 @@ TEST_CASE("NumberFunction: getDiscoveryJson has min/max/step", "[hass][number]")
 	CHECK(json["max"] == 200);
 	CHECK(json["step"] == 5);
 }
+
+// ========== Regression: default state before any update ==========
+
+TEST_CASE("SwitchFunction: default state is false before update", "[hass][switch][regression]") {
+	TestFixture f;
+	auto sw = std::make_shared<SwitchFunction>("Test Switch", [](bool) {});
+	f.device->registerFunction(sw);
+
+	CHECK(sw->getState() == false);
+}
+
+TEST_CASE("OnOffLightFunction: default state is false before update", "[hass][light][regression]") {
+	TestFixture f;
+	auto light = std::make_shared<OnOffLightFunction>("Test Light", [](bool) {});
+	f.device->registerFunction(light);
+
+	CHECK(light->getState() == false);
+}
+
+TEST_CASE("DimmableLightFunction: default state and brightness before update", "[hass][dimmable][regression]") {
+	TestFixture f;
+	auto light = std::make_shared<DimmableLightFunction>("Dim Light", [](bool, double) {});
+	f.device->registerFunction(light);
+
+	CHECK(light->getState() == false);
+	CHECK(light->getBrightness() == Approx(0.0));
+}
+
+TEST_CASE("NumberFunction: default number is 0 before update", "[hass][number][regression]") {
+	TestFixture f;
+	auto num = std::make_shared<NumberFunction>("Test Num", [](double) {}, 100, 0, 1);
+	f.device->registerFunction(num);
+
+	CHECK(num->getNumber() == Approx(0.0));
+}

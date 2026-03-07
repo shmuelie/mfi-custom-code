@@ -98,7 +98,7 @@ public:
 private:
 protected:
     bool m_has_data = false;
-    bool m_state;
-    double m_brightness;
+    bool m_state = false;
+    double m_brightness = 0.0;
     std::function<void(bool, double)> m_control_cb;
 };
