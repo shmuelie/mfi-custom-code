@@ -31,6 +31,9 @@ namespace mfi {
 		 * @brief Gets the voltage currently being drawn on the port.
 		*/
 		double voltage() const;
+		/**
+		 * @brief Gets the power factor of the port.
+		 */
 		double power_factor() const;
 		/**
 		 * @brief Gets a value indicating whether the port is on or off.
