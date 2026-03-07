@@ -51,7 +51,7 @@ void led::color(led_color value) const {
 
 uint32_t led::frequency() const {
 	ifstream stream{ frequency_path };
-	uint32_t value;
+	uint32_t value = 0;
 	stream >> value;
 	return value;
 }
