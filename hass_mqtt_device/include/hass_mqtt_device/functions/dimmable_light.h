@@ -97,6 +97,7 @@ public:
 
 private:
 protected:
+    bool m_has_data = false;
     bool m_state;
     double m_brightness;
     std::function<void(bool, double)> m_control_cb;

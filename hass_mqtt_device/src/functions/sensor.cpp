@@ -80,6 +80,10 @@ void SensorFunction<T>::sendStatus() const
 template<typename T>
 void SensorFunction<T>::update(T value)
 {
+    if(m_has_data && m_value == value)
+    {
+        return;
+    }
     m_has_data = true;
     m_value = value;
     sendStatus();

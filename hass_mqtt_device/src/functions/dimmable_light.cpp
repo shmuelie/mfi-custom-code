@@ -91,6 +91,10 @@ void DimmableLightFunction::processMessage(const std::string& topic, const std::
 
 void DimmableLightFunction::sendStatus() const
 {
+    if(!m_has_data)
+    {
+        return;
+    }
     auto parent = m_parent_device.lock();
     if(!parent)
     {
@@ -111,6 +115,11 @@ void DimmableLightFunction::sendStatus() const
 
 void DimmableLightFunction::update(bool state, double brightness)
 {
+    if(m_has_data && m_state == state && m_brightness == brightness)
+    {
+        return;
+    }
+    m_has_data = true;
     m_state = state;
     m_brightness = brightness;
     sendStatus();

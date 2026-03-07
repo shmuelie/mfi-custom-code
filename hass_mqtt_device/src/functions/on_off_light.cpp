@@ -84,6 +84,10 @@ void OnOffLightFunction::processMessage(const std::string& topic, const std::str
 
 void OnOffLightFunction::sendStatus() const
 {
+    if(!m_has_data)
+    {
+        return;
+    }
     auto parent = m_parent_device.lock();
     if(!parent)
     {
@@ -97,6 +101,11 @@ void OnOffLightFunction::sendStatus() const
 
 void OnOffLightFunction::update(bool state)
 {
+    if(m_has_data && m_state == state)
+    {
+        return;
+    }
+    m_has_data = true;
     m_state = state;
     sendStatus();
 }
