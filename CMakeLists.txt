@@ -30,3 +30,8 @@ add_subdirectory(shmuelie-shared)
 add_subdirectory(mfi-cli)
 add_subdirectory(mfi-rest-server)
 add_subdirectory(mfi-mqtt-client)
+
+if(NOT MFI_CROSS_COMPILE)
+	enable_testing()
+	add_subdirectory(tests)
+endif()
