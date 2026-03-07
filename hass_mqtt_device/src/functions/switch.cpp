@@ -88,6 +88,10 @@ void SwitchFunction::processMessage(const std::string& topic, const std::string&
 
 void SwitchFunction::sendStatus() const
 {
+    if(!m_has_data)
+    {
+        return;
+    }
     auto parent = m_parent_device.lock();
     if(!parent)
     {
@@ -101,6 +105,11 @@ void SwitchFunction::sendStatus() const
 
 void SwitchFunction::update(bool state)
 {
+    if(m_has_data && m_state == state)
+    {
+        return;
+    }
+    m_has_data = true;
     m_state = state;
     sendStatus();
 }

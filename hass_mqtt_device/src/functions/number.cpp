@@ -123,6 +123,10 @@ void NumberFunction::processMessage(const std::string& topic, const std::string&
 
 void NumberFunction::sendStatus() const
 {
+    if(!m_has_data)
+    {
+        return;
+    }
     auto parent = m_parent_device.lock();
     if(!parent)
     {
@@ -136,6 +140,11 @@ void NumberFunction::sendStatus() const
 
 void NumberFunction::update(double number)
 {
+    if(m_has_data && m_number == number)
+    {
+        return;
+    }
+    m_has_data = true;
     m_number = number;
     sendStatus();
 }

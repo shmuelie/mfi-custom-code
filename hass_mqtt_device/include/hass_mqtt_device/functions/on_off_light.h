@@ -86,6 +86,7 @@ public:
 
 private:
 protected:
+    bool m_has_data = false;
     bool m_state;
     std::function<void(bool)> m_control_cb;
 };

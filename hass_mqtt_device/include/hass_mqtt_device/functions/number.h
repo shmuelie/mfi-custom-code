@@ -93,6 +93,7 @@ public:
 
 private:
 protected:
+    bool m_has_data = false;
     double m_number;
     double m_max;
     double m_min;
