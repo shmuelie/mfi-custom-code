@@ -23,7 +23,7 @@ vector<string> shmuelie::split(string const& str, char delim)
 		pos = str.find(delim, pos);
 	}
 
-	list.push_back(str.substr(i, str.length()));
+	list.push_back(str.substr(i));
 
 	return list;
 }
