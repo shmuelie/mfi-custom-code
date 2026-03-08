@@ -39,6 +39,20 @@ TEST_CASE("split: trailing delimiter", "[string_helpers][split]") {
 	CHECK(result[2] == "");
 }
 
+TEST_CASE("split: single character string", "[string_helpers][split]") {
+	auto result = shmuelie::split("x", ',');
+	REQUIRE(result.size() == 1);
+	CHECK(result[0] == "x");
+}
+
+TEST_CASE("split: long string preserves content after last delimiter", "[string_helpers][split]") {
+	auto result = shmuelie::split("first,second,third_longer_segment", ',');
+	REQUIRE(result.size() == 3);
+	CHECK(result[0] == "first");
+	CHECK(result[1] == "second");
+	CHECK(result[2] == "third_longer_segment");
+}
+
 TEST_CASE("split: consecutive delimiters", "[string_helpers][split]") {
 	auto result = shmuelie::split("a,,b", ',');
 	REQUIRE(result.size() == 3);

@@ -27,8 +27,24 @@ mfi_http_server::mfi_http_server() noexcept : http_server() {
 	_v2Regex.assign(v2Regex);
 }
 
+static string json_escape(string const& str) {
+	string result;
+	result.reserve(str.size());
+	for (char c : str) {
+		switch (c) {
+		case '"':  result += "\\\""; break;
+		case '\\': result += "\\\\"; break;
+		case '\n': result += "\\n"; break;
+		case '\r': result += "\\r"; break;
+		case '\t': result += "\\t"; break;
+		default:   result += c; break;
+		}
+	}
+	return result;
+}
+
 static string const to_json(sensor sensor) {
-	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + ",\"name\":\"" + sensor.name() + "\",\"label\":\"" + sensor.label() + "\"}";
+	return "{\"power\":" + to_string(sensor.power()) + ",\"current\":" + to_string(sensor.current()) + ",\"voltage\":" + to_string(sensor.voltage()) + ",\"relay\":" + (sensor.relay() ? "true" : "false") + ",\"name\":\"" + json_escape(sensor.name()) + "\",\"label\":\"" + json_escape(sensor.label()) + "\"}";
 }
 
 http_response mfi_http_server::sensor_handler() noexcept {
@@ -82,14 +98,18 @@ http_response mfi_http_server::led_handler(string const& method, string const& b
 			if (modf(color, &intpart) != 0.0) {
 				return { 400, "Invalid color " + to_string(color) };
 			}
+			int color_int = static_cast<int>(intpart);
+			if (color_int < 0 || color_int > 4) {
+				return { 400, "Color must be between 0 and 4" };
+			}
 
-			l.color(static_cast<led_color>(static_cast<int>(intpart)));
+			l.color(static_cast<led_color>(color_int));
 		}
 
 		double frequency;
 		if (mg_json_get_num(json, "$.frequency", &frequency)) {
-			if (modf(frequency, &intpart) != 0.0) {
-				return { 400, "Invalid frequencey " + to_string(frequency) };
+			if (modf(frequency, &intpart) != 0.0 || intpart < 0) {
+				return { 400, "Invalid frequency " + to_string(frequency) };
 			}
 
 			l.frequency(static_cast<uint32_t>(intpart));
