@@ -41,7 +41,7 @@ led_color led::color() const {
 		return led_color::alternate;
 	}
 
-	throw runtime_error{ "Unknown or supported LED color" };
+	throw runtime_error{ "Unknown or unsupported LED color" };
 }
 
 void led::color(led_color value) const {

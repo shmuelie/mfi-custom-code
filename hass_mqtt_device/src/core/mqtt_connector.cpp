@@ -221,6 +221,11 @@ void MQTTConnector::processMessages(int timeout, bool exit_on_event)
 // Publish a message
 void MQTTConnector::publishMessage(const std::string& topic, const json& payload)
 {
+	if(m_mosquitto == nullptr)
+	{
+		LOG_ERROR("Cannot publish MQTT message: not initialized");
+		return;
+	}
 	std::string payload_str = payload.dump();
 	LOG_DEBUG("Publishing MQTT message to topic: {}", topic);
 	LOG_DEBUG("MQTT message payload: {}", payload_str);
