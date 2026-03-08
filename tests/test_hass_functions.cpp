@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/null_sink.h>
 #include "hass_mqtt_device/core/mqtt_connector.h"
@@ -333,7 +333,7 @@ TEST_CASE("DimmableLightFunction: processMessage with state and brightness", "[h
 
 	light->processMessage(light->getSubscribeTopics()[0], R"({"state":"ON","brightness":128})");
 	CHECK(recv_state == true);
-	CHECK(recv_brightness == Approx(128.0 / 255.0));
+	CHECK(recv_brightness == Catch::Approx(128.0 / 255.0));
 }
 
 TEST_CASE("DimmableLightFunction: processMessage without brightness keeps current", "[hass][dimmable]") {
@@ -346,7 +346,7 @@ TEST_CASE("DimmableLightFunction: processMessage without brightness keeps curren
 
 	// First set brightness
 	light->processMessage(light->getSubscribeTopics()[0], R"({"state":"ON","brightness":255})");
-	CHECK(recv_brightness == Approx(1.0));
+	CHECK(recv_brightness == Catch::Approx(1.0));
 
 	// Send without brightness - should keep the previous m_brightness
 	light->processMessage(light->getSubscribeTopics()[0], R"({"state":"OFF"})");
@@ -379,11 +379,11 @@ TEST_CASE("DimmableLightFunction: update change detection", "[hass][dimmable]") 
 
 	light->update(true, 0.5);
 	CHECK(light->getState() == true);
-	CHECK(light->getBrightness() == Approx(0.5));
+	CHECK(light->getBrightness() == Catch::Approx(0.5));
 
 	light->update(true, 0.5);  // duplicate
 	light->update(true, 0.8);  // brightness changed
-	CHECK(light->getBrightness() == Approx(0.8));
+	CHECK(light->getBrightness() == Catch::Approx(0.8));
 	light->update(false, 0.8); // state changed
 	CHECK(light->getState() == false);
 }
@@ -413,7 +413,7 @@ TEST_CASE("NumberFunction: processMessage valid value", "[hass][number]") {
 	f.device->registerFunction(num);
 
 	num->processMessage(num->getSubscribeTopics()[0], "50");
-	CHECK(received == Approx(50.0));
+	CHECK(received == Catch::Approx(50.0));
 }
 
 TEST_CASE("NumberFunction: processMessage clamps to max", "[hass][number]") {
@@ -423,7 +423,7 @@ TEST_CASE("NumberFunction: processMessage clamps to max", "[hass][number]") {
 	f.device->registerFunction(num);
 
 	num->processMessage(num->getSubscribeTopics()[0], "200");
-	CHECK(received == Approx(100.0));
+	CHECK(received == Catch::Approx(100.0));
 }
 
 TEST_CASE("NumberFunction: processMessage clamps to min", "[hass][number]") {
@@ -433,7 +433,7 @@ TEST_CASE("NumberFunction: processMessage clamps to min", "[hass][number]") {
 	f.device->registerFunction(num);
 
 	num->processMessage(num->getSubscribeTopics()[0], "5");
-	CHECK(received == Approx(10.0));
+	CHECK(received == Catch::Approx(10.0));
 }
 
 TEST_CASE("NumberFunction: processMessage rounds to step", "[hass][number]") {
@@ -443,7 +443,7 @@ TEST_CASE("NumberFunction: processMessage rounds to step", "[hass][number]") {
 	f.device->registerFunction(num);
 
 	num->processMessage(num->getSubscribeTopics()[0], "17");
-	CHECK(received == Approx(15.0));
+	CHECK(received == Catch::Approx(15.0));
 }
 
 TEST_CASE("NumberFunction: processMessage rounds up to nearest step", "[hass][number]") {
@@ -453,7 +453,7 @@ TEST_CASE("NumberFunction: processMessage rounds up to nearest step", "[hass][nu
 	f.device->registerFunction(num);
 
 	num->processMessage(num->getSubscribeTopics()[0], "26");
-	CHECK(received == Approx(30.0));
+	CHECK(received == Catch::Approx(30.0));
 }
 
 TEST_CASE("NumberFunction: processMessage ignores invalid string", "[hass][number]") {
@@ -497,10 +497,10 @@ TEST_CASE("NumberFunction: update change detection", "[hass][number]") {
 	f.device->registerFunction(num);
 
 	num->update(25.0);
-	CHECK(num->getNumber() == Approx(25.0));
+	CHECK(num->getNumber() == Catch::Approx(25.0));
 	num->update(25.0);  // duplicate
 	num->update(50.0);  // changed
-	CHECK(num->getNumber() == Approx(50.0));
+	CHECK(num->getNumber() == Catch::Approx(50.0));
 }
 
 TEST_CASE("NumberFunction: getDiscoveryJson has min/max/step", "[hass][number]") {
@@ -538,7 +538,7 @@ TEST_CASE("DimmableLightFunction: default state and brightness before update", "
 	f.device->registerFunction(light);
 
 	CHECK(light->getState() == false);
-	CHECK(light->getBrightness() == Approx(0.0));
+	CHECK(light->getBrightness() == Catch::Approx(0.0));
 }
 
 TEST_CASE("NumberFunction: default number is 0 before update", "[hass][number][regression]") {
@@ -546,5 +546,5 @@ TEST_CASE("NumberFunction: default number is 0 before update", "[hass][number][r
 	auto num = std::make_shared<NumberFunction>("Test Num", [](double) {}, 100, 0, 1);
 	f.device->registerFunction(num);
 
-	CHECK(num->getNumber() == Approx(0.0));
+	CHECK(num->getNumber() == Catch::Approx(0.0));
 }
