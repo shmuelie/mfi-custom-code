@@ -11,7 +11,7 @@ bool shmuelie::is_number(string const& str)
 
 vector<string> shmuelie::split(string const& str, char delim)
 {
-	auto i = 0;
+	size_t i = 0;
 	vector<string> list;
 
 	auto pos = str.find(delim);

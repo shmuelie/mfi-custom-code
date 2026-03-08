@@ -77,6 +77,16 @@ TEST_CASE("SwitchFunction: processMessage invalid JSON ignored", "[hass][switch]
 	CHECK_FALSE(called);
 }
 
+TEST_CASE("SwitchFunction: processMessage empty payload ignored", "[hass][switch]") {
+	TestFixture f;
+	bool called = false;
+	auto sw = std::make_shared<SwitchFunction>("Test Switch", [&](bool v) { called = true; });
+	f.device->registerFunction(sw);
+
+	sw->processMessage(sw->getSubscribeTopics()[0], "");
+	CHECK_FALSE(called);
+}
+
 TEST_CASE("SwitchFunction: update change detection skips duplicate", "[hass][switch]") {
 	TestFixture f;
 	auto sw = std::make_shared<SwitchFunction>("Test Switch", [](bool) {});
