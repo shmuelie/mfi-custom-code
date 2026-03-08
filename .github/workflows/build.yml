@@ -1,0 +1,37 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            build-essential \
+            pkg-config \
+            libmosquitto-dev \
+            nlohmann-json3-dev \
+            libspdlog-dev \
+            catch2
+
+      - name: Configure
+        run: cmake --preset local-debug
+
+      - name: Build
+        run: cmake --build --preset local-debug
+
+      - name: Test
+        run: ctest --test-dir build/local-debug --output-on-failure
