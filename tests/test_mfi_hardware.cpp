@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include "mfi/sensor.h"
 #include "mfi/led.h"
 #include <fstream>
@@ -55,7 +55,7 @@ TEST_CASE("sensor: power reads from file", "[mfi][sensor][file]") {
 	tree.writeSensorFile("active_pwr", 1, "12.5");
 
 	mfi::sensor s{1};
-	CHECK(s.power() == Approx(12.5));
+	CHECK(s.power() == Catch::Approx(12.5));
 }
 
 TEST_CASE("sensor: current reads from file", "[mfi][sensor][file]") {
@@ -63,7 +63,7 @@ TEST_CASE("sensor: current reads from file", "[mfi][sensor][file]") {
 	tree.writeSensorFile("i_rms", 2, "0.125");
 
 	mfi::sensor s{2};
-	CHECK(s.current() == Approx(0.125));
+	CHECK(s.current() == Catch::Approx(0.125));
 }
 
 TEST_CASE("sensor: voltage reads from file", "[mfi][sensor][file]") {
@@ -71,7 +71,7 @@ TEST_CASE("sensor: voltage reads from file", "[mfi][sensor][file]") {
 	tree.writeSensorFile("v_rms", 1, "120.5");
 
 	mfi::sensor s{1};
-	CHECK(s.voltage() == Approx(120.5));
+	CHECK(s.voltage() == Catch::Approx(120.5));
 }
 
 TEST_CASE("sensor: power_factor reads from file", "[mfi][sensor][file]") {
@@ -79,7 +79,7 @@ TEST_CASE("sensor: power_factor reads from file", "[mfi][sensor][file]") {
 	tree.writeSensorFile("pf", 1, "0.98");
 
 	mfi::sensor s{1};
-	CHECK(s.power_factor() == Approx(0.98));
+	CHECK(s.power_factor() == Catch::Approx(0.98));
 }
 
 TEST_CASE("sensor: relay reads true when 1", "[mfi][sensor][file]") {
@@ -138,8 +138,8 @@ TEST_CASE("sensor: multiple sensors read independently", "[mfi][sensor][file]") 
 
 	mfi::sensor s1{1};
 	mfi::sensor s2{2};
-	CHECK(s1.power() == Approx(100.0));
-	CHECK(s2.power() == Approx(200.0));
+	CHECK(s1.power() == Catch::Approx(100.0));
+	CHECK(s2.power() == Catch::Approx(200.0));
 }
 
 // ========== mfi::led ==========

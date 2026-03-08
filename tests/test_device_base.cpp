@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/null_sink.h>
 #include "hass_mqtt_device/core/mqtt_connector.h"

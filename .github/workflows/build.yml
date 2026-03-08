@@ -24,8 +24,7 @@ jobs:
             pkg-config \
             libmosquitto-dev \
             nlohmann-json3-dev \
-            libspdlog-dev \
-            catch2
+            libspdlog-dev
 
       - name: Configure
         run: cmake --preset local-debug

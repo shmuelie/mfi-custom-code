@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 #include "hass_mqtt_device/core/helper_functions.hpp"
 
 TEST_CASE("getValidHassString: basic lowercase conversion", "[helper_functions]") {
