@@ -261,7 +261,11 @@ void MQTTConnector::messageCallback(mosquitto*  /*mosq*/, void* obj, const mosqu
 	connector->LOG_DEBUG("Received MQTT message on topic: {}", message->topic);
 	// Convert the topic and message to a string
 	std::string topic(message->topic);
-	std::string payload(static_cast<char*>(message->payload), message->payloadlen);
+	std::string payload;
+	if(message->payloadlen > 0 && message->payload != nullptr)
+	{
+		payload.assign(static_cast<char*>(message->payload), message->payloadlen);
+	}
 
 	for(auto& device : connector->m_registered_devices)
 	{
