@@ -20,9 +20,17 @@ static std::string validate_ip(std::string const& ip)
 	// validate each token
 	for (std::string str : list)
 	{
-		// verify that the string is a number or not, and the numbers
-		// are in the valid range
-		if (!shmuelie::is_number(str) || stoi(str) > 255 || stoi(str) < 0) {
+		if (!shmuelie::is_number(str)) {
+			return "Invalid IP address";
+		}
+		int val;
+		try {
+			val = stoi(str);
+		}
+		catch (std::exception const&) {
+			return "Invalid IP address";
+		}
+		if (val < 0 || val > 255) {
 			return "Invalid IP address";
 		}
 	}
