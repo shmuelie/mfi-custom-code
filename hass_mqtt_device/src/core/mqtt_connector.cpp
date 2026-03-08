@@ -285,6 +285,13 @@ void MQTTConnector::connectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
 	auto* connector = static_cast<MQTTConnector*>(obj);
 	connector->LOG_DEBUG("Connected to MQTT server callback: {}", mosquitto_reason_string(rc));
 
+	if(rc != 0)
+	{
+		connector->LOG_ERROR("Connection refused by broker: {}", mosquitto_reason_string(rc));
+		connector->m_is_connected = false;
+		return;
+	}
+
 	// Subscribe to the topics of the registered devices
 	for(auto& device : connector->m_registered_devices)
 	{

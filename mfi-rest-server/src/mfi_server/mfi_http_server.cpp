@@ -125,7 +125,7 @@ http_response mfi_http_server::led_handler(string const& method, string const& b
 http_response mfi_http_server::info_handler() noexcept {
 	return { map<string, string>{
 		{"Content-Type", "application/json"}
-	}, "{\"hostName\":\"" + _board.hostname() + "\",\"modelName\":\"" + _board.name() + "\",\"modelId\":" + to_string(_board.id()) + ",\"sensorCount\":" + to_string(_board.sensors().size()) + "}"};
+	}, "{\"hostName\":\"" + json_escape(_board.hostname()) + "\",\"modelName\":\"" + json_escape(_board.name()) + "\",\"modelId\":" + to_string(_board.id()) + ",\"sensorCount\":" + to_string(_board.sensors().size()) + "}"};
 }
 
 #define STR_(S) #S
@@ -163,6 +163,6 @@ http_response mfi_http_server::http_handler(http_message const& message) noexcep
 	}
 
 	return { 404, map<string, string>{
-		{ "Server", SERVER(MFI_SERVER_VERSION) }
+		{ "Server", SERVER(MFI_REST_SERVER_VERSION) }
 	} };
 }

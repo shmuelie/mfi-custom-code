@@ -34,3 +34,8 @@ TEST_CASE("getValidHassString: digits preserved", "[helper_functions]") {
 	CHECK(getValidHassString("sensor123") == "sensor123");
 	CHECK(getValidHassString("Port 8") == "port_8");
 }
+
+TEST_CASE("getValidHassString: dashes become underscores", "[helper_functions]") {
+	CHECK(getValidHassString("my-device") == "my_device");
+	CHECK(getValidHassString("living-room-light") == "living_room_light");
+}
