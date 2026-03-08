@@ -190,7 +190,7 @@ void DeviceBase::sendDiscovery()
 		catch(const std::exception& e)
 		{
 			LOG_ERROR("Failed to send discovery message for device {}-{}: {}", getName(), getId(), e.what());
-			throw e;
+			throw;
 		}
 	}
 }

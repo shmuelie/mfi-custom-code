@@ -13,8 +13,8 @@ inline std::string getValidHassString(const std::string& value)
 {
     std::string return_value = value;
 
-    // Replace special characters with nothing
-    std::string special_characters = "!@#$%^&*()[]{};:,./<>?\\|`~-=+";
+    // Replace special characters with nothing (dash excluded: converted to underscore below)
+    std::string special_characters = "!@#$%^&*()[]{};:,./<>?\\|`~=+";
     for(auto& character : special_characters)
     {
         return_value.erase(std::remove(return_value.begin(), return_value.end(), character),
