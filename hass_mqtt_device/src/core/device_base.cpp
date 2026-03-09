@@ -16,7 +16,7 @@
 DeviceBase::DeviceBase(const std::string& device_name, const std::string& id)
 	: m_device_name(device_name)
 	, m_id(getValidHassString(id))
-	, m_logger(spdlog::default_logger()->clone(device_name))
+	, m_logger(spdlog::default_logger())
 {
 	LOG_DEBUG("Creating device with name: {} id {}", getName(), getId());
 }

@@ -13,7 +13,7 @@
 #include <vector>
 
 FunctionBase::FunctionBase(const std::string& function_name)
-	: m_function_name(function_name), m_logger(spdlog::default_logger()->clone(function_name))
+	: m_function_name(function_name), m_logger(spdlog::default_logger())
 {
 }
 

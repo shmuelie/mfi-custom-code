@@ -2,7 +2,6 @@
 
 #include <string>
 #include <vector>
-#include <regex>
 #include "mg/http_server.h"
 #include "mfi.h"
 
@@ -20,5 +19,4 @@ private:
 	mg::http_response info_handler() noexcept;
 
 	mfi::board _board{};
-	std::regex _v2Regex{};
 };

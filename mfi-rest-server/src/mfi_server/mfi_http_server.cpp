@@ -10,21 +10,6 @@ using namespace mfi;
 using namespace shmuelie;
 
 mfi_http_server::mfi_http_server() noexcept : http_server() {
-	string v2Regex{ "^\\/api\\/v2\\/(sensor(?:\\/(" };
-
-	size_t sensorCount = _board.sensors().size();
-	for (size_t i = 1; i <= sensorCount; i++) {
-		v2Regex += to_string(i);
-		if (i < sensorCount) {
-			v2Regex += "|";
-		}
-	}
-
-	v2Regex += "))?|led|info)$";
-
-	logger::verbose("Final Regex: %s", make_tuple(v2Regex.c_str()));
-
-	_v2Regex.assign(v2Regex);
 }
 
 static string json_escape(string const& str) {
@@ -137,28 +122,34 @@ static http_response add_server_headers(http_response const& response) {
 	return { response.status_code(), headers, response.body() };
 }
 
+static constexpr const char* API_PREFIX = "/api/v2/";
+static constexpr size_t API_PREFIX_LEN = 8;
+
 http_response mfi_http_server::http_handler(http_message const& message) noexcept {
-	smatch uriMatch{};
 	string const& uri = message.uri();
-	if (regex_match(uri, uriMatch, _v2Regex)) {
-		string const primaryPath = uriMatch[1].str();
-		if (primaryPath == "led") {
-			auto response = led_handler(message.method(), message.body());
-			return add_server_headers(response);
-		}
-		else if (primaryPath == "info") {
-			auto response = info_handler();
-			return add_server_headers(response);
-		}
-		else {
-			if (uriMatch[2].matched) {
-				auto response = sensor_handler(message.method(), static_cast<uint8_t>(stoul(uriMatch[2].str())), message.body());
-				return add_server_headers(response);
-			}
-			else {
-				auto response = sensor_handler();
-				return add_server_headers(response);
-			}
+
+	if (uri.compare(0, API_PREFIX_LEN, API_PREFIX) != 0) {
+		return { 404, map<string, string>{
+			{ "Server", SERVER(MFI_REST_SERVER_VERSION) }
+		} };
+	}
+
+	string path = uri.substr(API_PREFIX_LEN);
+
+	if (path == "led") {
+		return add_server_headers(led_handler(message.method(), message.body()));
+	}
+	if (path == "info") {
+		return add_server_headers(info_handler());
+	}
+	if (path == "sensor") {
+		return add_server_headers(sensor_handler());
+	}
+	if (path.compare(0, 7, "sensor/") == 0) {
+		string idStr = path.substr(7);
+		auto sensorId = shmuelie::try_stoul<uint8_t>(idStr);
+		if (sensorId && *sensorId >= 1 && *sensorId <= _board.sensors().size()) {
+			return add_server_headers(sensor_handler(message.method(), *sensorId, message.body()));
 		}
 	}
 

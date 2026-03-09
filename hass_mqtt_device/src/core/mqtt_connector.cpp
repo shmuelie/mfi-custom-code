@@ -24,7 +24,7 @@ MQTTConnector::MQTTConnector(const std::string& server,
 	, m_password(password)
 	, m_unique_id(unique_id)
 	, m_mosquitto(nullptr)
-	, m_logger(spdlog::default_logger()->clone("MQTTConnector"))
+	, m_logger(spdlog::default_logger())
 	, m_backoff_state(0)
 	, m_slept_for(0)
 {
