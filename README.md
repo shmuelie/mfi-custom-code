@@ -186,13 +186,59 @@ ctest --output-on-failure
 
 ## Deploying to mFi Devices
 
-Copy the cross-compiled binaries to the device and configure autostart:
+The mFi persistent flash storage is only 64 KB — far too small for the binaries
+themselves. The recommended approach is to store binaries in `/tmp` (RAM disk)
+and use a small boot script in persistent storage to download them on startup.
+
+### Binary Size Optimization
+
+Release builds (`mips-release`) use `-Os`, LTO, `-ffunction-sections`,
+`-fdata-sections`, and `--gc-sections` to minimize binary size. Typical stripped
+sizes for MIPS static builds:
+
+| Binary | Approximate Size |
+|--------|-----------------|
+| `mfi-mqtt-client` | ~350 KB |
+| `mfi-rest-server` | ~230 KB |
+| `mfi-cli` | ~180 KB |
+
+### Deployment via Boot Script
 
 1. Build with `mips-release` preset.
-2. Copy binaries from `install/mips-release/` to the device via SCP.
-3. Create a config file and place it on the device.
-4. Add a startup entry to `/var/etc/persistent/rc.poststart`.
-5. Run `save` on the device to persist across reboots.
+2. Host the binaries on a local HTTP server or NAS accessible from the device.
+3. Create `/var/etc/persistent/rc.poststart` to download and run on boot:
+
+```sh
+#!/bin/sh
+
+BINARY_URL="http://your-server/mfi"
+INSTALL_DIR="/tmp/mfi-bin"
+
+mkdir -p "$INSTALL_DIR"
+
+# Download binaries
+wget -q -O "$INSTALL_DIR/mfi-mqtt-client" "$BINARY_URL/mfi-mqtt-client"
+chmod +x "$INSTALL_DIR/mfi-mqtt-client"
+
+# Start the MQTT client
+"$INSTALL_DIR/mfi-mqtt-client" --config /var/etc/persistent/mqtt.conf &
+```
+
+4. Place your configuration file at `/var/etc/persistent/mqtt.conf` (this is
+   small enough for persistent storage).
+5. Run `save` on the device to persist the script and config across reboots.
+
+### Direct SCP Deployment (Non-Persistent)
+
+For testing, you can SCP binaries directly to `/tmp`:
+
+```bash
+scp build/mips-release/mfi-mqtt-client/mfi-mqtt-client admin@mfi-device:/tmp/
+ssh admin@mfi-device '/tmp/mfi-mqtt-client --config /var/etc/persistent/mqtt.conf &'
+```
+
+Note: `/tmp` is cleared on reboot, so this approach requires re-copying after
+each restart.
 
 ## Useful mFi Notes
 

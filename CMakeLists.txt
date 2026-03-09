@@ -16,6 +16,15 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(AddProjectVersionData)
 
+# Binary size reduction for release builds
+if(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel" OR CMAKE_BUILD_TYPE STREQUAL "Release")
+	add_compile_options(-ffunction-sections -fdata-sections)
+	add_link_options(-Wl,--gc-sections -Wl,-s)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
+
+include(AddProjectVersionData)
+
 set(MGPP_TARGET_NAME mgpp)
 set(MFI_API_TARGET_NAME mfi)
 set(MFI_SERVER_TARGET_NAME mfi-rest-server)

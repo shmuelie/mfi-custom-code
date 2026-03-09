@@ -27,7 +27,8 @@ set_target_properties(hass_mqtt_device PROPERTIES
 # Compiler flags
 target_compile_options(hass_mqtt_device PRIVATE
   $<$<CONFIG:Debug>:-g3 -O0>
-  $<$<CONFIG:Release>:-O3>
+  $<$<CONFIG:Release>:-Os>
+  $<$<CONFIG:MinSizeRel>:-Os>
 )
 
 # Use ccache
