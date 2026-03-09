@@ -23,6 +23,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel" OR CMAKE_BUILD_TYPE STREQUAL "Release"
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
+# MIPS-specific optimizations for the target CPU (Atheros AR9331 = MIPS 24Kc)
+if(MFI_CROSS_COMPILE)
+	add_compile_options(-march=mips32r2 -mtune=mips32r2)
+endif()
+
 include(AddProjectVersionData)
 
 set(MGPP_TARGET_NAME mgpp)
