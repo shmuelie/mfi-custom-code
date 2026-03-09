@@ -17,14 +17,22 @@ if(MFI_CROSS_COMPILE AND ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Linux"))
 		execute_process(
 			COMMAND make BR2_EXTERNAL=${CMAKE_CURRENT_SOURCE_DIR} O=${BUILDROOT_BINARY_DIR} mfi_defconfig
 			WORKING_DIRECTORY ${BUILDROOT_REPO}
+			RESULT_VARIABLE BR_DEFCONFIG_RESULT
 		)
+		if(NOT BR_DEFCONFIG_RESULT EQUAL 0)
+			message(FATAL_ERROR "Buildroot defconfig failed (exit code ${BR_DEFCONFIG_RESULT})")
+		endif()
 	endif()
 
 	if (EXISTS ${BUILDROOT_CONFIG})
 		execute_process(
 			COMMAND make BR2_EXTERNAL=${CMAKE_CURRENT_SOURCE_DIR} O=${BUILDROOT_BINARY_DIR}
 			WORKING_DIRECTORY ${BUILDROOT_REPO}
+			RESULT_VARIABLE BR_BUILD_RESULT
 		)
+		if(NOT BR_BUILD_RESULT EQUAL 0)
+			message(FATAL_ERROR "Buildroot build failed (exit code ${BR_BUILD_RESULT})")
+		endif()
 	else()
 		message(FATAL_ERROR "Buildroot config not found")
 	endif()
