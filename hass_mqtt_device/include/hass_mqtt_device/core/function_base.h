@@ -7,6 +7,7 @@
 #pragma once
 
 #include "hass_mqtt_device/core/device_base.h"
+#include "hass_mqtt_device/core/helper_functions.hpp"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
@@ -107,6 +108,9 @@ protected:
     std::string getBaseTopic() const;
 
     std::string m_function_name;
+    std::string m_clean_name;
+    std::string m_id;
+    std::string m_base_topic;
     std::weak_ptr<DeviceBase> m_parent_device;
     std::shared_ptr<spdlog::logger> m_logger;
 
@@ -115,6 +119,13 @@ private:
     void setParentDevice(std::weak_ptr<DeviceBase> parent_device)
     {
         m_parent_device = parent_device;
+        // Cache derived strings now that parent is set
+        auto parent = m_parent_device.lock();
+        if(parent)
+        {
+            m_id = parent->getFullId() + "_" + m_clean_name;
+            m_base_topic = "home/" + parent->getFullId() + "/" + m_clean_name + "/";
+        }
         init();
     };
 };

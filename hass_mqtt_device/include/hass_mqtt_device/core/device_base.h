@@ -159,6 +159,9 @@ public:
 protected:
 	std::string m_device_name;
 	std::string m_id;
+	std::string m_clean_name;
+	std::string m_unique_id;
+	std::string m_full_id;
 	std::vector<std::shared_ptr<FunctionBase>> m_functions;
 	std::weak_ptr<MQTTConnector> m_connector;
 	std::shared_ptr<spdlog::logger> m_logger;
@@ -176,5 +179,16 @@ private:
 	void setParentConnector(std::weak_ptr<MQTTConnector> connector)
 	{
 		m_connector = connector;
+		// Cache derived strings now that connector is set
+		auto conn = m_connector.lock();
+		if(conn)
+		{
+			m_unique_id = conn->getId();
+			if(!m_id.empty())
+			{
+				m_unique_id += "_" + m_id;
+			}
+			m_full_id = m_unique_id + "_" + m_clean_name;
+		}
 	};
 };

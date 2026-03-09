@@ -16,6 +16,7 @@
 DeviceBase::DeviceBase(const std::string& device_name, const std::string& id)
 	: m_device_name(device_name)
 	, m_id(getValidHassString(id))
+	, m_clean_name(getValidHassString(device_name))
 	, m_logger(spdlog::default_logger())
 {
 	LOG_DEBUG("Creating device with name: {} id {}", getName(), getId());
@@ -33,30 +34,21 @@ std::string DeviceBase::getName() const
 
 std::string DeviceBase::getCleanName() const
 {
-	return getValidHassString(getName());
+	return m_clean_name;
 }
 
 std::string DeviceBase::getUniqueId() const
 {
-	// Get the connector
-	if(auto connector = m_connector.lock())
+	if(m_unique_id.empty())
 	{
-		// Return the full id
-		std::string unique_id = connector->getId();
-		if(!m_id.empty())
-		{
-			unique_id += "_" + m_id;
-		}
-		return unique_id;
+		throw std::runtime_error("MQTTConnector is not alive");
 	}
-	// If the connector is no longer alive, throw
-	throw std::runtime_error("MQTTConnector is not alive");
+	return m_unique_id;
 }
 
 std::string DeviceBase::getFullId() const
 {
-	// Return the full id
-	return getUniqueId() + "_" + getCleanName();
+	return m_full_id;
 }
 
 std::vector<std::string> DeviceBase::getSubscribeTopics() const

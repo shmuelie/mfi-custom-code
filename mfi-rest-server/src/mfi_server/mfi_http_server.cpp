@@ -35,7 +35,7 @@ static string const to_json(sensor sensor) {
 http_response mfi_http_server::sensor_handler() noexcept {
 	const vector<sensor>& sensors = _board.sensors();
 	vector<string> sensorsJson{};
-	for (sensor sensor : _board.sensors()) {
+	for (auto const& sensor : _board.sensors()) {
 		sensorsJson.push_back(to_json(sensor));
 	}
 	return { map<string, string>{

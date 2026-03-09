@@ -269,10 +269,12 @@ void MQTTConnector::messageCallback(mosquitto*  /*mosq*/, void* obj, const mosqu
 
 	for(auto& device : connector->m_registered_devices)
 	{
-		// Check if the topic starts with the device's topic after home/
-		if(topic.find("home/" + device->getFullId()) == 0)
+		// getFullId() returns cached string — no allocation
+		auto const& prefix = device->getFullId();
+		if(topic.length() > 5 + prefix.length()
+			&& topic.compare(0, 5, "home/") == 0
+			&& topic.compare(5, prefix.length(), prefix) == 0)
 		{
-			// Call the device's processMessage method
 			device->processMessage(topic, payload);
 		}
 	}

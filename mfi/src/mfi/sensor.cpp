@@ -28,7 +28,9 @@ string const voltage_path{ root + "v_rms" };
 string const power_factor_path{ root + "pf" };
 string const relay_path{ root + "relay" };
 
-sensor::sensor(uint8_t id) : _id(id) {
+sensor::sensor(uint8_t id) : _id(id),
+	_name(config::read(config_file, "port." + to_string(id - 1) + ".sensorId", "")),
+	_label(config::read(config_file, "port." + to_string(id - 1) + ".label", "")) {
 }
 
 uint8_t sensor::id() const {
@@ -70,10 +72,10 @@ void sensor::relay(bool value) const {
 	stream << (value ? 1 : 0);
 }
 
-string const sensor::name() const {
-	return config::read(config_file, "port." + to_string(_id - 1) + ".sensorId", "");
+string const& sensor::name() const {
+	return _name;
 }
 
-string const sensor::label() const {
-	return config::read(config_file, "port." + to_string(_id - 1) + ".label", "");
+string const& sensor::label() const {
+	return _label;
 }
