@@ -35,7 +35,7 @@ void OnOffLightDevice::init()
 void OnOffLightDevice::update(bool state)
 {
     std::shared_ptr<OnOffLightFunction> on_off_light =
-        std::dynamic_pointer_cast<OnOffLightFunction>(findFunction("on_off_light"));
+        std::static_pointer_cast<OnOffLightFunction>(findFunction("on_off_light"));
     if(on_off_light)
     {
         on_off_light->update(state);

@@ -18,7 +18,7 @@ include(AddProjectVersionData)
 
 # Binary size reduction for release builds
 if(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel" OR CMAKE_BUILD_TYPE STREQUAL "Release")
-	add_compile_options(-ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -fmerge-all-constants -fvisibility=hidden -fvisibility-inlines-hidden)
+	add_compile_options(-ffunction-sections -fdata-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-rtti -fmerge-all-constants -fvisibility=hidden -fvisibility-inlines-hidden)
 	add_link_options(-Wl,--gc-sections -Wl,-s -Wl,--as-needed -Wl,--exclude-libs,ALL)
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()

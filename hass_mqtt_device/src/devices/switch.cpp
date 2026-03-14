@@ -35,7 +35,7 @@ void SwitchDevice::init()
 
 void SwitchDevice::update(bool state)
 {
-    std::shared_ptr<SwitchFunction> sw = std::dynamic_pointer_cast<SwitchFunction>(findFunction("switch"));
+    std::shared_ptr<SwitchFunction> sw = std::static_pointer_cast<SwitchFunction>(findFunction("switch"));
     if(sw)
     {
         sw->update(state);
