@@ -5,6 +5,26 @@ switching devices. Includes an MQTT client for Home Assistant integration, a RES
 API server, and a CLI tool — all built on a shared C++ library that wraps the mFi
 hardware interface.
 
+## Alternatives
+
+There are several community shell-script projects for controlling mFi devices.
+This project differs in being a compiled C++ solution with a proper hardware
+abstraction layer, native MQTT, and Home Assistant auto-discovery.
+
+| Feature | mfi-custom-code | [mpower-tools](https://github.com/magcode/mpower-tools) | [mFi-tools](https://github.com/maletazul/mFi-tools) |
+|---|---|---|---|
+| Language | C++ | Shell scripts | Shell scripts |
+| MQTT | Native (libmosquitto) | Via `mosquitto_pub` | Via `mosquitto_pub` |
+| Home Assistant | Auto-discovery (switches + sensors) | Manual YAML config | Manual YAML config |
+| REST API | Yes (Mongoose) | No | No |
+| CLI tool | Yes | No | No |
+| Sensor data | Power, current, voltage, power factor | Power, energy | Power, energy |
+| Change-only updates | Yes (reduces MQTT traffic) | No (polls on interval) | No (polls on interval) |
+| Hardware abstraction | C++ library | Direct file I/O | Direct file I/O |
+| Cross-compilation | Buildroot toolchain | Not needed | Not needed |
+| Unit tests | Catch2 | None | None |
+| Install complexity | Build + deploy binary | Copy scripts | Copy scripts |
+
 ## Architecture
 
 ```
