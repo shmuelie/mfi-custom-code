@@ -224,13 +224,15 @@ for MIPS static builds:
 | `mfi-rest-server` | 741 KB | 286 KB | 768 KB |
 | `mfi-cli` | 692 KB | 262 KB | 718 KB |
 
-For further on-disk savings, compress the binaries with
-[UPX](https://upx.github.io/) after building:
+For further on-disk savings, enable [UPX](https://upx.github.io/) compression
+at build time:
 
 ```bash
-upx --best build/mips-release/mfi-mqtt-client/mfi-mqtt-client
+cmake --preset mips-release -DMFI_UPX=ON
+cmake --build --preset mips-release
 ```
 
+This automatically runs `upx --best` on each executable after linking.
 UPX-compressed binaries are self-extracting — they decompress into memory at
 startup with no additional tooling needed on the device. This reduces download
 time over the network and storage on the HTTP server hosting them. In-memory

@@ -23,6 +23,28 @@ if(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel" OR CMAKE_BUILD_TYPE STREQUAL "Release"
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
+# UPX compression for on-disk size reduction
+option(MFI_UPX "Compress executables with UPX after linking" OFF)
+if(MFI_UPX)
+	find_program(UPX_EXECUTABLE NAMES upx upx-ucl)
+	if(UPX_EXECUTABLE)
+		message(STATUS "UPX found: ${UPX_EXECUTABLE}")
+		set(MFI_UPX_FLAGS "--best" "-q" CACHE STRING "Flags to pass to UPX")
+	else()
+		message(FATAL_ERROR "MFI_UPX is ON but upx was not found")
+	endif()
+endif()
+
+# Helper to apply UPX to a target
+function(mfi_upx_compress target)
+	if(MFI_UPX AND UPX_EXECUTABLE)
+		add_custom_command(TARGET ${target} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E env "LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}" ${UPX_EXECUTABLE} ${MFI_UPX_FLAGS} $<TARGET_FILE:${target}>
+			COMMENT "UPX compressing ${target}"
+		)
+	endif()
+endfunction()
+
 # MIPS-specific optimizations for the target CPU (Atheros AR9331 = MIPS 24Kc)
 if(MFI_CROSS_COMPILE)
 	add_compile_options(-march=mips32r2 -mtune=mips32r2)
