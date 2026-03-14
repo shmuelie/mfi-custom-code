@@ -212,16 +212,17 @@ and use a small boot script in persistent storage to download them on startup.
 
 ### Binary Size Optimization
 
-Release builds (`mips-release`) use `-Os`, LTO, `-ffunction-sections`,
-`-fdata-sections`, `--gc-sections`, `-fno-unwind-tables`, `-fmerge-all-constants`,
-`-fvisibility=hidden`, and `-Wl,--exclude-libs,ALL` to minimize binary size.
-Typical stripped sizes for MIPS static builds:
+Release builds (`mips-release`) use `-Os`, LTO, `-fno-rtti`,
+`-fno-unwind-tables`, `-ffunction-sections`, `-fdata-sections`,
+`--gc-sections`, `-fmerge-all-constants`, `-fvisibility=hidden`, and
+`-Wl,--exclude-libs,ALL` to minimize binary size. Typical stripped sizes
+for MIPS static builds:
 
 | Binary | On disk | On disk (UPX) | In memory (text+data+bss) |
 |--------|---------|---------------|---------------------------|
-| `mfi-mqtt-client` | ~1.2 MB | ~452 KB | ~1.2 MB |
-| `mfi-rest-server` | ~750 KB | ~288 KB | ~775 KB |
-| `mfi-cli` | ~697 KB | ~264 KB | ~724 KB |
+| `mfi-mqtt-client` | 1.14 MB | 451 KB | 1.16 MB |
+| `mfi-rest-server` | 741 KB | 286 KB | 768 KB |
+| `mfi-cli` | 692 KB | 262 KB | 718 KB |
 
 For further on-disk savings, compress the binaries with
 [UPX](https://upx.github.io/) after building:
