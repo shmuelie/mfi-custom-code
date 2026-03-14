@@ -213,14 +213,27 @@ and use a small boot script in persistent storage to download them on startup.
 ### Binary Size Optimization
 
 Release builds (`mips-release`) use `-Os`, LTO, `-ffunction-sections`,
-`-fdata-sections`, and `--gc-sections` to minimize binary size. Typical stripped
-sizes for MIPS static builds:
+`-fdata-sections`, `--gc-sections`, `-fno-unwind-tables`, `-fmerge-all-constants`,
+`-fvisibility=hidden`, and `-Wl,--exclude-libs,ALL` to minimize binary size.
+Typical stripped sizes for MIPS static builds:
 
-| Binary | Approximate Size |
-|--------|-----------------|
-| `mfi-mqtt-client` | ~350 KB |
-| `mfi-rest-server` | ~230 KB |
-| `mfi-cli` | ~180 KB |
+| Binary | On disk | On disk (UPX) | In memory (text+data+bss) |
+|--------|---------|---------------|---------------------------|
+| `mfi-mqtt-client` | ~1.2 MB | ~452 KB | ~1.2 MB |
+| `mfi-rest-server` | ~750 KB | ~288 KB | ~775 KB |
+| `mfi-cli` | ~697 KB | ~264 KB | ~724 KB |
+
+For further on-disk savings, compress the binaries with
+[UPX](https://upx.github.io/) after building:
+
+```bash
+upx --best build/mips-release/mfi-mqtt-client/mfi-mqtt-client
+```
+
+UPX-compressed binaries are self-extracting — they decompress into memory at
+startup with no additional tooling needed on the device. This reduces download
+time over the network and storage on the HTTP server hosting them. In-memory
+size is unchanged.
 
 ### Deployment via Boot Script
 
