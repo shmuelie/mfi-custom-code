@@ -168,7 +168,6 @@ Buildroot submodule handles that.
 - `nlohmann-json3-dev`
 - `pkg-config`
 - `libspdlog-dev`
-- `catch2` (for running tests)
 
 ### CMake Presets
 
