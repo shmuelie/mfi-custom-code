@@ -5,11 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-03-29
+
+### Added
+
+- Only send MQTT updates when sensor values actually change, reducing traffic.
+
+### Changed
+
+- Replaced `dynamic_pointer_cast` with `static_pointer_cast` for RTTI-disabled builds.
+- Reduced runtime resource usage for embedded devices.
 
 ### Fixed
 
 - Fixed `--config` file validation failing on mFi devices due to uclibc using the `statx` syscall.
+- Fixed device freeze caused by `std::regex` usage and excessive logger allocations.
+- Fixed MQTT client crashes from mosquitto resource leaks and missing error handling.
 
 ## [1.0.1] - 2025-01-03
 
