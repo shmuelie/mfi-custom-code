@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed `--config` file validation failing on mFi devices due to uclibc using the `statx` syscall.
+
 ## [1.0.1] - 2025-01-03
 
 ### Changed
