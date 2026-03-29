@@ -19,4 +19,4 @@ The mFi API abstracts the sysfs-like file interface exposed by Ubiquiti mFi devi
 
 - **Language**: C++20
 - **Namespace**: `mfi`
-- **Version**: 1.0.0
+- **Version**: 1.0.1

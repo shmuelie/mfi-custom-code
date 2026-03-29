@@ -21,7 +21,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_library(hass_mqtt_device STATIC ${SOURCES})
 set_target_properties(hass_mqtt_device PROPERTIES
     CXX_STANDARD 20
-    VERSION 1.0.0
+    VERSION 1.1.0
 )
 
 # Compiler flags

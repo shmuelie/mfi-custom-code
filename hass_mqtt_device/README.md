@@ -25,4 +25,4 @@ Supported entity types:
 ## Details
 
 - **Language**: C++20
-- **Version**: 1.0.0
+- **Version**: 1.1.0
