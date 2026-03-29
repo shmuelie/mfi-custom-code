@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(
 	${MFI_API_TARGET_NAME}
-	VERSION 1.0.0.0
+	VERSION 1.0.0
 	DESCRIPTION "API for Ubiquiti's mFi Devices"
 	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
 )
