@@ -217,14 +217,14 @@ Release builds (`mips-release`) use `-Os`, LTO, `-fno-rtti`,
 `-Wl,--exclude-libs,ALL` to minimize binary size. Typical stripped sizes
 for MIPS static builds:
 
-| Binary | On disk | On disk (UPX) | In memory (text+data+bss) |
-|--------|---------|---------------|---------------------------|
-| `mfi-mqtt-client` | 1.14 MB | 451 KB | 1.16 MB |
-| `mfi-rest-server` | 741 KB | 286 KB | 768 KB |
-| `mfi-cli` | 692 KB | 262 KB | 718 KB |
+| Binary | On disk | In memory (text+data+bss) |
+|--------|---------|---------------------------|
+| `mfi-mqtt-client` | 1.14 MB | 1.16 MB |
+| `mfi-rest-server` | 741 KB | 768 KB |
+| `mfi-cli` | 692 KB | 718 KB |
 
 For further on-disk savings, enable [UPX](https://upx.github.io/) compression
-at build time:
+at build time (off by default):
 
 ```bash
 cmake --preset mips-release -DMFI_UPX=ON
