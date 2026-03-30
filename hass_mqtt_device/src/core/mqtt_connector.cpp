@@ -1,6 +1,7 @@
 // Include the corresponding header file
 #include "hass_mqtt_device/core/mqtt_connector.h"
 #include "hass_mqtt_device/core/device_base.h"
+#include "hass_mqtt_device/core/helper_functions.hpp"
 
 // Include any other necessary headers
 #include "hass_mqtt_device/logger/logger.hpp" // For logging
@@ -22,7 +23,7 @@ MQTTConnector::MQTTConnector(const std::string& server,
 	, m_port(port)
 	, m_username(username)
 	, m_password(password)
-	, m_unique_id(unique_id)
+	, m_unique_id(getValidHassString(unique_id))
 	, m_mosquitto(nullptr)
 	, m_logger(spdlog::default_logger())
 	, m_backoff_state(0)

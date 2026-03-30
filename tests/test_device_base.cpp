@@ -80,6 +80,24 @@ TEST_CASE("DeviceBase: getFullId combines uniqueId and cleanName", "[device]") {
 	CHECK(full.find("my_dev") != std::string::npos);
 }
 
+TEST_CASE("DeviceBase: getFullId deduplicates when name equals id", "[device]") {
+	DeviceTestFixture f;
+	auto dev = std::make_shared<DeviceBase>("conn_uid", "conn_uid");
+	f.connector->registerDevice(dev);
+
+	// Should not repeat conn_uid three times
+	CHECK(dev->getFullId() == "conn_uid");
+}
+
+TEST_CASE("DeviceBase: getFullId deduplicates when id equals connector id", "[device]") {
+	DeviceTestFixture f;
+	auto dev = std::make_shared<DeviceBase>("My Dev", "conn_uid");
+	f.connector->registerDevice(dev);
+
+	auto full = dev->getFullId();
+	CHECK(full == "conn_uid_my_dev");
+}
+
 // ========== Function registration ==========
 
 TEST_CASE("DeviceBase: registerFunction adds function", "[device][register]") {
@@ -287,7 +305,7 @@ TEST_CASE("FunctionBase: getId includes parent device fullId", "[function_base]"
 
 // ========== MQTTConnector ==========
 
-TEST_CASE("MQTTConnector: getId returns unique_id", "[connector]") {
+TEST_CASE("MQTTConnector: getId returns sanitized unique_id", "[connector]") {
 	DeviceTestFixture f;
 	CHECK(f.connector->getId() == "conn_uid");
 }

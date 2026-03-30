@@ -184,11 +184,18 @@ private:
 		if(conn)
 		{
 			m_unique_id = conn->getId();
-			if(!m_id.empty())
+			if(!m_id.empty() && m_id != m_unique_id)
 			{
 				m_unique_id += "_" + m_id;
 			}
-			m_full_id = m_unique_id + "_" + m_clean_name;
+			if(m_clean_name != m_id && m_clean_name != m_unique_id)
+			{
+				m_full_id = m_unique_id + "_" + m_clean_name;
+			}
+			else
+			{
+				m_full_id = m_unique_id;
+			}
 		}
 	};
 };
