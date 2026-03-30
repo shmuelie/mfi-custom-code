@@ -61,6 +61,7 @@ endfunction()
 # MIPS-specific optimizations for the target CPU (Atheros AR9331 = MIPS 24Kc)
 if(MFI_CROSS_COMPILE)
 	add_compile_options(-march=mips32r2 -mtune=mips32r2)
+	add_compile_definitions(__TARGET_mips__)
 endif()
 
 include(AddProjectVersionData)
