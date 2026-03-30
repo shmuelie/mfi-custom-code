@@ -50,4 +50,4 @@ log_level = 2
 ## Details
 
 - **Language**: C++20
-- **Version**: 1.1.1
+- **Version**: 1.2.0

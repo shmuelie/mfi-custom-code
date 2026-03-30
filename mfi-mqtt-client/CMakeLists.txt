@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(
 	${MFI_MQTT_TARGET_NAME}
-	VERSION 1.1.1
+	VERSION 1.2.0
 	DESCRIPTION "MQTT Client for Ubiquiti's mFi Devices"
 	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
 )
