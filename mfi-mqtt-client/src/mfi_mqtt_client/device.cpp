@@ -19,13 +19,13 @@ device::device(
 void device::init() {
 	auto self = this->shared_from_this();
 
+	_connector->registerDevice(self);
+
 	for (auto& sensor : _board.sensors()) {
 		auto mfiSensor = make_shared<port>(_board, sensor);
 		_ports.push_back(mfiSensor);
 		mfiSensor->init(self);
 	}
-
-	_connector->registerDevice(self);
 }
 
 void device::update() {
