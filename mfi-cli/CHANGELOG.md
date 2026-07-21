@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-07-20
+
+### Added
+
+- `sensor` command: `sensor list` and `sensor get <id>` for per-port readings.
+- `relay` command: `relay get/set/on/off/toggle <id>` for reading and controlling
+  port relays.
+- `led` command: `led get` and `led set --color/--frequency` for reading and
+  controlling the device LED.
+- `config` command: `config list <file>` and `config get <file> <key> [--default]`
+  for reading INI-style configuration files.
+
+These expose the remaining libmfi capabilities (relay writes, LED control, config
+reading) that were previously only reachable through the API.
+
 ## [1.0.1] - 2026-03-30
 
 ### Fixed

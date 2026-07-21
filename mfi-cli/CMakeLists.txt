@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(
 	${MFI_CLI_TARGET_NAME}
-	VERSION 1.0.1
+	VERSION 1.1.0
 	DESCRIPTION "CLI tool for Ubiquiti's mFi Devices"
 	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
 )
@@ -11,10 +11,19 @@ find_package(CLI11 REQUIRED)
 set(MFI_CLI_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_CLI_HEADERS
 	${MFI_CLI_INCLUDE}/mfi_cli/info_command.h
+	${MFI_CLI_INCLUDE}/mfi_cli/sensor_command.h
+	${MFI_CLI_INCLUDE}/mfi_cli/relay_command.h
+	${MFI_CLI_INCLUDE}/mfi_cli/led_command.h
+	${MFI_CLI_INCLUDE}/mfi_cli/config_command.h
+	${MFI_CLI_INCLUDE}/mfi_cli/helpers.h
 )
 set(MFI_CLI_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/info_command.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/sensor_command.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/relay_command.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/led_command.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/config_command.cpp
 )
 add_executable(${MFI_CLI_TARGET_NAME}
 	${MFI_CLI_HEADERS}

@@ -20,6 +20,7 @@ add_executable(tests
 	test_hass_functions.cpp
 	test_device_base.cpp
 	test_mfi_hardware.cpp
+	test_cli_helpers.cpp
 )
 set_target_properties(tests PROPERTIES
 	CXX_STANDARD 20
@@ -33,8 +34,15 @@ target_link_libraries(tests PRIVATE
 )
 target_include_directories(tests PRIVATE
 	${CMAKE_SOURCE_DIR}/hass_mqtt_device/include
+	${CMAKE_SOURCE_DIR}/mfi-cli/includes
 )
 
 include(CTest)
 include(Catch)
 catch_discover_tests(tests)
+
+# Fake-root smoke test for the mfi-cli write paths (relay/led/config)
+add_test(
+	NAME cli_smoke
+	COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_CURRENT_SOURCE_DIR}/cli_smoke.sh $<TARGET_FILE:${MFI_CLI_TARGET_NAME}>
+)

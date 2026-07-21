@@ -28,7 +28,7 @@ mfi-cli ─────────┬─ mfi
 |---------|-------------|---------|
 | [mfi-mqtt-client](mfi-mqtt-client/) | MQTT client with Home Assistant auto-discovery | 1.2.1 |
 | [mfi-rest-server](mfi-rest-server/) | HTTP REST API server | 1.2.2 |
-| [mfi-cli](mfi-cli/) | CLI tool for device inspection | 1.0.1 |
+| [mfi-cli](mfi-cli/) | CLI tool for device inspection and control | 1.1.0 |
 
 ### Libraries
 
