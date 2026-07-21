@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.3.0] - 2026-07-20
+## [Unreleased]
 
 ### Changed
 
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - The `Server` response header now reports the real version (e.g.
-  `mfi-server/1.3.0`) instead of the literal, undefined version macro.
+  `mfi-server/1.2.2`) instead of the literal, undefined version macro.
 
 ## [1.2.2] - 2026-03-30
 
