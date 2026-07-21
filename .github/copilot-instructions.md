@@ -30,15 +30,14 @@ Three executables share a common set of static libraries:
 
 - **`mfi`** — Hardware abstraction (sensors, relays, LEDs, board config) over the mFi file-system interface. No external dependencies.
 - **`hass_mqtt_device`** — Home Assistant MQTT auto-discovery. Depends on libmosquitto, nlohmann_json, spdlog.
-- **`mgpp`** — C++ RAII wrapper around [Mongoose](https://mongoose.ws/) HTTP server. Depends on shmuelie-shared.
 - **`shmuelie-shared`** — String helpers (split, join, number parsing). No external dependencies.
 
 Executables:
 - **`mfi-mqtt-client`** → mfi + hass_mqtt_device + shmuelie-shared
-- **`mfi-rest-server`** → mfi + mgpp + shmuelie-shared
+- **`mfi-rest-server`** → mfi + shmuelie-shared, built on the [civetweb](https://github.com/civetweb/civetweb) HTTP server (C++ API) with nlohmann_json
 - **`mfi-cli`** → mfi + shmuelie-shared
 
-All executables use CLI11 for argument parsing. CLI11, mongoose, and Catch2 are fetched via `FetchContent`; other dependencies come from system packages.
+All executables use CLI11 for argument parsing. CLI11, civetweb, and Catch2 are fetched via `FetchContent`; other dependencies come from system packages.
 
 The `br2/` directory is a Buildroot external tree for cross-compiling to the mFi's MIPS 24Kc (Atheros AR9331). When `MFI_CROSS_COMPILE=ON`, CMake drives Buildroot to produce the MIPS toolchain automatically. The `buildroot` git submodule provides the Buildroot source. Busybox is disabled in the defconfig (uclibc lacks `utmpx.h`); `UCLIBC_SUSV3_LEGACY` is enabled for GCC 14 `<cstdio>` compatibility.
 
@@ -50,6 +49,6 @@ Tests live in `tests/` and are only built for local (non-cross-compile) targets.
 - **Headers**: Always `#pragma once`, never `#ifndef` guards.
 - **C++ style**: Heavy use of `std::optional`, `std::string_view`, `noexcept`, `const&` parameters, `final` on leaf classes. RAII for all resource management. RTTI is disabled (`-fno-rtti`) in release builds — use `static_pointer_cast` instead of `dynamic_pointer_cast`.
 - **Namespaces**: `mfi`, `mg`, `shmuelie`, `mfi_cli`, `mfi_server`, `mfi_mqtt_client`.
-- **CMake targets**: Named via variables in the root CMakeLists.txt (e.g., `MFI_API_TARGET_NAME`, `MGPP_TARGET_NAME`). Use these variables when linking, not raw target names.
+- **CMake targets**: Named via variables in the root CMakeLists.txt (e.g., `MFI_API_TARGET_NAME`, `MFI_SERVER_TARGET_NAME`). Use these variables when linking, not raw target names.
 - **Version info**: Use `add_version_info(<target>)` from `cmake/AddProjectVersionData.cmake` to stamp version macros into a target.
 - **UPX compression**: Executables can be compressed with `mfi_upx_compress(<target>)`. Controlled by `MFI_UPX`, which defaults OFF; pass `-DMFI_UPX=ON` to enable it.

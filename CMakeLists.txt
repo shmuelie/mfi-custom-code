@@ -66,7 +66,6 @@ endif()
 
 include(AddProjectVersionData)
 
-set(MGPP_TARGET_NAME mgpp)
 set(MFI_API_TARGET_NAME mfi)
 set(MFI_SERVER_TARGET_NAME mfi-rest-server)
 set(MFI_MQTT_TARGET_NAME mfi-mqtt-client)
@@ -74,7 +73,6 @@ set(SHMUELIE_SHARED_TARGET_NAME shmuelie-shared)
 set(MFI_CLI_TARGET_NAME mfi-cli)
 
 add_subdirectory(mfi)
-add_subdirectory(mgpp)
 add_subdirectory(hass_mqtt_device)
 add_subdirectory(shmuelie-shared)
 add_subdirectory(mfi-cli)

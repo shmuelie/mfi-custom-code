@@ -46,3 +46,9 @@ add_test(
 	NAME cli_smoke
 	COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_CURRENT_SOURCE_DIR}/cli_smoke.sh $<TARGET_FILE:${MFI_CLI_TARGET_NAME}>
 )
+
+# Integration smoke test for the mfi-rest-server REST API (civetweb)
+add_test(
+	NAME rest_smoke
+	COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_CURRENT_SOURCE_DIR}/rest_smoke.sh $<TARGET_FILE:${MFI_SERVER_TARGET_NAME}>
+)

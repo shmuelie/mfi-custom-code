@@ -1,7 +1,7 @@
-#include <iostream>
+#include <chrono>
+#include <thread>
 #include <CLI/CLI.hpp>
 #include "mfi_server/mfi_http_server.h"
-#include "mg/manager.h"
 #include "shmuelie/string_helpers.h"
 #include "version_info.h"
 
@@ -47,7 +47,8 @@ int main(int argc, char* argv[]) {
 	uint16_t port;
 	app.add_option("-p,--port", port, "The port to listen on")->default_val(8000);
 	uint8_t log_level;
-	app.add_option("-l,--log-level", log_level, "The log level to use")->default_val(0);
+	app.add_option("-l,--log-level", log_level, "The log level to use (accepted for compatibility)")->default_val(0);
+	(void)log_level;
 
 	try {
 		app.parse(argc, argv);
@@ -56,14 +57,11 @@ int main(int argc, char* argv[]) {
 		return app.exit(e);
 	}
 
-	mg_log_set(log_level);
-
 	mfi_http_server server{};
-	auto rootConnection = server.listen("http://" + ip + ":" + std::to_string(port));
-	if (!rootConnection) {
+	if (!server.listen(ip + ":" + std::to_string(port))) {
 		return -2;
 	}
 	for (;;) {
-		server.manager()->poll(1000s);
+		std::this_thread::sleep_for(1000s);
 	}
 }

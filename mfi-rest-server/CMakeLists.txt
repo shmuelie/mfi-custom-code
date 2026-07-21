@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 project(
 	${MFI_SERVER_TARGET_NAME}
-	VERSION 1.2.2
+	VERSION 1.3.0
 	DESCRIPTION "REST API for Ubiquiti's mFi Devices"
 	HOMEPAGE_URL "https://github.com/shmuelie/mfi-custom-code"
 )
@@ -15,6 +15,8 @@ set(MFI_SERVER_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_server/mfi_http_server.cpp
 )
 find_package(CLI11 REQUIRED)
+find_package(civetweb REQUIRED)
+find_package(nlohmann_json REQUIRED)
 add_executable(${MFI_SERVER_TARGET_NAME}
 	${MFI_SERVER_HEADERS}
 	${MFI_SERVER_SOURCE_CODE}
@@ -25,5 +27,5 @@ set_target_properties(${MFI_SERVER_TARGET_NAME} PROPERTIES
 )
 ADD_VERSION_INFO(${MFI_SERVER_TARGET_NAME})
 target_include_directories(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_SERVER_INCLUDE})
-target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} ${SHMUELIE_SHARED_TARGET_NAME} ${MGPP_TARGET_NAME} CLI11::CLI11)
+target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} ${SHMUELIE_SHARED_TARGET_NAME} civetweb nlohmann_json::nlohmann_json CLI11::CLI11)
 mfi_upx_compress(${MFI_SERVER_TARGET_NAME})

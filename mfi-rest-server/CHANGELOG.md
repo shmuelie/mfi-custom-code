@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-07-20
+
+### Changed
+
+- Replaced the Mongoose HTTP engine (via the in-tree `mgpp` wrapper) with
+  [civetweb](https://github.com/civetweb/civetweb), which provides a native C++
+  API and is available as a Buildroot package. The REST API (routes, JSON
+  responses, status codes) is unchanged.
+
+### Removed
+
+- The `mgpp` Mongoose C++ wrapper project, which is no longer needed.
+
+### Fixed
+
+- The `Server` response header now reports the real version (e.g.
+  `mfi-server/1.3.0`) instead of the literal, undefined version macro.
+
 ## [1.2.2] - 2026-03-30
 
 ### Fixed

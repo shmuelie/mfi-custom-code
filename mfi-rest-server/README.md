@@ -1,6 +1,7 @@
 # mFi REST Server
 
-HTTP REST API server for mFi devices built on top of the mFi API and Mongoose.
+HTTP REST API server for mFi devices built on top of the mFi API and the
+[civetweb](https://github.com/civetweb/civetweb) embedded HTTP server.
 
 ## Usage
 
@@ -21,14 +22,15 @@ Options:
 ### Internal
 
 - mfi
-- mgpp
 - shmuelie-shared
 
 ### External
 
 - [CLI11](https://github.com/CLIUtils/CLI11) — fetched via CMake `FetchContent`
+- [civetweb](https://github.com/civetweb/civetweb) — HTTP server; Buildroot package on device, `FetchContent` on host
+- [nlohmann_json](https://github.com/nlohmann/json) — request parsing
 
 ## Details
 
 - **Language**: C++20
-- **Version**: 1.2.2
+- **Version**: 1.3.0

@@ -12,7 +12,7 @@ mfi-mqtt-client ─┬─ hass_mqtt_device (Home Assistant MQTT discovery)
                  ├─ mfi (hardware abstraction: sensors, relays, LEDs)
                  └─ shmuelie-shared (string utilities)
 
-mfi-rest-server ─┬─ mgpp (Mongoose C++ wrapper)
+mfi-rest-server ─┬─ civetweb (embedded HTTP server, C++ API)
                  ├─ mfi
                  └─ shmuelie-shared
 
@@ -27,7 +27,7 @@ mfi-cli ─────────┬─ mfi
 | Project | Description | Version |
 |---------|-------------|---------|
 | [mfi-mqtt-client](mfi-mqtt-client/) | MQTT client with Home Assistant auto-discovery | 1.2.1 |
-| [mfi-rest-server](mfi-rest-server/) | HTTP REST API server | 1.2.2 |
+| [mfi-rest-server](mfi-rest-server/) | HTTP REST API server | 1.3.0 |
 | [mfi-cli](mfi-cli/) | CLI tool for device inspection and control | 1.1.0 |
 
 ### Libraries
@@ -36,7 +36,6 @@ mfi-cli ─────────┬─ mfi
 |---------|-------------|---------|
 | [mfi](mfi/) | Hardware abstraction for sensors, relays, LEDs | 1.0.1 |
 | [hass_mqtt_device](hass_mqtt_device/) | Home Assistant MQTT device library | 1.2.0 |
-| [mgpp](mgpp/) | C++ wrapper around Mongoose | 1.0.0 |
 | [shmuelie-shared](shmuelie-shared/) | String helper functions | 1.0.0 |
 
 ## Alternatives
@@ -50,7 +49,7 @@ abstraction layer, native MQTT, and Home Assistant auto-discovery.
 | Language | C++ | Shell scripts | Shell scripts |
 | MQTT | Native (libmosquitto) | Via `mosquitto_pub` | Via `mosquitto_pub` |
 | Home Assistant | Auto-discovery (switches + sensors) | Manual YAML config | Manual YAML config |
-| REST API | Yes (Mongoose) | No | No |
+| REST API | Yes (civetweb) | No | No |
 | CLI tool | Yes | No | No |
 | Sensor data | Power, current, voltage, power factor | Power, energy | Power, energy |
 | Change-only updates | Yes (reduces MQTT traffic) | No (polls on interval) | No (polls on interval) |

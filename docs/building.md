@@ -2,7 +2,7 @@
 
 Uses CMake to build/configure. All projects use
 [CLI11](https://github.com/CLIUtils/CLI11) for command-line parsing.
-CLI11, [Mongoose](https://mongoose.ws/), and
+CLI11, [civetweb](https://github.com/civetweb/civetweb), and
 [Catch2](https://github.com/catchorg/Catch2) are fetched via CMake's
 `FetchContent`; other dependencies come from system packages.
 
