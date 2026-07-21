@@ -110,7 +110,9 @@ void DimmableLightFunction::sendStatus() const
               brightness_int);
     payload["state"] = m_state ? "ON" : "OFF";
     payload["brightness"] = brightness_int;
-    parent->publishMessage(getBaseTopic() + "state", payload);
+    // State is high-frequency telemetry: QoS 0 avoids unbounded out-queue growth
+    // if the broker lags. Retained so HA still gets the last value on subscribe.
+    parent->publishMessage(getBaseTopic() + "state", payload, 0, true);
 }
 
 void DimmableLightFunction::update(bool state, double brightness)

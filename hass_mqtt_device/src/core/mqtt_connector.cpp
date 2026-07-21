@@ -220,7 +220,7 @@ void MQTTConnector::processMessages(int timeout, bool exit_on_event)
 }
 
 // Publish a message
-void MQTTConnector::publishMessage(const std::string& topic, const json& payload)
+void MQTTConnector::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
 {
 	if(m_mosquitto == nullptr)
 	{
@@ -230,7 +230,8 @@ void MQTTConnector::publishMessage(const std::string& topic, const json& payload
 	std::string payload_str = payload.dump();
 	LOG_DEBUG("Publishing MQTT message to topic: {}", topic);
 	LOG_DEBUG("MQTT message payload: {}", payload_str);
-	int rc = mosquitto_publish(m_mosquitto, nullptr, topic.c_str(), payload_str.size(), payload_str.c_str(), 1, true);
+	int rc = mosquitto_publish(
+		m_mosquitto, nullptr, topic.c_str(), payload_str.size(), payload_str.c_str(), qos, retain);
 	if(rc != MOSQ_ERR_SUCCESS)
 	{
 		LOG_ERROR("Failed to publish MQTT message: {}", mosquitto_strerror(rc));

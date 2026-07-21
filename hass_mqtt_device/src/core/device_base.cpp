@@ -237,13 +237,13 @@ void DeviceBase::processMessage(const std::string& topic, const std::string& pay
 	}
 }
 
-void DeviceBase::publishMessage(const std::string& topic, const json& payload)
+void DeviceBase::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
 {
 	// Check if the connector is still alive
 	if(auto connector = m_connector.lock())
 	{
 		// Publish the message
-		connector->publishMessage(topic, payload);
+		connector->publishMessage(topic, payload, qos, retain);
 	}
 	else
 	{

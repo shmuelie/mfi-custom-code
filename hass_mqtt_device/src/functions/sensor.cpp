@@ -10,6 +10,8 @@
 
 // Include any other necessary headers
 #include "hass_mqtt_device/logger/logger.hpp" // For logging
+#include <cmath>
+#include <type_traits>
 
 // Making sure that the template class is instantiated for the types that we want to use
 template class SensorFunction<int>;
@@ -74,12 +76,24 @@ void SensorFunction<T>::sendStatus() const
 
     json payload;
     payload["value"] = m_value;
-    parent->publishMessage(getBaseTopic() + "state", payload);
+    // State is high-frequency telemetry: QoS 0 avoids unbounded out-queue growth
+    // if the broker lags. Retained so HA still gets the last value on subscribe.
+    parent->publishMessage(getBaseTopic() + "state", payload, 0, true);
 }
 
 template<typename T>
 void SensorFunction<T>::update(T value)
 {
+    if constexpr(std::is_floating_point_v<T>)
+    {
+        // Quantize to the entity's display precision so sub-precision sensor
+        // jitter does not trigger a publish every poll cycle.
+        if(m_attributes.suggested_display_precision >= 0)
+        {
+            const T factor = std::pow(static_cast<T>(10), m_attributes.suggested_display_precision);
+            value = std::round(value * factor) / factor;
+        }
+    }
     if(m_has_data && m_value == value)
     {
         return;

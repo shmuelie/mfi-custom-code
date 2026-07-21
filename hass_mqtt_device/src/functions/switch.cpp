@@ -100,7 +100,9 @@ void SwitchFunction::sendStatus() const
 
     json payload;
     payload["value"] = m_state ? "ON" : "OFF";
-    parent->publishMessage(getBaseTopic() + "state", payload);
+    // State is high-frequency telemetry: QoS 0 avoids unbounded out-queue growth
+    // if the broker lags. Retained so HA still gets the last value on subscribe.
+    parent->publishMessage(getBaseTopic() + "state", payload, 0, true);
 }
 
 void SwitchFunction::update(bool state)

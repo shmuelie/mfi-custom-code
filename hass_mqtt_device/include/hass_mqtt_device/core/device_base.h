@@ -127,8 +127,10 @@ public:
 	 * @param topic The topic to publish to. This will be concatenated with the
 	 * device name and base topic
 	 * @param payload The payload to publish
+	 * @param qos The MQTT QoS level (0, 1, or 2). Defaults to 1.
+	 * @param retain Whether the broker should retain the message. Defaults to true.
 	 */
-	void publishMessage(const std::string& topic, const json& payload);
+	void publishMessage(const std::string& topic, const json& payload, int qos = 1, bool retain = true);
 
 	/**
 	 * @brief Send the home assistant discovery message for this device

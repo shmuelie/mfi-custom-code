@@ -177,6 +177,35 @@ TEST_CASE("SensorFunction: update publishes on change", "[hass][sensor]") {
 	sensor->update(20.0);
 }
 
+namespace {
+template<typename T>
+class TestableSensor : public SensorFunction<T> {
+public:
+	using SensorFunction<T>::SensorFunction;
+	T value() const { return this->m_value; }
+};
+}
+
+TEST_CASE("SensorFunction: rounds value to display precision", "[hass][sensor]") {
+	TestFixture f;
+	auto sensor = std::make_shared<TestableSensor<double>>("Test Power", SensorAttributes{
+		.device_class = "power",
+		.state_class = "measurement",
+		.unit_of_measurement = "W",
+		.suggested_display_precision = 2
+	});
+	f.device->registerFunction(sensor);
+
+	// Sub-precision jitter should collapse to the same stored value
+	sensor->update(42.514);
+	CHECK(sensor->value() == Catch::Approx(42.51));
+	sensor->update(42.512);
+	CHECK(sensor->value() == Catch::Approx(42.51));
+	// A change at the display precision should be reflected
+	sensor->update(42.516);
+	CHECK(sensor->value() == Catch::Approx(42.52));
+}
+
 TEST_CASE("SensorFunction: getDiscoveryTopic contains homeassistant/sensor", "[hass][sensor]") {
 	TestFixture f;
 	auto sensor = std::make_shared<SensorFunction<double>>("Test Power", SensorAttributes{
