@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-07-20
+
+### Fixed
+
+- Fixed a long-running freeze on the device caused by unbounded MQTT memory
+  growth. Sensor/relay state is now published at QoS 0 (retained), so
+  libmosquitto's outgoing queue can no longer grow without bound when the broker
+  lags or is unreachable. Sensor readings are also rounded to their display
+  precision to reduce publish churn. (via hass_mqtt_device 1.2.0)
+
 ## [1.2.0] - 2026-03-30
 
 ### Fixed
