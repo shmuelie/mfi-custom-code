@@ -52,4 +52,4 @@ Tests live in `tests/` and are only built for local (non-cross-compile) targets.
 - **Namespaces**: `mfi`, `mg`, `shmuelie`, `mfi_cli`, `mfi_server`, `mfi_mqtt_client`.
 - **CMake targets**: Named via variables in the root CMakeLists.txt (e.g., `MFI_API_TARGET_NAME`, `MGPP_TARGET_NAME`). Use these variables when linking, not raw target names.
 - **Version info**: Use `add_version_info(<target>)` from `cmake/AddProjectVersionData.cmake` to stamp version macros into a target.
-- **UPX compression**: Release executables are compressed with `mfi_upx_compress(<target>)`. Controlled by `MFI_UPX` (defaults ON for release builds).
+- **UPX compression**: Executables can be compressed with `mfi_upx_compress(<target>)`. Controlled by `MFI_UPX`, which defaults OFF; pass `-DMFI_UPX=ON` to enable it.

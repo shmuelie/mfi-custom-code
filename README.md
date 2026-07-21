@@ -34,8 +34,8 @@ mfi-cli ─────────┬─ mfi
 
 | Project | Description | Version |
 |---------|-------------|---------|
-| [mfi](mfi/) | Hardware abstraction for sensors, relays, LEDs | 1.0.0 |
-| [hass_mqtt_device](hass_mqtt_device/) | Home Assistant MQTT device library | 1.0.0 |
+| [mfi](mfi/) | Hardware abstraction for sensors, relays, LEDs | 1.0.1 |
+| [hass_mqtt_device](hass_mqtt_device/) | Home Assistant MQTT device library | 1.2.0 |
 | [mgpp](mgpp/) | C++ wrapper around Mongoose | 1.0.0 |
 | [shmuelie-shared](shmuelie-shared/) | String helper functions | 1.0.0 |
 
