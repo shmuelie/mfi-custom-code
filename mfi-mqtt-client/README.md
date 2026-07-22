@@ -42,6 +42,7 @@ log_level = 2
 - mfi
 - hass_mqtt_device
 - shmuelie-shared
+- mfi-update
 
 ### External
 

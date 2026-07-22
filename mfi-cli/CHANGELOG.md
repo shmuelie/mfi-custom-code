@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `update` subcommand: self-update from GitHub Releases (see docs/updating.md).
+  Supports `--check`, `--repo`, `--proxy`, `--bin-dir`, and `--no-check-cert`.
+
 ## [1.1.0] - 2026-07-20
 
 ### Added

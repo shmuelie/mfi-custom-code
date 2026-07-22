@@ -27,5 +27,5 @@ set_target_properties(${MFI_SERVER_TARGET_NAME} PROPERTIES
 )
 ADD_VERSION_INFO(${MFI_SERVER_TARGET_NAME})
 target_include_directories(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_SERVER_INCLUDE})
-target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} ${SHMUELIE_SHARED_TARGET_NAME} civetweb nlohmann_json::nlohmann_json CLI11::CLI11)
+target_link_libraries(${MFI_SERVER_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} ${SHMUELIE_SHARED_TARGET_NAME} ${MFI_UPDATE_TARGET_NAME} civetweb nlohmann_json::nlohmann_json CLI11::CLI11)
 mfi_upx_compress(${MFI_SERVER_TARGET_NAME})

@@ -21,6 +21,7 @@ add_executable(tests
 	test_device_base.cpp
 	test_mfi_hardware.cpp
 	test_cli_helpers.cpp
+	test_update.cpp
 )
 set_target_properties(tests PROPERTIES
 	CXX_STANDARD 20
@@ -30,11 +31,13 @@ target_link_libraries(tests PRIVATE
 	Catch2::Catch2WithMain
 	${SHMUELIE_SHARED_TARGET_NAME}
 	${MFI_API_TARGET_NAME}
+	${MFI_UPDATE_TARGET_NAME}
 	hass_mqtt_device
 )
 target_include_directories(tests PRIVATE
 	${CMAKE_SOURCE_DIR}/hass_mqtt_device/include
 	${CMAKE_SOURCE_DIR}/mfi-cli/includes
+	${CMAKE_SOURCE_DIR}/mfi-update/includes
 )
 
 include(CTest)

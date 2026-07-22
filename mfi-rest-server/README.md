@@ -23,6 +23,7 @@ Options:
 
 - mfi
 - shmuelie-shared
+- mfi-update
 
 ### External
 

@@ -10,13 +10,16 @@ hardware interface.
 ```
 mfi-mqtt-client ─┬─ hass_mqtt_device (Home Assistant MQTT discovery)
                  ├─ mfi (hardware abstraction: sensors, relays, LEDs)
+                 ├─ mfi-update (self-update from GitHub Releases)
                  └─ shmuelie-shared (string utilities)
 
 mfi-rest-server ─┬─ civetweb (embedded HTTP server, C++ API)
                  ├─ mfi
+                 ├─ mfi-update
                  └─ shmuelie-shared
 
 mfi-cli ─────────┬─ mfi
+                 ├─ mfi-update
                  └─ shmuelie-shared
 ```
 
@@ -36,6 +39,7 @@ mfi-cli ─────────┬─ mfi
 |---------|-------------|---------|
 | [mfi](mfi/) | Hardware abstraction for sensors, relays, LEDs | 1.0.1 |
 | [hass_mqtt_device](hass_mqtt_device/) | Home Assistant MQTT device library | 1.2.0 |
+| [mfi-update](mfi-update/) | Self-update from GitHub Releases | 1.0.0 |
 | [shmuelie-shared](shmuelie-shared/) | String helper functions | 1.0.0 |
 
 ## Alternatives
@@ -62,5 +66,6 @@ abstraction layer, native MQTT, and Home Assistant auto-discovery.
 
 - [Building](docs/building.md) — packages, CMake presets, build commands, testing
 - [Deploying](docs/deploying.md) — binary sizes, UPX, boot scripts, SCP
+- [Updating](docs/updating.md) — self-update from GitHub Releases
 - [mFi Notes](docs/mfi-notes.md) — persistent storage, save, boot hooks
 - [cfgmtd](docs/cfgmtd.md) — flash configuration utility internals

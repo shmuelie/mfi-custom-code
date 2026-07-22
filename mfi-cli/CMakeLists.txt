@@ -15,6 +15,7 @@ set(MFI_CLI_HEADERS
 	${MFI_CLI_INCLUDE}/mfi_cli/relay_command.h
 	${MFI_CLI_INCLUDE}/mfi_cli/led_command.h
 	${MFI_CLI_INCLUDE}/mfi_cli/config_command.h
+	${MFI_CLI_INCLUDE}/mfi_cli/update_command.h
 	${MFI_CLI_INCLUDE}/mfi_cli/helpers.h
 )
 set(MFI_CLI_SOURCE_CODE
@@ -24,6 +25,7 @@ set(MFI_CLI_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/relay_command.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/led_command.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/config_command.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_cli/update_command.cpp
 )
 add_executable(${MFI_CLI_TARGET_NAME}
 	${MFI_CLI_HEADERS}
@@ -35,5 +37,5 @@ set_target_properties(${MFI_CLI_TARGET_NAME} PROPERTIES
 )
 ADD_VERSION_INFO(${MFI_CLI_TARGET_NAME})
 target_include_directories(${MFI_CLI_TARGET_NAME} PUBLIC ${MFI_CLI_INCLUDE})
-target_link_libraries(${MFI_CLI_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} ${SHMUELIE_SHARED_TARGET_NAME} CLI11::CLI11)
+target_link_libraries(${MFI_CLI_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} ${SHMUELIE_SHARED_TARGET_NAME} ${MFI_UPDATE_TARGET_NAME} CLI11::CLI11)
 mfi_upx_compress(${MFI_CLI_TARGET_NAME})

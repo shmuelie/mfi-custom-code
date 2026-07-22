@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Periodic self-update from GitHub Releases (see docs/updating.md). Enabled by
+  default; configurable via `--update`/`--no-update`, `--update-interval`,
+  `--update-repo`, `--update-proxy`, and `--update-insecure`.
+
 ## [1.2.1] - 2026-07-20
 
 ### Fixed

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Periodic self-update from GitHub Releases (see docs/updating.md). Enabled by
+  default; configurable via `--update`/`--no-update`, `--update-interval`,
+  `--update-repo`, `--update-proxy`, and `--update-insecure`.
+
 ### Changed
 
 - Replaced the Mongoose HTTP engine (via the in-tree `mgpp` wrapper) with

@@ -1,6 +1,8 @@
 #include <iostream>
+#include <vector>
 #include "mfi_mqtt_client/device.h"
 #include <CLI/CLI.hpp>
+#include "mfi_update.h"
 #include "version_info.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -54,6 +56,17 @@ int main(int argc, char* argv[]) {
 	spdlog::level::level_enum log_level;
 	app.add_option("--log-level", log_level, "The log level to use")->transform(spdlog_level_transformer)->default_val(spdlog::level::info);
 
+	bool update_enabled;
+	app.add_flag("--update,!--no-update", update_enabled, "Enable self-update from GitHub Releases")->default_val(true);
+	uint32_t update_interval;
+	app.add_option("--update-interval", update_interval, "Seconds between update checks")->default_val(86400);
+	std::string update_repo;
+	app.add_option("--update-repo", update_repo, "GitHub owner/name for updates")->default_val("shmuelie/mfi-custom-code");
+	std::string update_proxy;
+	app.add_option("--update-proxy", update_proxy, "Proxy host:port for the update downloader");
+	bool update_insecure;
+	app.add_flag("--update-insecure,!--update-check-cert", update_insecure, "Skip TLS cert verification when updating")->default_val(true);
+
 	try {
 		app.parse(argc, argv);
 	}
@@ -67,6 +80,17 @@ int main(int argc, char* argv[]) {
 	spdlog::set_default_logger(logger);
 
 	logger->log_info("Starting MQTT client...");
+
+	std::vector<std::string> args;
+	for (int i = 0; i < argc; ++i) {
+		args.emplace_back(argv[i]);
+	}
+	auto updater = mfi_update::make_periodic_updater(
+		update_enabled, update_interval, update_repo, update_proxy, update_insecure,
+		PROJECT_NAME, PROJECT_VERSION, args);
+	if (!updater) {
+		logger->log_info("Self-update disabled");
+	}
 
 	auto device = create_device(server, port, username, password);
 	if (!device) {
@@ -99,6 +123,17 @@ int main(int argc, char* argv[]) {
 		}
 		catch (std::exception& e) {
 			logger->log_error("Error updating device: {}", e.what());
+		}
+		if (updater) {
+			try {
+				auto result = updater->tick();
+				if (result && *result != mfi_update::update_result::up_to_date) {
+					logger->log_info("Self-update: {}", mfi_update::describe(*result));
+				}
+			}
+			catch (std::exception& e) {
+				logger->log_error("Error during update check: {}", e.what());
+			}
 		}
 	}
 

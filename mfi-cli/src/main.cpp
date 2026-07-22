@@ -4,6 +4,7 @@
 #include "mfi_cli/relay_command.h"
 #include "mfi_cli/led_command.h"
 #include "mfi_cli/config_command.h"
+#include "mfi_cli/update_command.h"
 #include "version_info.h"
 
 int main(int argc, char* argv[]) {
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
 	mfi_cli::relay_command relay{ app };
 	mfi_cli::led_command led{ app };
 	mfi_cli::config_command config{ app };
+	mfi_cli::update_command update{ app };
 
 	try {
 		app.parse(argc, argv);

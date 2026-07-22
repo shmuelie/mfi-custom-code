@@ -30,12 +30,13 @@ Three executables share a common set of static libraries:
 
 - **`mfi`** — Hardware abstraction (sensors, relays, LEDs, board config) over the mFi file-system interface. No external dependencies.
 - **`hass_mqtt_device`** — Home Assistant MQTT auto-discovery. Depends on libmosquitto, nlohmann_json, spdlog.
+- **`mfi-update`** — Self-update from GitHub Releases (semver, release JSON parsing, atomic replace + re-exec). Shells out to wget/curl; depends on nlohmann_json.
 - **`shmuelie-shared`** — String helpers (split, join, number parsing). No external dependencies.
 
 Executables:
-- **`mfi-mqtt-client`** → mfi + hass_mqtt_device + shmuelie-shared
-- **`mfi-rest-server`** → mfi + shmuelie-shared, built on the [civetweb](https://github.com/civetweb/civetweb) HTTP server (C++ API) with nlohmann_json
-- **`mfi-cli`** → mfi + shmuelie-shared
+- **`mfi-mqtt-client`** → mfi + hass_mqtt_device + mfi-update + shmuelie-shared
+- **`mfi-rest-server`** → mfi + mfi-update + shmuelie-shared, built on the [civetweb](https://github.com/civetweb/civetweb) HTTP server (C++ API) with nlohmann_json
+- **`mfi-cli`** → mfi + mfi-update + shmuelie-shared
 
 All executables use CLI11 for argument parsing. CLI11, civetweb, and Catch2 are fetched via `FetchContent`; other dependencies come from system packages.
 

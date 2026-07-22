@@ -20,7 +20,16 @@ Subcommands:
   relay                       Read and control port relays
   led                         Read and control the device LED
   config                      Read INI-style configuration files
+  update                      Update this tool from GitHub Releases
 ```
+
+### `update`
+
+```
+mfi-cli update [--check] [--repo owner/name] [--proxy host:port] [--bin-dir DIR]
+```
+
+Self-updates the binary from GitHub Releases. See [Updating](../docs/updating.md).
 
 ### `info`
 
@@ -68,6 +77,7 @@ mfi-cli config get <file> <key> [--default <v>]
 
 - mfi
 - shmuelie-shared
+- mfi-update
 
 ### External
 
