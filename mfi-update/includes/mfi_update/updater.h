@@ -7,6 +7,7 @@
 #include "mfi_update/config.h"
 #include "mfi_update/release.h"
 #include "mfi_update/semver.h"
+#include "mfi_update/downloader.h"
 
 namespace mfi_update {
 	/**
@@ -18,7 +19,36 @@ namespace mfi_update {
 		up_to_date,     ///< Already running the latest release.
 		check_failed,   ///< Could not resolve the latest release.
 		download_failed,///< Download or validation of the new binary failed.
-		updated         ///< A newer binary was installed (re-exec is next).
+		updated,        ///< Installed; a successful real exec does not return.
+		ready,          ///< Preparation completed; application has not started.
+		cancelled,      ///< Cancelled before replacement; no exec was attempted.
+		timed_out,      ///< The shared preparation deadline expired.
+		apply_failed,   ///< Replacement failed; the target is unchanged.
+		replaced_not_restarted, ///< Replacement succeeded, but restart failed/was cancelled.
+		preparation_failed, ///< Unexpected exception or worker creation failure.
+		cleanup_failed  ///< SIGKILL sent, but the kernel did not permit timely child reaping.
+	};
+
+	/** Owns one unique, same-directory staged file until applied or discarded. */
+	class prepared_update final {
+	public:
+		prepared_update(std::string path, std::string target) noexcept;
+		~prepared_update();
+		prepared_update(prepared_update&& other) noexcept;
+		prepared_update& operator=(prepared_update&& other) noexcept;
+		prepared_update(prepared_update const&) = delete;
+		prepared_update& operator=(prepared_update const&) = delete;
+		std::string const& path() const noexcept { return _path; }
+		std::string const& target() const noexcept { return _target; }
+
+	private:
+		std::string _path;
+		std::string _target;
+	};
+
+	struct preparation_result {
+		update_result result;
+		std::optional<prepared_update> artifact;
 	};
 
 	/**
@@ -51,6 +81,22 @@ namespace mfi_update {
 		void set_download(download_fn fn) { _download = std::move(fn); }
 		/** Overrides the apply step (defaults to atomic rename + execv). */
 		void set_apply(apply_fn fn) { _apply = std::move(fn); }
+		using cancellable_fetch_fn = std::function<std::optional<std::string>(
+			std::string const&, preparation_context const&)>;
+		using cancellable_download_fn = std::function<bool(
+			std::string const&, std::string const&, preparation_context const&)>;
+		/** Hooks must return promptly when context.interrupted() becomes true. */
+		void set_cancellable_fetch(cancellable_fetch_fn fn) { _cancellable_fetch = std::move(fn); }
+		void set_cancellable_download(cancellable_download_fn fn) { _cancellable_download = std::move(fn); }
+		void set_downloader(downloader dl) { _downloader = std::move(dl); }
+		/** Test/embedding seam; defaults to resolving /proc/self/exe. */
+		void set_target_path(std::string path) { _target_path = std::move(path); }
+
+		preparation_result prepare(preparation_context const& context) const;
+		/** Caller owns the application thread and must finish offline shutdown first. */
+		update_result apply(prepared_update const& artifact,
+			std::vector<std::string> const& argv,
+			std::function<bool()> const& should_cancel = {}) const;
 
 		/**
 		 * @brief Resolves the latest available release for this tool.
@@ -79,6 +125,10 @@ namespace mfi_update {
 		fetch_fn _fetch;
 		download_fn _download;
 		apply_fn _apply;
+		cancellable_fetch_fn _cancellable_fetch;
+		cancellable_download_fn _cancellable_download;
+		std::optional<downloader> _downloader;
+		std::string _target_path;
 	};
 
 	/**
@@ -106,6 +156,8 @@ namespace mfi_update {
 	 */
 	bool replace_and_reexec(std::string const& new_path, std::string const& target_path,
 		std::vector<std::string> const& argv) noexcept;
+	update_result replace_and_reexec(std::string const& new_path, std::string const& target_path,
+		std::vector<std::string> const& argv, std::function<bool()> const& should_cancel);
 
 	/**
 	 * @brief A short human-readable description of an update_result.

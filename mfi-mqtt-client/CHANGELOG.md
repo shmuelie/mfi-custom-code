@@ -12,6 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Periodic self-update from GitHub Releases (see docs/updating.md). Enabled by
   default; configurable via `--update`/`--no-update`, `--update-interval`,
   `--update-repo`, `--update-proxy`, and `--update-insecure`.
+- Successful unchanged-power refresh (60 seconds) and discovery expiration
+  (180 seconds), configurable through `--power-refresh-interval` and
+  `--power-expire-after`.
+- Retained per-power-channel availability and checked measurement reads with
+  independent failure handling.
+- Signal-driven, acknowledged offline shutdown with a 5-second deadline.
+
+### Changed
+
+- Numeric power telemetry is non-retained. Existing retained power requires
+  separately authorized exact-topic migration; no automatic deletion occurs.
+- Update preparation runs in the background with a 120-second shared deadline
+  and 5-second downloader cleanup allowance. Only application/re-exec interrupts
+  MQTT; termination cancels preparation and suppresses application.
+- Polling must be positive and no slower than the power refresh interval.
+
+### Fixed
+
+- Failed reads and quantization overflow no longer appear as valid zero/null.
+- Reconnects cannot refresh cached power before new successful readings.
 
 ## [1.2.1] - 2026-07-20
 

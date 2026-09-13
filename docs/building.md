@@ -27,6 +27,7 @@ Buildroot submodule handles that.
 - `nlohmann-json3-dev`
 - `pkg-config`
 - `libspdlog-dev`
+- `python3` (3.9 or newer, for the isolated MQTT wire test)
 
 ## CMake Presets
 
@@ -61,3 +62,11 @@ local (non-cross-compile) targets. After building:
 cd build/local-debug
 ctest --output-on-failure
 ```
+
+The MQTT wire test uses a standard-library Python broker on an ephemeral
+loopback port and temporary fake hardware files. It also checks the real
+client's responsiveness and cancellation while a fixture-only downloader
+blocks; no external network or installed broker is used.
+
+Identity-safe emergency cleanup in that test requires Linux pidfds (kernel
+5.3 or newer). This is a host-test requirement, not an mFi runtime requirement.

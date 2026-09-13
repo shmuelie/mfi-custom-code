@@ -9,11 +9,13 @@ device::device(
 	string const& server,
 	int port,
 	string const& username,
-	string const& password) :
+	string const& password,
+	sensor_policy policy) :
 	DeviceBase(board.hostname(), board.hostname()),
 	_ports(),
 	_board(board),
-	_connector(make_shared<MQTTConnector>(server, port, username, password, board.hostname())) {
+	_connector(make_shared<MQTTConnector>(server, port, username, password, board.hostname())),
+	_policy(policy) {
 }
 
 void device::init() {
@@ -22,7 +24,7 @@ void device::init() {
 	_connector->registerDevice(self);
 
 	for (auto& sensor : _board.sensors()) {
-		auto mfiSensor = make_shared<port>(_board, sensor);
+		auto mfiSensor = make_shared<port>(_board, sensor, _policy);
 		_ports.push_back(mfiSensor);
 		mfiSensor->init(self);
 	}
@@ -56,6 +58,10 @@ optional<string> device::getConfigurationUrl() const {
 
 bool device::connect() {
 	return _connector->connect();
+}
+
+bool device::shutdown() {
+	return _connector->shutdown(std::chrono::seconds(5));
 }
 
 void device::processMessages(int timeout) {

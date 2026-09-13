@@ -351,3 +351,15 @@ TEST_CASE("update: make_periodic_updater bad version returns nullopt", "[update]
 	auto pu = make_periodic_updater(true, 100, "", "", true, "mfi-cli", "not-a-version", {"mfi-cli"});
 	CHECK_FALSE(pu.has_value());
 }
+
+TEST_CASE("update: every outcome has a public description", "[update][updater]") {
+	for (auto result : {update_result::disabled, update_result::no_downloader,
+		update_result::up_to_date, update_result::check_failed, update_result::download_failed,
+		update_result::updated, update_result::ready, update_result::cancelled,
+		update_result::timed_out, update_result::apply_failed,
+		update_result::replaced_not_restarted, update_result::preparation_failed,
+		update_result::cleanup_failed}) {
+		CHECK_FALSE(describe(result).empty());
+		CHECK(describe(result) != "unknown");
+	}
+}

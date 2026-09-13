@@ -3,22 +3,27 @@
 namespace mfi_update {
 
 	periodic_updater::periodic_updater(updater up, std::uint32_t interval_seconds, std::vector<std::string> argv)
-		: _updater(std::move(up)), _interval(interval_seconds), _argv(std::move(argv)) {
+		: _updater(std::move(up)), _schedule(interval_seconds), _argv(std::move(argv)) {
 	}
 
-	std::optional<update_result> periodic_updater::tick(clock::time_point now) {
+	bool update_schedule::due(clock::time_point now) noexcept {
 		// The first tick just establishes the baseline; the boot downloader has
 		// already fetched the latest, so we defer the first in-process check by
 		// one full interval.
 		if (!_established) {
 			_established = true;
 			_last_check = now;
-			return std::nullopt;
+			return false;
 		}
 		if ((now - _last_check) < _interval) {
-			return std::nullopt;
+			return false;
 		}
 		_last_check = now;
+		return true;
+	}
+
+	std::optional<update_result> periodic_updater::tick(clock::time_point now) {
+		if (!_schedule.due(now)) return std::nullopt;
 		return _updater.check_and_apply(_argv);
 	}
 
@@ -30,6 +35,16 @@ namespace mfi_update {
 		bool enabled, std::uint32_t interval_seconds, std::string const& repo,
 		std::string const& proxy, bool insecure, std::string const& tool_name,
 		std::string const& current_version_text, std::vector<std::string> argv) {
+		auto up = make_configured_updater(enabled, interval_seconds, repo, proxy, insecure,
+			tool_name, current_version_text);
+		if (!up) return std::nullopt;
+		return periodic_updater{std::move(*up), interval_seconds, std::move(argv)};
+	}
+
+	std::optional<updater> make_configured_updater(
+		bool enabled, std::uint32_t interval_seconds, std::string const& repo,
+		std::string const& proxy, bool insecure, std::string const& tool_name,
+		std::string const& current_version_text) {
 		if (!enabled) {
 			return std::nullopt;
 		}
@@ -54,7 +69,6 @@ namespace mfi_update {
 		c.enabled = true;
 		c = c.resolve();
 
-		updater up{ tool_name, *current, c };
-		return periodic_updater{ std::move(up), interval_seconds, std::move(argv) };
+		return updater{tool_name, *current, c};
 	}
 }

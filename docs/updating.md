@@ -16,8 +16,9 @@ place. This mirrors — and is compatible with — the shell-based updater in th
 3. It shells out to the device's `wget` (or `curl`) to download the asset — so
    TLS, proxying, and certificate handling are the firmware's, not ours. No TLS
    library is linked into the binaries.
-4. The download is validated (non-empty, ELF magic), then atomically `rename()`d
-   over the running binary and the process re-`execv`s itself. Because the target
+4. The download is staged in a uniquely named file beside the target and validated
+   (regular file, non-empty, ELF magic). The applying thread atomically `rename()`s
+   it over the running binary and the process re-`execv`s itself. Because the target
    lives in **persistent** storage (`/var/etc/persistent/bin` by default), the
    update survives reboots.
 
@@ -25,8 +26,45 @@ place. This mirrors — and is compatible with — the shell-based updater in th
   periodically from their main loop (default: once every 24 hours). The first
   check is deferred one full interval, since the boot downloader already fetched
   the latest at startup.
+- **MQTT preparation runs on one background worker.** Metadata checks, downloads,
+  and validation do not stop hardware polling, MQTT servicing, or relay commands.
+  Up-to-date, failed, and timed-out checks do not change MQTT availability.
+  Only a prepared update initiates the main-thread offline/disconnect/apply
+  sequence. The completed worker is joined before an update is offered for apply.
+- **REST retains its synchronous periodic updater.** The CLI's one-shot updater
+  is synchronous too; neither consumer has been moved onto an MQTT-style worker.
 - **`mfi-cli`** is short-lived, so it exposes an explicit `update` subcommand
   instead of a periodic check.
+
+## Deadlines and termination
+
+Preparation gets one **120-second total deadline**, not a fresh timeout for each
+metadata request or download. A cancelled/timed-out downloader gets up to
+**5 additional seconds** for termination escalation and child reaping. Pipe reads
+and child waits are nonblocking/cancellation-aware; cancellation does not wait out
+the remaining 120 seconds. Partial and discarded staged files are removed.
+
+MQTT keeps servicing its normal loop during preparation. SIGTERM/SIGINT is recorded
+by a signal-safe handler; the owning loop requests worker cancellation and does not
+start more work or apply a late result. Cleanup/join is separate from the MQTT
+offline acknowledgement allowance: **up to 5 seconds** to obtain the offline PUBACK
+before disconnect, with acknowledgement failure/timeout reported rather than
+treated as delivered.
+
+After preparation, only the MQTT-owning thread may apply, after its bounded
+offline shutdown. Cancellation before replacement leaves the target unchanged.
+If replacement happened but termination prevents restart (or exec fails), the
+outcome explicitly says **replaced but not restarted**. A returning apply failure
+may reconnect only when termination was not requested, using a new connection
+epoch and fresh hardware samples. A successfully restarted process likewise
+starts without inherited measurement caches.
+
+The final rename/exec transition checks cancellation and pending SIGTERM/SIGINT
+with termination signals blocked on the applying thread, then commits with their
+default dispositions and unblocks them before exec. A racing signal terminates
+the old or new image instead of being lost when exec resets signal handlers.
+An update that has already crossed that final irreversible commit point cannot
+be revoked by an ordinary later cancellation request.
 
 ## Configuration
 
@@ -66,6 +104,16 @@ mfi-rest-server --update-repo myfork/mfi-custom-code
 - The device must have a `wget` (preferred) or `curl` that can reach
   `api.github.com` over HTTPS. If none is found, the tool logs once and keeps
   running — it never fails because of updates.
+- Downloader stderr is suppressed so failed requests cannot leak URLs/proxy
+  credentials. Outcomes use short, credential-free descriptions. Captured
+  metadata is capped at 1 MiB.
+- Child cleanup targets only the downloader's owned process group/direct child.
+  As with any userspace timeout, uninterruptible kernel I/O or stalled filesystem
+  operations cannot be given a hard real-time bound. Failure to reap after
+  SIGKILL within the cleanup allowance is reported explicitly and disables further
+  background updates; kernel intervention may still be needed.
+- ELF magic validation detects obvious bad downloads; it is not a signature,
+  checksum, architecture, or compatibility verification.
 - Updates run unauthenticated against the GitHub API, which is rate-limited to
   60 requests/hour per IP; the conservative default interval stays well under it.
 - The self-update replaces the **running** binary in persistent storage. If you

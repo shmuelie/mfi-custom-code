@@ -7,6 +7,18 @@
 #include "mfi_update/updater.h"
 
 namespace mfi_update {
+	/** Shared deferred-first-check schedule for synchronous/background callers. */
+	class update_schedule final {
+	public:
+		using clock = std::chrono::steady_clock;
+		explicit update_schedule(std::uint32_t interval_seconds) : _interval(interval_seconds) {}
+		bool due(clock::time_point now) noexcept;
+	private:
+		std::chrono::seconds _interval;
+		clock::time_point _last_check{};
+		bool _established{false};
+	};
+
 	/**
 	 * @brief Drives periodic self-update checks from a long-running tool's loop.
 	 *
@@ -38,10 +50,8 @@ namespace mfi_update {
 
 	private:
 		updater _updater;
-		std::chrono::seconds _interval;
+		update_schedule _schedule;
 		std::vector<std::string> _argv;
-		clock::time_point _last_check{};
-		bool _established{ false };
 	};
 
 	/**
@@ -58,4 +68,10 @@ namespace mfi_update {
 		bool enabled, std::uint32_t interval_seconds, std::string const& repo,
 		std::string const& proxy, bool insecure, std::string const& tool_name,
 		std::string const& current_version_text, std::vector<std::string> argv);
+
+	/** Shared option resolution; same disabled/version behavior as the periodic factory. */
+	std::optional<updater> make_configured_updater(
+		bool enabled, std::uint32_t interval_seconds, std::string const& repo,
+		std::string const& proxy, bool insecure, std::string const& tool_name,
+		std::string const& current_version_text);
 }

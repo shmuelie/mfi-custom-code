@@ -24,7 +24,9 @@ namespace mfi_mqtt_client {
 		 * @param username The MQTT username.
 		 * @param password The MQTT password.
 		 */
-		explicit device(mfi::board const& board, std::string const& server, int port, std::string const& username, std::string const& password);
+		explicit device(mfi::board const& board, std::string const& server, int port,
+			std::string const& username, std::string const& password,
+			sensor_policy policy = sensor_policy::power());
 
 		/**
 		 * @brief Initializes all sensor ports and registers with the MQTT connector.
@@ -42,6 +44,7 @@ namespace mfi_mqtt_client {
 		 * @return true if the connection was successful.
 		 */
 		bool connect();
+		bool shutdown();
 
 		/**
 		 * @brief Processes pending MQTT messages for the given duration.
@@ -58,5 +61,6 @@ namespace mfi_mqtt_client {
 		std::shared_ptr<MQTTConnector> _connector;
 		std::vector<std::shared_ptr<port>> _ports;
 		mfi::board _board;
+		sensor_policy _policy;
 	};
 }

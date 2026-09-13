@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Checked measurement APIs with explicit read/parse errors, finite-value and
+  complete-input validation, and overflow/underflow rejection, preserving
+  legacy getter behavior.
+
 ## [1.0.1] - 2026-03-29
 
 ### Changed

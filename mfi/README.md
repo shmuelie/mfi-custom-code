@@ -11,6 +11,25 @@ The mFi API abstracts the sysfs-like file interface exposed by Ubiquiti mFi devi
 - **`mfi::board`** — Query board-level information.
 - **`mfi::led`** — Control the device status LED.
 
+## Checked measurements
+
+`sensor::power_checked()`, `current_checked()`, `voltage_checked()`, and
+`power_factor_checked()` return `sensor_read_result`, a variant of `double` and
+`sensor_read_error`. They require a complete finite numeric reading (surrounding
+whitespace is allowed), bound input size, and distinguish opening/reading errors
+from invalid data. Locale-independent parsing rejects both overflow and
+underflow instead of letting an out-of-range number become zero.
+`mfi::describe(error)` supplies a diagnostic reason; callers
+add their sensor/measurement context.
+
+These APIs do not substitute zero for a failed read. Signed finite readings are
+returned as read; the MQTT power consumer applies its consumption-only
+negative-value policy and quantization checks.
+
+The existing `power()`, `current()`, `voltage()`, and `power_factor()` getters
+retain their legacy behavior for compatibility, including zero on missing
+files. Do not use those getters to establish successful-read freshness.
+
 ## Dependencies
 
 - No external dependencies.

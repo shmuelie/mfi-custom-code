@@ -2,13 +2,92 @@
 #include "mfi_update/downloader.h"
 
 #include <array>
+#include <cerrno>
 #include <cstdio>
-#include <fstream>
+#include <fcntl.h>
 #include <memory>
+#include <pthread.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <utility>
 
 namespace mfi_update {
+
+	namespace {
+		void discard_file(std::string const& path) noexcept {
+			if (!path.empty() && ::unlink(path.c_str()) != 0 && errno != ENOENT)
+				std::fputs("update staged file cleanup failed\n", stderr);
+		}
+	}
+
+	prepared_update::prepared_update(std::string path, std::string target) noexcept
+		: _path(std::move(path)), _target(std::move(target)) {}
+
+	prepared_update::~prepared_update() {
+		discard_file(_path);
+	}
+
+	prepared_update::prepared_update(prepared_update&& other) noexcept
+		: _path(std::exchange(other._path, {})), _target(std::move(other._target)) {}
+
+	prepared_update& prepared_update::operator=(prepared_update&& other) noexcept {
+		if (this != &other) {
+			discard_file(_path);
+			_path = std::exchange(other._path, {});
+			_target = std::move(other._target);
+		}
+		return *this;
+	}
+
+	namespace {
+		update_result interruption(preparation_context const& context, update_result otherwise) {
+			if (context.cleanup_failed()) return update_result::cleanup_failed;
+			if (context.cancelled()) return update_result::cancelled;
+			if (context.timed_out()) return update_result::timed_out;
+			return otherwise;
+		}
+
+		// Blocking only this thread is insufficient if a signal can reach another
+		// thread. Default dispositions close that last handled-signal/exec race.
+		class exec_signal_guard final {
+		public:
+			exec_signal_guard() noexcept {
+				sigset_t signals;
+				::sigemptyset(&signals);
+				::sigaddset(&signals, SIGTERM);
+				::sigaddset(&signals, SIGINT);
+				_masked = ::pthread_sigmask(SIG_BLOCK, &signals, &_old_mask) == 0;
+				if (!_masked) return;
+				struct sigaction defaults{};
+				defaults.sa_handler = SIG_DFL;
+				::sigemptyset(&defaults.sa_mask);
+				_term = ::sigaction(SIGTERM, &defaults, &_old_term) == 0;
+				if (_term) _interrupt = ::sigaction(SIGINT, &defaults, &_old_interrupt) == 0;
+			}
+			~exec_signal_guard() {
+				if (_interrupt) ::sigaction(SIGINT, &_old_interrupt, nullptr);
+				if (_term) ::sigaction(SIGTERM, &_old_term, nullptr);
+				if (_masked) ::pthread_sigmask(SIG_SETMASK, &_old_mask, nullptr);
+			}
+			bool valid() const noexcept { return _masked && _term && _interrupt; }
+			bool pending() const noexcept {
+				sigset_t pending;
+				if (::sigpending(&pending) != 0) return true;
+				return ::sigismember(&pending, SIGTERM) == 1 || ::sigismember(&pending, SIGINT) == 1;
+			}
+			bool unblock_for_exec() const noexcept {
+				auto mask = _old_mask;
+				::sigdelset(&mask, SIGTERM);
+				::sigdelset(&mask, SIGINT);
+				return ::pthread_sigmask(SIG_SETMASK, &mask, nullptr) == 0;
+			}
+		private:
+			sigset_t _old_mask{};
+			struct sigaction _old_term{}, _old_interrupt{};
+			bool _masked{false}, _term{false}, _interrupt{false};
+		};
+	}
 
 	updater::updater(std::string tool_name, semver current, config cfg)
 		: _tool_name(std::move(tool_name)), _current(current), _config(std::move(cfg)) {
@@ -55,91 +134,104 @@ namespace mfi_update {
 		return release_asset{ latest->first, *url };
 	}
 
-	update_result updater::check_and_apply(std::vector<std::string> const& argv) const {
+	preparation_result updater::prepare(preparation_context const& context) const {
+		auto failure = [&](update_result result) -> preparation_result {
+			return {interruption(context, result), std::nullopt};
+		};
+		if (context.interrupted()) return failure(update_result::cancelled);
 		if (!_config.enabled) {
-			return update_result::disabled;
+			return failure(update_result::disabled);
 		}
 
 		// Resolve a downloader once so both fetch and download share it.
-		std::optional<downloader> dl;
-		if (!_fetch || !_download) {
+		std::optional<downloader> dl = _downloader;
+		if (!dl && ((!_fetch && !_cancellable_fetch) || (!_download && !_cancellable_download))) {
 			auto kind = downloader::detect();
 			if (!kind) {
-				return update_result::no_downloader;
+				return failure(update_result::no_downloader);
 			}
 			dl.emplace(*kind, _config);
 		}
 
-		fetch_fn fetch = _fetch;
-		if (!fetch) {
-			fetch = [dl](std::string const& url) { return dl->fetch_to_string(url); };
-		}
-		download_fn download = _download;
-		if (!download) {
-			download = [dl](std::string const& url, std::string const& path) {
-				return dl->fetch_to_file(url, path);
-			};
-		}
+		auto fetch = [&](std::string const& url) -> std::optional<std::string> {
+			if (context.interrupted()) return std::nullopt;
+			if (_cancellable_fetch) return _cancellable_fetch(url, context);
+			if (_fetch) return _fetch(url);
+			return dl->fetch_to_string(url, context);
+		};
 
 		auto refs = fetch(api_matching_refs_url());
-		if (!refs) {
-			return update_result::check_failed;
+		if (!refs || context.interrupted()) {
+			return failure(update_result::check_failed);
 		}
 		auto latest = pick_latest_tag(*refs, _tool_name);
-		if (!latest) {
-			return update_result::check_failed;
+		if (!latest || context.interrupted()) {
+			return failure(update_result::check_failed);
 		}
 		if (latest->first <= _current) {
-			return update_result::up_to_date;
+			return failure(update_result::up_to_date);
 		}
 
 		auto release = fetch(api_release_url(latest->second));
-		if (!release) {
-			return update_result::check_failed;
+		if (!release || context.interrupted()) {
+			return failure(update_result::check_failed);
 		}
 		auto url = pick_asset_url(*release, _tool_name);
-		if (!url) {
-			return update_result::check_failed;
+		if (!url || context.interrupted()) {
+			return failure(update_result::check_failed);
 		}
 
-		std::string target = self_path(_config.bin_dir + "/" + _tool_name);
-		std::string tmp = target + ".new";
+		auto target = _target_path.empty() ? self_path(_config.bin_dir + "/" + _tool_name) : _target_path;
+		auto tmp = target + ".new.XXXXXX";
+		auto fd = ::mkstemp(tmp.data());
+		if (fd < 0) return failure(update_result::download_failed);
+		::close(fd);
+		prepared_update artifact{std::move(tmp), std::move(target)};
+		bool downloaded = false;
+		if (!context.interrupted()) {
+			if (_cancellable_download) downloaded = _cancellable_download(*url, artifact.path(), context);
+			else if (_download) downloaded = _download(*url, artifact.path());
+			else downloaded = dl->fetch_to_file(*url, artifact.path(), context);
+		}
+		if (!downloaded || context.interrupted() || !is_valid_elf(artifact.path()) ||
+			::chmod(artifact.path().c_str(), 0755) != 0 || context.interrupted()) {
+			return failure(update_result::download_failed);
+		}
+		return {update_result::ready, std::move(artifact)};
+	}
 
-		if (!download(*url, tmp)) {
-			std::remove(tmp.c_str());
-			return update_result::download_failed;
+	update_result updater::apply(prepared_update const& artifact, std::vector<std::string> const& argv,
+		std::function<bool()> const& should_cancel) const {
+		if (should_cancel && should_cancel()) return update_result::cancelled;
+		if (_apply) {
+			auto success = _apply(artifact.path(), argv);
+			if (should_cancel && should_cancel())
+				return success ? update_result::replaced_not_restarted : update_result::cancelled;
+			return success ? update_result::updated : update_result::apply_failed;
 		}
-		if (!is_valid_elf(tmp)) {
-			std::remove(tmp.c_str());
-			return update_result::download_failed;
-		}
-		::chmod(tmp.c_str(), 0755);
+		return replace_and_reexec(artifact.path(), artifact.target(), argv, should_cancel);
+	}
 
-		apply_fn apply = _apply;
-		if (!apply) {
-			apply = [target](std::string const& new_path, std::vector<std::string> const& args) {
-				return replace_and_reexec(new_path, target, args);
-			};
-		}
-		if (!apply(tmp, argv)) {
-			std::remove(tmp.c_str());
+	update_result updater::check_and_apply(std::vector<std::string> const& argv) const {
+		auto prepared = prepare(preparation_context{});
+		if (!prepared.artifact) return prepared.result;
+		auto result = apply(*prepared.artifact, argv);
+		// Preserve the legacy failure classification for synchronous consumers.
+		if (result == update_result::apply_failed || result == update_result::replaced_not_restarted)
 			return update_result::download_failed;
-		}
-		// If apply returned true without re-exec (e.g. in tests), report updated.
-		return update_result::updated;
+		return result;
 	}
 
 	bool is_valid_elf(std::string const& path) noexcept {
-		std::ifstream in{ path, std::ios::binary };
-		if (!in) {
-			return false;
-		}
+		auto fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC);
+		if (fd < 0) return false;
+		struct stat status{};
 		std::array<char, 4> magic{};
-		in.read(magic.data(), magic.size());
-		if (in.gcount() != static_cast<std::streamsize>(magic.size())) {
-			return false;
-		}
-		return magic[0] == '\x7f' && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F';
+		bool valid = ::fstat(fd, &status) == 0 && S_ISREG(status.st_mode) &&
+			::read(fd, magic.data(), magic.size()) == static_cast<ssize_t>(magic.size()) &&
+			magic[0] == '\x7f' && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F';
+		::close(fd);
+		return valid;
 	}
 
 	std::string self_path(std::string const& fallback) {
@@ -154,12 +246,13 @@ namespace mfi_update {
 
 	bool replace_and_reexec(std::string const& new_path, std::string const& target_path,
 		std::vector<std::string> const& argv) noexcept {
-		// rename() within the same directory is atomic and works even though the
-		// target is the running executable (the live process keeps its inode).
-		if (std::rename(new_path.c_str(), target_path.c_str()) != 0) {
-			return false;
-		}
+		return replace_and_reexec(new_path, target_path, argv, {}) == update_result::updated;
+	}
 
+	update_result replace_and_reexec(std::string const& new_path, std::string const& target_path,
+		std::vector<std::string> const& argv, std::function<bool()> const& should_cancel) {
+		if (should_cancel && should_cancel()) return update_result::cancelled;
+		if (argv.empty()) return update_result::apply_failed;
 		std::vector<char*> c_argv;
 		c_argv.reserve(argv.size() + 1);
 		for (auto const& a : argv) {
@@ -167,9 +260,16 @@ namespace mfi_update {
 		}
 		c_argv.push_back(nullptr);
 
+		exec_signal_guard signals;
+		if (!signals.valid()) return update_result::apply_failed;
+		auto cancelled = [&] { return (should_cancel && should_cancel()) || signals.pending(); };
+		if (cancelled()) return update_result::cancelled;
+		if (std::rename(new_path.c_str(), target_path.c_str()) != 0) return update_result::apply_failed;
+		if (cancelled() || !signals.unblock_for_exec()) return update_result::replaced_not_restarted;
+		// SIGTERM/SIGINT now have default dispositions, and are not blocked in
+		// the new image. A signal after the final check cannot be swallowed.
 		::execv(target_path.c_str(), c_argv.data());
-		// execv only returns on failure.
-		return false;
+		return update_result::replaced_not_restarted;
 	}
 
 	std::string describe(update_result result) noexcept {
@@ -180,6 +280,13 @@ namespace mfi_update {
 		case update_result::check_failed:    return "update check failed";
 		case update_result::download_failed: return "update download failed";
 		case update_result::updated:         return "updated";
+		case update_result::ready:           return "update ready to apply";
+		case update_result::cancelled:       return "update cancelled";
+		case update_result::timed_out:       return "update preparation timed out";
+		case update_result::apply_failed:    return "update replacement failed";
+		case update_result::replaced_not_restarted: return "update replaced binary but did not restart";
+		case update_result::preparation_failed: return "update preparation failed unexpectedly";
+		case update_result::cleanup_failed: return "update child cleanup deadline exceeded";
 		}
 		return "unknown";
 	}

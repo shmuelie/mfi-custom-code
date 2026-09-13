@@ -133,8 +133,17 @@ void DeviceBase::sendDiscovery()
 		}
 
 		discoveryJson["schema"] = "json";
-		discoveryJson["availability_topic"] = availabilityTopic;
-		discoveryJson["availability_template"] = "{{ value_json.availability }}";
+		if (auto channel = function->availabilityTopic()) {
+			discoveryJson["availability"] = json::array({
+				{{"topic", availabilityTopic}, {"value_template", "{{ value_json.availability }}"}},
+				{{"topic", *channel}, {"value_template", "{{ value_json.availability }}"}}
+			});
+			discoveryJson["availability_mode"] = "all";
+		}
+		else {
+			discoveryJson["availability_topic"] = availabilityTopic;
+			discoveryJson["availability_template"] = "{{ value_json.availability }}";
+		}
 
 		// Add the device info to the discovery json
 		discoveryJson["device"] = {{"name", getName()},
@@ -177,7 +186,9 @@ void DeviceBase::sendDiscovery()
 		LOG_DEBUG("Sending discovery message to topic: {}", discoveryPart.first);
 		try
 		{
-			publishMessage(discoveryPart.first, discoveryPart.second);
+			if (!publishMessage(discoveryPart.first, discoveryPart.second).accepted()) {
+				throw std::runtime_error("Discovery publication rejected");
+			}
 		}
 		catch(const std::exception& e)
 		{
@@ -237,13 +248,13 @@ void DeviceBase::processMessage(const std::string& topic, const std::string& pay
 	}
 }
 
-void DeviceBase::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
+publication DeviceBase::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
 {
 	// Check if the connector is still alive
 	if(auto connector = m_connector.lock())
 	{
 		// Publish the message
-		connector->publishMessage(topic, payload, qos, retain);
+		return connector->publishMessage(topic, payload, qos, retain);
 	}
 	else
 	{
@@ -254,29 +265,38 @@ void DeviceBase::publishMessage(const std::string& topic, const json& payload, i
 
 void DeviceBase::sendStatus()
 {
-	// Get availability topic from m_connector
-	std::string availabilityTopic;
-	if(auto connector = m_connector.lock())
-	{
-		availabilityTopic = connector->getAvailabilityTopic();
-	}
-	else
-	{
-		LOG_ERROR("Failed to send discovery message for device {}-{}: MQTTConnector is no longer alive",
-				  getName(),
-				  getId());
-		throw std::runtime_error("Failed to send discovery message for device: MQTTConnector is no longer alive");
-	}
-
-	// Create the will message
-	json payload;
-	payload["availability"] = "online";
-
-	publishMessage(availabilityTopic, payload);
-
-	// Publish the availability and status messages for all functions
+	// Shared availability is owned by the connector's acknowledged handshake.
 	for(auto& function : m_functions)
 	{
 		function->sendStatus();
 	}
+}
+
+publication_state DeviceBase::publicationState(publication const& message) const {
+	if (auto connector = m_connector.lock()) {
+		return connector->publicationState(message);
+	}
+	return publication_state::failed;
+}
+
+bool DeviceBase::isConnected() const {
+	auto connector = m_connector.lock();
+	return connector && connector->isConnected();
+}
+
+void DeviceBase::beginConnection(std::uint64_t epoch) {
+	for (auto const& function : m_functions) {
+		function->resetConnection(epoch);
+	}
+}
+
+void DeviceBase::service() {
+	for (auto const& function : m_functions) {
+		function->service();
+	}
+}
+
+bool DeviceBase::readyForOnline() const {
+	return std::all_of(m_functions.begin(), m_functions.end(),
+		[](auto const& function) { return function->readyForOnline(); });
 }

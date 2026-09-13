@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 #include <spdlog/spdlog.h>
+#include "hass_mqtt_device/core/publication.h"
+#include <chrono>
+#include <map>
+#include <optional>
 
 using json = nlohmann::json;
 
@@ -72,6 +76,8 @@ public:
      * @brief Disconnect from the MQTT server
      */
     void disconnect();
+    bool shutdown(std::chrono::milliseconds timeout = std::chrono::seconds(5));
+    void abortConnection();
 
     /**
      * @brief Check if connected to the MQTT server
@@ -121,13 +127,19 @@ public:
      * @param qos The MQTT QoS level (0, 1, or 2). Defaults to 1.
      * @param retain Whether the broker should retain the message. Defaults to true.
      */
-    void publishMessage(const std::string& topic, const json& payload, int qos = 1, bool retain = true);
+    publication publishMessage(const std::string& topic, const json& payload, int qos = 1, bool retain = true);
+    publication_state publicationState(publication const& message) const;
+    std::uint64_t connectionEpoch() const noexcept { return m_epoch; }
 
 private:
     /**
      * @brief Send a last will and testament message to the MQTT server
      */
-    void publishLWT();
+    bool publishLWT();
+    void beginSession();
+    void serviceSession();
+    std::vector<std::shared_ptr<DeviceBase>> devices() const;
+    static void publishCallback(mosquitto*, void*, int);
 
     /**
      * @brief Callback for incoming MQTT messages, implementing the on_message
@@ -188,9 +200,26 @@ private:
     std::string m_password;
     std::string m_unique_id;
     bool m_is_connected = false;
-    std::vector<std::shared_ptr<DeviceBase>> m_registered_devices; // List of registered devices using smart pointers
+    std::vector<std::weak_ptr<DeviceBase>> m_registered_devices;
     mosquitto* m_mosquitto;
     std::shared_ptr<spdlog::logger> m_logger;
     int m_backoff_state;
     int m_slept_for;
+    bool m_connecting = false;
+    bool m_just_connected = false;
+    bool m_stopping = false;
+    std::uint64_t m_epoch = 0;
+    std::uint64_t m_sequence = 0;
+    struct pending_publication {
+        std::uint64_t sequence;
+        std::chrono::steady_clock::time_point sent;
+        std::string topic;
+        int qos;
+    };
+    std::map<int, pending_publication> m_pending;
+    bool m_publishing = false;
+    std::optional<int> m_early_completion;
+    std::optional<publication> m_offline;
+    std::optional<publication> m_online;
+    std::chrono::steady_clock::time_point m_connect_started{};
 };

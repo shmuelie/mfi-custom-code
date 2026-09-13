@@ -2,8 +2,19 @@
 
 #include <string>
 #include <cstdint>
+#include <variant>
 
 namespace mfi {
+	enum class sensor_read_error {
+		open_failed,
+		read_failed,
+		invalid_number,
+		nonfinite
+	};
+
+	using sensor_read_result = std::variant<double, sensor_read_error>;
+	char const* describe(sensor_read_error error) noexcept;
+
 	/**
 	 * @brief Represents a port or switch on the mFi device.
 	*/
@@ -35,6 +46,10 @@ namespace mfi {
 		 * @brief Gets the power factor of the port.
 		 */
 		double power_factor() const;
+		sensor_read_result power_checked() const;
+		sensor_read_result current_checked() const;
+		sensor_read_result voltage_checked() const;
+		sensor_read_result power_factor_checked() const;
 		/**
 		 * @brief Gets a value indicating whether the port is on or off.
 		*/
@@ -61,5 +76,6 @@ namespace mfi {
 		std::string _name;
 		std::string _label;
 		double read(const std::string& path) const;
+		sensor_read_result read_checked(const std::string& path) const;
 	};
 }

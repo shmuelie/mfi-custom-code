@@ -1,372 +1,429 @@
-// Include the corresponding header file
 #include "hass_mqtt_device/core/mqtt_connector.h"
 #include "hass_mqtt_device/core/device_base.h"
 #include "hass_mqtt_device/core/helper_functions.hpp"
-
-// Include any other necessary headers
-#include "hass_mqtt_device/logger/logger.hpp" // For logging
+#include "hass_mqtt_device/logger/logger.hpp"
+#include <algorithm>
 #include <array>
-#include <chrono>
-#include <mosquitto.h>
-#include <string>
+#include <limits>
 #include <thread>
 
+namespace {
 constexpr std::array<int, 8> backoff_ladder = {1000, 1000, 5000, 5000, 5000, 15000, 30000, 30000};
+constexpr auto delivery_deadline = std::chrono::seconds(5);
+constexpr std::size_t pending_limit = 256;
+}
 
-// Constructor implementation
-MQTTConnector::MQTTConnector(const std::string& server,
-							 const int port,
-							 const std::string& username,
-							 const std::string& password,
-							 const std::string& unique_id)
-	: m_server(server)
-	, m_port(port)
-	, m_username(username)
-	, m_password(password)
-	, m_unique_id(getValidHassString(unique_id))
-	, m_mosquitto(nullptr)
-	, m_logger(spdlog::default_logger())
-	, m_backoff_state(0)
-	, m_slept_for(0)
+MQTTConnector::MQTTConnector(const std::string& server, int port,
+	const std::string& username, const std::string& password, const std::string& unique_id)
+	: m_server(server), m_port(port), m_username(username), m_password(password),
+	  m_unique_id(getValidHassString(unique_id)), m_mosquitto(nullptr),
+	  m_logger(spdlog::default_logger()), m_backoff_state(0), m_slept_for(0)
 {
-	LOG_DEBUG("MQTTConnector created with server: {}", server);
-
-	// Initialize the MQTT library
-	mosquitto_lib_init();
+	if (int rc = mosquitto_lib_init(); rc != MOSQ_ERR_SUCCESS) {
+		throw std::runtime_error(mosquitto_strerror(rc));
+	}
 }
 
 MQTTConnector::~MQTTConnector()
 {
-	if(m_mosquitto != nullptr)
-	{
-		mosquitto_disconnect(m_mosquitto);
-		mosquitto_destroy(m_mosquitto);
-		m_mosquitto = nullptr;
+	try {
+		shutdown();
+	}
+	catch (std::exception const& error) {
+		LOG_ERROR("MQTT shutdown failed: {}", error.what());
+		abortConnection();
 	}
 	mosquitto_lib_cleanup();
 }
 
 std::string MQTTConnector::getAvailabilityTopic() const
 {
-	std::string topic = "home/" + getId() + "/availability";
-	return topic;
-};
+	return "home/" + getId() + "/availability";
+}
 
-// Connect to the MQTT server
+std::vector<std::shared_ptr<DeviceBase>> MQTTConnector::devices() const
+{
+	std::vector<std::shared_ptr<DeviceBase>> result;
+	for (auto const& entry : m_registered_devices) {
+		if (auto device = entry.lock()) {
+			result.push_back(std::move(device));
+		}
+	}
+	return result;
+}
+
 bool MQTTConnector::connect()
 {
-	LOG_DEBUG("Connecting to MQTT server: {}", m_server);
-
-	// Destroy any existing mosquitto instance to prevent resource leaks
-	if(m_mosquitto != nullptr)
-	{
-		mosquitto_destroy(m_mosquitto);
-		m_mosquitto = nullptr;
-	}
-
+	abortConnection();
+	m_stopping = false;
 	m_mosquitto = mosquitto_new(m_unique_id.c_str(), true, this);
-	if(m_mosquitto == nullptr)
-	{
-		LOG_ERROR("Failed to create mosquitto instance");
+	if (!m_mosquitto) {
+		LOG_ERROR("Failed to create MQTT client");
 		return false;
 	}
-
-	// Set the username and password
-	mosquitto_username_pw_set(m_mosquitto, m_username.c_str(), m_password.c_str());
-
-	// Set the callbacks
+	int rc = mosquitto_username_pw_set(m_mosquitto, m_username.c_str(), m_password.c_str());
+	if (rc != MOSQ_ERR_SUCCESS) {
+		LOG_ERROR("Failed to configure MQTT credentials: {}", mosquitto_strerror(rc));
+		abortConnection();
+		return false;
+	}
 	mosquitto_connect_callback_set(m_mosquitto, connectCallback);
 	mosquitto_disconnect_callback_set(m_mosquitto, disconnectCallback);
-	mosquitto_subscribe_callback_set(m_mosquitto, subscribeCallback);
-	mosquitto_unsubscribe_callback_set(m_mosquitto, unsubscribeCallback);
 	mosquitto_message_callback_set(m_mosquitto, messageCallback);
+	mosquitto_publish_callback_set(m_mosquitto, publishCallback);
+	mosquitto_subscribe_callback_set(m_mosquitto, subscribeCallback);
 	mosquitto_log_callback_set(m_mosquitto, logCallback);
-
-	// Set the lwt availability topic for all devices
-	publishLWT();
-
-	int rc = mosquitto_connect(m_mosquitto, m_server.c_str(), m_port, 60);
-	if(rc != MOSQ_ERR_SUCCESS)
-	{
-		LOG_ERROR("Failed to connect to MQTT server: {}", mosquitto_strerror(rc));
+	if (!publishLWT()) {
+		abortConnection();
 		return false;
 	}
-	LOG_DEBUG("Connected to MQTT server: {}", m_server);
-	m_is_connected = true;
-
+	m_connect_started = std::chrono::steady_clock::now();
+	rc = mosquitto_connect_async(m_mosquitto, m_server.c_str(), m_port, 60);
+	if (rc != MOSQ_ERR_SUCCESS) {
+		LOG_ERROR("MQTT connection failed: {}", mosquitto_strerror(rc));
+		abortConnection();
+		return false;
+	}
+	m_connecting = true;
 	return true;
 }
 
-// Disconnect from the MQTT server
-void MQTTConnector::disconnect()
+void MQTTConnector::abortConnection()
 {
-	LOG_DEBUG("Disconnecting from MQTT server: {}", m_server);
-	mosquitto_disconnect(m_mosquitto);
-}
-
-// Check if connected to the MQTT server
-bool MQTTConnector::isConnected() const
-{
-	return m_is_connected;
-}
-
-// Register a device to listen for its MQTT topics
-void MQTTConnector::registerDevice(std::shared_ptr<DeviceBase> device)
-{
-	// Make sure the device is not already registered. Same Id is fine, but same
-	// name and id is not
-	for(auto& registered_device : m_registered_devices)
-	{
-		if(registered_device->getCleanName() == device->getCleanName() && registered_device->getId() == device->getId())
-		{
-			LOG_ERROR("Device with id {} and name {} already registered", device->getId(), device->getCleanName());
-			throw std::runtime_error("Device with name already registered");
-		}
+	// Do not send DISCONNECT here: failures must preserve the broker's Last Will.
+	if (m_mosquitto) {
+		mosquitto_destroy(m_mosquitto);
+		m_mosquitto = nullptr;
 	}
-
-	device->setParentConnector(shared_from_this());
-	m_registered_devices.push_back(device);
-
-	// If connected, subscribe to the topic
-	if(m_is_connected)
-	{
-		disconnect();
-		connect();
-	}
-	LOG_DEBUG("Device registered with name: {}", device->getName());
+	m_is_connected = false;
+	m_connecting = false;
+	m_just_connected = false;
+	++m_epoch;
+	m_pending.clear();
+	m_offline.reset();
+	m_online.reset();
 }
 
-// Unregister a device
-void MQTTConnector::unregisterDevice(const std::string& device_name)
+bool MQTTConnector::shutdown(std::chrono::milliseconds timeout)
 {
-	for(auto it = m_registered_devices.begin(); it != m_registered_devices.end(); it++)
-	{
-		if((*it)->getId() == device_name)
-		{
-			m_registered_devices.erase(it);
+	m_stopping = true;
+	if (!isConnected()) {
+		abortConnection();
+		return true;
+	}
+	auto message = publishMessage(getAvailabilityTopic(), {{"availability", "offline"}});
+	auto deadline = std::chrono::steady_clock::now() + timeout;
+	while (message.accepted() && publicationState(message) == publication_state::pending
+		&& std::chrono::steady_clock::now() < deadline) {
+		auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+			deadline - std::chrono::steady_clock::now());
+		int rc = mosquitto_loop(m_mosquitto, static_cast<int>(
+			std::clamp<std::int64_t>(remaining.count(), 0, 50)), 1);
+		if (rc != MOSQ_ERR_SUCCESS) {
+			LOG_ERROR("MQTT offline flush failed: {}", mosquitto_strerror(rc));
 			break;
 		}
 	}
+	bool acknowledged = message.accepted()
+		&& publicationState(message) == publication_state::complete;
+	if (acknowledged) {
+		int rc = mosquitto_disconnect(m_mosquitto);
+		if (rc == MOSQ_ERR_SUCCESS) {
+			rc = mosquitto_loop_write(m_mosquitto, 1);
+		}
+		if (rc != MOSQ_ERR_SUCCESS && rc != MOSQ_ERR_NO_CONN) {
+			LOG_ERROR("MQTT disconnect failed: {}", mosquitto_strerror(rc));
+		}
+	}
+	else {
+		LOG_ERROR("MQTT offline was not acknowledged before shutdown; preserving Last Will");
+	}
+	abortConnection();
+	return acknowledged;
 }
 
-// Get a device by name
-std::shared_ptr<DeviceBase> MQTTConnector::getDevice(const std::string& device_name) const
+void MQTTConnector::disconnect() { shutdown(); }
+bool MQTTConnector::isConnected() const { return m_is_connected; }
+
+void MQTTConnector::registerDevice(std::shared_ptr<DeviceBase> device)
 {
-	for(const auto& device : m_registered_devices)
-	{
-		if(device->getName() == device_name || device->getCleanName() == device_name)
-		{
+	for (auto const& existing : devices()) {
+		if (existing->getCleanName() == device->getCleanName() && existing->getId() == device->getId()) {
+			throw std::runtime_error("Device with name already registered");
+		}
+	}
+	device->setParentConnector(shared_from_this());
+	m_registered_devices.push_back(device);
+	if (isConnected()) {
+		shutdown();
+		connect();
+	}
+}
+
+void MQTTConnector::unregisterDevice(const std::string& name)
+{
+	std::erase_if(m_registered_devices, [&](auto const& entry) {
+		auto device = entry.lock();
+		return !device || device->getId() == name;
+	});
+}
+
+std::shared_ptr<DeviceBase> MQTTConnector::getDevice(const std::string& name) const
+{
+	for (auto const& device : devices()) {
+		if (device->getName() == name || device->getCleanName() == name) {
 			return device;
 		}
 	}
 	return nullptr;
 }
 
-// Process incoming MQTT messages
-void MQTTConnector::processMessages(int timeout, bool exit_on_event)
+void MQTTConnector::beginSession()
 {
-	if(!isConnected())
-	{
-		LOG_DEBUG("Not connected to MQTT server. Attempting to reconnect.");
-		LOG_DEBUG("Slept since last reconnect try {}ms", m_slept_for);
-		std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
-		m_slept_for += timeout;
-		if(m_slept_for < backoff_ladder[m_backoff_state])
-		{
-			return;
-		}
-		m_slept_for = 0;
-		m_backoff_state++;
-		if(m_backoff_state >= static_cast<int>(backoff_ladder.size()))
-		{
-			m_backoff_state = backoff_ladder.size() - 1;
-		}
-
-		bool rc = connect();
-		if(!rc)
-		{
-			LOG_ERROR("Failed to reconnect to MQTT server. Continuing to sleep "
-					  "and retry.");
-			return;
-		}
-		m_backoff_state = 0;
+	m_just_connected = false;
+	m_backoff_state = 0;
+	m_slept_for = 0;
+	m_offline = publishMessage(getAvailabilityTopic(), {{"availability", "offline"}});
+	if (!m_offline->accepted()) {
+		throw std::runtime_error("Initial MQTT offline publication rejected");
 	}
-
-	// At this point, we are connected to the MQTT server
-	// Get the monotonic time when we should be done processing messages
-	// Get the monotonic time when we should be done processing messages
-	auto done = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout);
-
-	while(true)
-	{
-		auto now = std::chrono::steady_clock::now();
-		if(now >= done)
-		{
-			break;
-		}
-
-		// How much time left till done
-		auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(done - now);
-		int rc = mosquitto_loop(m_mosquitto, remaining.count(), 1);
-		if(rc != MOSQ_ERR_SUCCESS && rc != MOSQ_ERR_NO_CONN)
-		{
-			LOG_ERROR("Failed to process MQTT messages: {}", mosquitto_strerror(rc));
-		}
-		if(exit_on_event)
-		{
-			break;
-		}
-	}
-}
-
-// Publish a message
-void MQTTConnector::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
-{
-	if(m_mosquitto == nullptr)
-	{
-		LOG_ERROR("Cannot publish MQTT message: not initialized");
-		return;
-	}
-	std::string payload_str = payload.dump();
-	LOG_DEBUG("Publishing MQTT message to topic: {}", topic);
-	LOG_DEBUG("MQTT message payload: {}", payload_str);
-	int rc = mosquitto_publish(
-		m_mosquitto, nullptr, topic.c_str(), payload_str.size(), payload_str.c_str(), qos, retain);
-	if(rc != MOSQ_ERR_SUCCESS)
-	{
-		LOG_ERROR("Failed to publish MQTT message: {}", mosquitto_strerror(rc));
-	}
-}
-
-// publish last will and testament
-void MQTTConnector::publishLWT()
-{
-	// Create the will message
-	json payload;
-	payload["availability"] = "offline";
-
-	std::string payload_str = payload.dump();
-	LOG_DEBUG("Publishing LWT MQTT message to topic: {}", getAvailabilityTopic());
-	LOG_DEBUG("LWT MQTT message payload: {}", payload_str);
-	int rc =
-		mosquitto_will_set(m_mosquitto, getAvailabilityTopic().c_str(), payload_str.size(), payload_str.c_str(), 1, true);
-	if(rc != MOSQ_ERR_SUCCESS)
-	{
-		LOG_ERROR("Failed to publish MQTT message: {}", mosquitto_strerror(rc));
-	}
-}
-
-// Callback for incoming MQTT messages, implementing the on_message
-void MQTTConnector::messageCallback(mosquitto*  /*mosq*/, void* obj, const mosquitto_message* message)
-{
-	auto* connector = static_cast<MQTTConnector*>(obj);
-	connector->LOG_DEBUG("Received MQTT message on topic: {}", message->topic);
-	// Convert the topic and message to a string
-	std::string topic(message->topic);
-	std::string payload;
-	if(message->payloadlen > 0 && message->payload != nullptr)
-	{
-		payload.assign(static_cast<char*>(message->payload), message->payloadlen);
-	}
-
-	for(auto& device : connector->m_registered_devices)
-	{
-		// getFullId() returns cached string — no allocation
-		auto const& prefix = device->getFullId();
-		if(topic.length() > 5 + prefix.length()
-			&& topic.compare(0, 5, "home/") == 0
-			&& topic.compare(5, prefix.length(), prefix) == 0)
-		{
-			device->processMessage(topic, payload);
-		}
-	}
-}
-
-// Callback for successful connection to the MQTT server, implementing
-// on_connect
-void MQTTConnector::connectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
-{
-	auto* connector = static_cast<MQTTConnector*>(obj);
-	connector->LOG_DEBUG("Connected to MQTT server callback: {}", mosquitto_reason_string(rc));
-
-	if(rc != 0)
-	{
-		connector->LOG_ERROR("Connection refused by broker: {}", mosquitto_reason_string(rc));
-		connector->m_is_connected = false;
-		return;
-	}
-
-	// Subscribe to the topics of the registered devices
-	for(auto& device : connector->m_registered_devices)
-	{
-		for(auto& topic : device->getSubscribeTopics())
-		{
-			connector->LOG_DEBUG("Subscribing to topic: {}", topic);
-			rc = mosquitto_subscribe(connector->m_mosquitto, nullptr, topic.c_str(), 0);
-			if(rc != MOSQ_ERR_SUCCESS)
-			{
-				connector->LOG_ERROR("Failed to subscribe to topic: {}", mosquitto_strerror(rc));
-				return;
+	for (auto const& device : devices()) {
+		device->beginConnection(m_epoch);
+		for (auto const& topic : device->getSubscribeTopics()) {
+			int rc = mosquitto_subscribe(m_mosquitto, nullptr, topic.c_str(), 0);
+			if (rc != MOSQ_ERR_SUCCESS) {
+				throw std::runtime_error(mosquitto_strerror(rc));
 			}
 		}
-	}
-
-	// Send the discovery messages for the registered devices
-	connector->LOG_DEBUG("Sending discovery messages for {} devices", connector->m_registered_devices.size());
-	for(auto& device : connector->m_registered_devices)
-	{
 		device->sendDiscovery();
 		device->sendStatus();
 	}
-	connector->LOG_DEBUG("Discovery messages sent for {} devices", connector->m_registered_devices.size());
-
-	connector->m_is_connected = true;
 }
 
-// Callback for disconnection from the MQTT server, implementing
-// on_disconnect
-void MQTTConnector::disconnectCallback(mosquitto*  /*mosq*/, void* obj, int rc)
+void MQTTConnector::serviceSession()
 {
-	auto* connector = static_cast<MQTTConnector*>(obj);
-	connector->LOG_INFO("Disconnected from MQTT server: {}", mosquitto_strerror(rc));
-	connector->m_is_connected = false;
+	auto now = std::chrono::steady_clock::now();
+	for (auto const& [id, pending] : m_pending) {
+		if (now - pending.sent >= delivery_deadline) {
+			LOG_ERROR("MQTT delivery stalled on {}; dropping old connection and queued state", pending.topic);
+			abortConnection();
+			return;
+		}
+	}
+	bool ready = true;
+	for (auto const& device : devices()) {
+		device->service();
+		ready = device->readyForOnline() && ready;
+	}
+	if (ready && !m_online && m_offline
+		&& publicationState(*m_offline) == publication_state::complete) {
+		auto online = publishMessage(getAvailabilityTopic(), {{"availability", "online"}});
+		if (online.accepted()) {
+			m_online = online;
+		}
+	}
 }
 
-// Callback for successful subscription to an MQTT topic, implementing
-// on_subscribe
-void MQTTConnector::subscribeCallback(mosquitto*  /*mosq*/, void*  obj, int  /*mid*/, int  /*qos_count*/, const int*  /*granted_qos*/)
+void MQTTConnector::processMessages(int timeout, bool exit_on_event)
 {
-	auto* connector = static_cast<MQTTConnector*>(obj);
-	connector->LOG_DEBUG("Subscribed to MQTT topic");
+	if (timeout < 0) {
+		throw std::invalid_argument("MQTT timeout must not be negative");
+	}
+	if (m_stopping) {
+		return;
+	}
+	// Keep individual network waits short even when callers use a long poll period.
+	timeout = std::min(timeout, 1000);
+	if (!isConnected() && !m_connecting) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
+		m_slept_for += timeout;
+		if (m_slept_for < backoff_ladder[m_backoff_state]) {
+			return;
+		}
+		m_slept_for = 0;
+		m_backoff_state = std::min(m_backoff_state + 1, static_cast<int>(backoff_ladder.size()) - 1);
+		if (!connect()) {
+			return;
+		}
+	}
+	auto done = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout);
+	do {
+		int remaining = static_cast<int>(std::max<std::int64_t>(0,
+			std::chrono::duration_cast<std::chrono::milliseconds>(
+				done - std::chrono::steady_clock::now()).count()));
+		int rc = mosquitto_loop(m_mosquitto, std::min(remaining, 100), 1);
+		if (rc != MOSQ_ERR_SUCCESS) {
+			LOG_ERROR("MQTT processing failed: {}", mosquitto_strerror(rc));
+			abortConnection();
+			return;
+		}
+		if (m_connecting && std::chrono::steady_clock::now() - m_connect_started >= delivery_deadline) {
+			LOG_ERROR("MQTT CONNACK deadline exceeded");
+			abortConnection();
+			return;
+		}
+		try {
+			if (m_just_connected) {
+				beginSession();
+			}
+			if (isConnected()) {
+				serviceSession();
+			}
+		}
+		catch (std::exception const& error) {
+			LOG_ERROR("MQTT session setup/service failed: {}", error.what());
+			abortConnection();
+			return;
+		}
+		if (!isConnected() && !m_connecting) {
+			abortConnection();
+			return;
+		}
+		if (exit_on_event) {
+			break;
+		}
+	} while (std::chrono::steady_clock::now() < done);
 }
 
-// Callback for successful unsubscription to an MQTT topic, implementing
-// on_unsubscribe
-void MQTTConnector::unsubscribeCallback(mosquitto*  /*mosq*/, void* obj, int  /*mid*/)
+publication MQTTConnector::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
 {
-	auto* connector = static_cast<MQTTConnector*>(obj);
-	connector->LOG_ERROR("Unsubscribed from MQTT topic");
+	if (!m_mosquitto || !isConnected()) {
+		LOG_ERROR("Cannot publish {}: MQTT is disconnected", topic);
+		return {};
+	}
+	if (m_pending.size() >= pending_limit
+		|| (qos == 0 && std::any_of(m_pending.begin(), m_pending.end(),
+			[&](auto const& entry) { return entry.second.qos == 0 && entry.second.topic == topic; }))) {
+		LOG_WARN("MQTT publication backpressure on {}", topic);
+		return {MOSQ_ERR_NOMEM, m_epoch, 0};
+	}
+	std::string body = payload.dump();
+	if (body.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+		LOG_ERROR("MQTT payload exceeds transport limit on {}", topic);
+		return {MOSQ_ERR_PAYLOAD_SIZE, m_epoch, 0};
+	}
+	int id = 0;
+	m_publishing = true;
+	m_early_completion.reset();
+	int rc = mosquitto_publish(m_mosquitto, &id, topic.c_str(),
+		static_cast<int>(body.size()), body.data(), qos, retain);
+	m_publishing = false;
+	if (rc != MOSQ_ERR_SUCCESS) {
+		LOG_ERROR("MQTT publication failed on {}: {}", topic, mosquitto_strerror(rc));
+		return {rc, m_epoch, 0};
+	}
+	if (m_pending.contains(id)) {
+		LOG_ERROR("MQTT reused an outstanding packet identifier; dropping ambiguous connection");
+		abortConnection();
+		return {MOSQ_ERR_PROTOCOL, m_epoch, 0};
+	}
+	auto sequence = ++m_sequence;
+	if (!m_early_completion || *m_early_completion != id) {
+		m_pending.emplace(id, pending_publication{sequence, std::chrono::steady_clock::now(), topic, qos});
+	}
+	return {rc, m_epoch, sequence};
 }
 
-void MQTTConnector::logCallback(mosquitto* /*mosq*/, void* obj, int level, const char* str)
+publication_state MQTTConnector::publicationState(publication const& message) const
 {
-	auto* connector = static_cast<MQTTConnector*>(obj);
-	switch (level)
-	{
-	case MOSQ_LOG_DEBUG:
-		connector->LOG_DEBUG("Mosquitto: {}", str);
-		break;
-	case MOSQ_LOG_INFO:
-		connector->LOG_INFO("Mosquitto: {}", str);
-		break;
-	case MOSQ_LOG_NOTICE:
-		connector->LOG_INFO("Mosquitto: {}", str);
-		break;
-	case MOSQ_LOG_WARNING:
-		connector->LOG_WARN("Mosquitto: {}", str);
-		break;
-	case MOSQ_LOG_ERR:
-		connector->LOG_ERROR("Mosquitto: {}", str);
-		break;
+	if (!message.accepted() || message.epoch != m_epoch || !isConnected()) {
+		return publication_state::failed;
+	}
+	for (auto const& [id, pending] : m_pending) {
+		if (pending.sequence == message.sequence) {
+			return publication_state::pending;
+		}
+	}
+	return publication_state::complete;
+}
+
+bool MQTTConnector::publishLWT()
+{
+	std::string body = R"({"availability":"offline"})";
+	int rc = mosquitto_will_set(m_mosquitto, getAvailabilityTopic().c_str(),
+		static_cast<int>(body.size()), body.data(), 1, true);
+	if (rc != MOSQ_ERR_SUCCESS) {
+		LOG_ERROR("Failed to set MQTT Last Will: {}", mosquitto_strerror(rc));
+	}
+	return rc == MOSQ_ERR_SUCCESS;
+}
+
+void MQTTConnector::connectCallback(mosquitto*, void* obj, int rc)
+{
+	auto& self = *static_cast<MQTTConnector*>(obj);
+	self.m_connecting = false;
+	self.m_is_connected = rc == 0;
+	self.m_just_connected = rc == 0;
+	if (rc != 0) {
+		self.LOG_ERROR("MQTT connection refused: {}", mosquitto_connack_string(rc));
+	}
+}
+
+void MQTTConnector::disconnectCallback(mosquitto*, void* obj, int rc)
+{
+	auto& self = *static_cast<MQTTConnector*>(obj);
+	self.m_is_connected = false;
+	self.m_connecting = false;
+	self.LOG_INFO("MQTT disconnected: {}", mosquitto_strerror(rc));
+}
+
+void MQTTConnector::publishCallback(mosquitto*, void* obj, int id)
+{
+	auto& self = *static_cast<MQTTConnector*>(obj);
+	if (self.m_publishing) {
+		self.m_early_completion = id;
+		// A local QoS 0 write completion is not a PUBACK for a reused QoS 1 id.
+		auto pending = self.m_pending.find(id);
+		if (pending != self.m_pending.end() && pending->second.qos != 0) {
+			return;
+		}
+	}
+	self.m_pending.erase(id);
+}
+
+void MQTTConnector::messageCallback(mosquitto*, void* obj, const mosquitto_message* message)
+{
+	auto& self = *static_cast<MQTTConnector*>(obj);
+	if (self.m_stopping) {
+		return;
+	}
+	try {
+		std::string topic(message->topic);
+		std::string payload;
+		if (message->payload && message->payloadlen > 0) {
+			payload.assign(static_cast<char const*>(message->payload), message->payloadlen);
+		}
+		for (auto const& device : self.devices()) {
+			if (topic.starts_with("home/" + device->getFullId() + "/")) {
+				device->processMessage(topic, payload);
+			}
+		}
+	}
+	catch (std::exception const& error) {
+		self.LOG_ERROR("MQTT command failed: {}", error.what());
+	}
+}
+
+void MQTTConnector::subscribeCallback(mosquitto*, void* obj, int, int count, const int* qos)
+{
+	auto& self = *static_cast<MQTTConnector*>(obj);
+	for (int i = 0; i < count; ++i) {
+		if (qos[i] == 128) {
+			self.LOG_ERROR("MQTT subscription refused");
+			self.m_is_connected = false;
+		}
+	}
+}
+
+void MQTTConnector::unsubscribeCallback(mosquitto*, void*, int) {}
+
+void MQTTConnector::logCallback(mosquitto*, void* obj, int level, const char* message)
+{
+	auto& self = *static_cast<MQTTConnector*>(obj);
+	if (level == MOSQ_LOG_ERR) {
+		self.LOG_ERROR("Mosquitto: {}", message);
+	}
+	else if (level == MOSQ_LOG_WARNING) {
+		self.LOG_WARN("Mosquitto: {}", message);
 	}
 }

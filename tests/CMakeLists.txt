@@ -22,6 +22,9 @@ add_executable(tests
 	test_mfi_hardware.cpp
 	test_cli_helpers.cpp
 	test_update.cpp
+	test_background_update.cpp
+	test_update_process.cpp
+	test_mqtt_freshness.cpp
 )
 set_target_properties(tests PROPERTIES
 	CXX_STANDARD 20
@@ -32,6 +35,7 @@ target_link_libraries(tests PRIVATE
 	${SHMUELIE_SHARED_TARGET_NAME}
 	${MFI_API_TARGET_NAME}
 	${MFI_UPDATE_TARGET_NAME}
+	${MFI_MQTT_CORE_TARGET_NAME}
 	hass_mqtt_device
 )
 target_include_directories(tests PRIVATE
@@ -55,3 +59,10 @@ add_test(
 	NAME rest_smoke
 	COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_CURRENT_SOURCE_DIR}/rest_smoke.sh $<TARGET_FILE:${MFI_SERVER_TARGET_NAME}>
 )
+
+find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
+add_test(
+	NAME mqtt_wire_smoke
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mqtt_wire_smoke.py $<TARGET_FILE:${MFI_MQTT_TARGET_NAME}>
+)
+set_tests_properties(mqtt_wire_smoke PROPERTIES TIMEOUT 90)

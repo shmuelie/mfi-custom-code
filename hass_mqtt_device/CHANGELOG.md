@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Opt-in successful-read sensor refresh/expiration and durable per-channel
+  availability, composed with shared transport availability in discovery.
+- Publication tickets, acknowledgement tracking, bounded queue/deadline
+  handling, and acknowledged offline shutdown.
+
+### Fixed
+
+- Reconnect/status replay can no longer refresh opted-in cached measurements.
+- Invalid/nonfinite readings and quantization overflow cannot become numeric
+  substitutes or accidentally serialized null.
+- Registered devices no longer form a strong ownership cycle with connectors;
+  callers must retain their device references.
+
+### Changed
+
+- Shared availability is managed by the connector handshake, not
+  `DeviceBase::sendStatus()`.
+
 ## [1.2.0] - 2026-07-20
 
 ### Fixed

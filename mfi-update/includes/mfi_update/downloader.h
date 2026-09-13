@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "mfi_update/config.h"
+#include "mfi_update/preparation.h"
 
 namespace mfi_update {
 	/**
@@ -28,6 +29,8 @@ namespace mfi_update {
 		 * @param cfg Resolved update configuration (proxy/insecure).
 		 */
 		downloader(downloader_kind kind, config cfg) noexcept;
+		/** Explicit executable seam; never changes PATH or installed tools. */
+		downloader(downloader_kind kind, config cfg, std::string executable);
 
 		/**
 		 * @brief Builds the argv for fetching a URL to a file.
@@ -46,6 +49,8 @@ namespace mfi_update {
 		 * @return The response body, or std::nullopt on failure.
 		 */
 		std::optional<std::string> fetch_to_string(std::string const& url) const;
+		std::optional<std::string> fetch_to_string(std::string const& url,
+			preparation_context const& context) const;
 
 		/**
 		 * @brief Fetches a URL to a file on disk.
@@ -54,6 +59,8 @@ namespace mfi_update {
 		 * @return true if the download succeeded.
 		 */
 		bool fetch_to_file(std::string const& url, std::string const& output_path) const;
+		bool fetch_to_file(std::string const& url, std::string const& output_path,
+			preparation_context const& context) const;
 
 		/**
 		 * @brief Detects an available downloader on PATH.
@@ -64,5 +71,6 @@ namespace mfi_update {
 	private:
 		downloader_kind _kind;
 		config _config;
+		std::string _executable;
 	};
 }

@@ -20,7 +20,8 @@ namespace mfi_mqtt_client {
 		 * @param board The mFi board the sensor belongs to.
 		 * @param sensor The hardware sensor to wrap.
 		 */
-		explicit port(mfi::board const& board, mfi::sensor const& sensor);
+		explicit port(mfi::board const& board, mfi::sensor const& sensor,
+			sensor_policy policy = sensor_policy::power());
 
 		/**
 		 * @brief Registers all sensor and switch functions with the parent device.

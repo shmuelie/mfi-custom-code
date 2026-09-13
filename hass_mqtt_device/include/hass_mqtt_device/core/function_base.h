@@ -103,6 +103,10 @@ public:
      *
      */
     virtual void sendStatus() const = 0;
+    virtual void resetConnection(std::uint64_t) {}
+    virtual void service() {}
+    virtual bool readyForOnline() const { return true; }
+    virtual std::optional<std::string> availabilityTopic() const { return std::nullopt; }
 
 protected:
     std::string getBaseTopic() const;

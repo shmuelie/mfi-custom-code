@@ -1,8 +1,13 @@
 #include <iostream>
 #include <vector>
+#include <chrono>
+#include <csignal>
+#include <cerrno>
+#include <cstring>
 #include "mfi_mqtt_client/device.h"
 #include <CLI/CLI.hpp>
 #include "mfi_update.h"
+#include "mfi_update/background_updater.h"
 #include "version_info.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -13,10 +18,16 @@
 #define log_debug(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::debug, __VA_ARGS__)
 #define log_trace(...) log(spdlog::source_loc(__FILE__, __LINE__, __func__), spdlog::level::level_enum::trace, __VA_ARGS__)
 
-std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port, std::string const& username, std::string const& password) {
+namespace {
+volatile std::sig_atomic_t stop_requested = 0;
+void request_stop(int) { stop_requested = 1; }
+}
+
+std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port,
+	std::string const& username, std::string const& password, sensor_policy policy) {
 	try {
 		mfi::board b{};
-		auto device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password);
+		auto device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password, policy);
 		device->init();
 		return device;
 	}
@@ -52,7 +63,13 @@ int main(int argc, char* argv[]) {
 	std::string password;
 	app.add_option("--password", password, "The password to use when connecting to the MQTT server")->required();
 	uint32_t polling_rate;
-	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000)->check(CLI::Range(0U, UINT32_MAX));
+	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000)->check(CLI::Range(1U, UINT32_MAX));
+	uint32_t power_refresh;
+	app.add_option("--power-refresh-interval", power_refresh, "Successful power refresh interval in seconds")
+		->default_val(60)->check(CLI::Range(1U, 86400U));
+	uint32_t power_expiry;
+	app.add_option("--power-expire-after", power_expiry, "Power expiration advertised in discovery, in seconds")
+		->default_val(180)->check(CLI::Range(1U, 259200U));
 	spdlog::level::level_enum log_level;
 	app.add_option("--log-level", log_level, "The log level to use")->transform(spdlog_level_transformer)->default_val(spdlog::level::info);
 
@@ -69,6 +86,10 @@ int main(int argc, char* argv[]) {
 
 	try {
 		app.parse(argc, argv);
+		if (power_expiry / power_refresh < 3
+			|| static_cast<uint64_t>(polling_rate) > static_cast<uint64_t>(power_refresh) * 1000) {
+			throw CLI::ValidationError("Power freshness", "expiry must allow three refresh intervals, and polling must not exceed refresh");
+		}
 	}
 	catch (CLI::ParseError const& e) {
 		return app.exit(e);
@@ -78,6 +99,13 @@ int main(int argc, char* argv[]) {
 	logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%-5l%$] [%s:%#] %v");
 	logger->set_level(log_level);
 	spdlog::set_default_logger(logger);
+	struct sigaction action{};
+	action.sa_handler = request_stop;
+	sigemptyset(&action.sa_mask);
+	if (sigaction(SIGINT, &action, nullptr) != 0 || sigaction(SIGTERM, &action, nullptr) != 0) {
+		logger->log_error("Cannot install termination handlers: {}", std::strerror(errno));
+		return -4;
+	}
 
 	logger->log_info("Starting MQTT client...");
 
@@ -85,14 +113,15 @@ int main(int argc, char* argv[]) {
 	for (int i = 0; i < argc; ++i) {
 		args.emplace_back(argv[i]);
 	}
-	auto updater = mfi_update::make_periodic_updater(
+	auto updater = mfi_update::make_background_updater(
 		update_enabled, update_interval, update_repo, update_proxy, update_insecure,
 		PROJECT_NAME, PROJECT_VERSION, args);
 	if (!updater) {
 		logger->log_info("Self-update disabled");
 	}
 
-	auto device = create_device(server, port, username, password);
+	auto device = create_device(server, port, username, password,
+		sensor_policy::power(std::chrono::seconds(power_refresh), std::chrono::seconds(power_expiry)));
 	if (!device) {
 		return -2;
 	}
@@ -101,7 +130,7 @@ int main(int argc, char* argv[]) {
 
 	try {
 		if (!device->connect()) {
-			return -3;
+			logger->log_warn("Initial MQTT connection failed; retrying in the main loop");
 		}
 	}
 	catch (std::exception& e) {
@@ -109,35 +138,73 @@ int main(int argc, char* argv[]) {
 		return -3;
 	}
 
-	logger->log_info("Connected to client. Starting polling...");
+	logger->log_info("Starting polling...");
 
-	for (;;) {
+	auto next_poll = std::chrono::steady_clock::now();
+	while (!stop_requested) {
 		try {
-			device->processMessages(polling_rate);
+			device->processMessages(100);
 		}
 		catch (std::exception& e) {
 			logger->log_error("Error processing message: {}", e.what());
 		}
-		try {
-			device->update();
+		if (stop_requested) {
+			break;
 		}
-		catch (std::exception& e) {
-			logger->log_error("Error updating device: {}", e.what());
+		auto now = std::chrono::steady_clock::now();
+		if (now >= next_poll) {
+			try {
+				device->update();
+			}
+			catch (std::exception& e) {
+				logger->log_error("Error updating device: {}", e.what());
+			}
+			next_poll = now + std::chrono::milliseconds(polling_rate);
 		}
-		if (updater) {
+		if (updater && !stop_requested) {
+			bool interrupted = false;
 			try {
 				auto result = updater->tick();
+				if (result && *result == mfi_update::update_result::ready) {
+					interrupted = true;
+					device->shutdown();
+					if (stop_requested) {
+						break;
+					}
+					result = updater->apply_ready([] { return stop_requested != 0; });
+					if (!stop_requested && !device->connect()) {
+						logger->log_warn("MQTT reconnect after update failed; retrying");
+					}
+					interrupted = false;
+				}
 				if (result && *result != mfi_update::update_result::up_to_date) {
 					logger->log_info("Self-update: {}", mfi_update::describe(*result));
 				}
 			}
 			catch (std::exception& e) {
 				logger->log_error("Error during update check: {}", e.what());
+				if (interrupted && !stop_requested) {
+					try {
+						if (!device->connect()) {
+							logger->log_warn("MQTT reconnect after failed update failed; retrying");
+						}
+					}
+					catch (std::exception const& reconnect_error) {
+						logger->log_error("MQTT reconnect failed: {}", reconnect_error.what());
+					}
+				}
 			}
 		}
 	}
 
+	if (updater) {
+		updater->request_stop();
+	}
+	bool offline = device->shutdown();
+	if (updater) {
+		updater->stop();
+	}
 	logger->log_info("Exiting");
 
-	return 0;
+	return offline ? 0 : 1;
 }
