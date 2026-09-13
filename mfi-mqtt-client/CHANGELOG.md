@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-12
+
+### Breaking changes
+
+- Numeric power state is no longer retained, and invalid or stale channels become
+  unavailable instead of continuing to expose a cached reading. New subscribers
+  may wait for the next successful power refresh.
+- Existing retained power records require separately approved, exact-topic
+  cleanup; the client does not erase them automatically. See
+  [the migration runbook](../docs/mqtt-freshness-migration.md).
+- Zero polling intervals and polling slower than the power refresh interval are
+  rejected. Expiration must allow at least three refresh intervals.
+
 ### Added
 
 - Periodic self-update from GitHub Releases (see docs/updating.md). Enabled by

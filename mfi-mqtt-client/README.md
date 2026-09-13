@@ -118,4 +118,4 @@ does not purge them automatically. See the
 ## Details
 
 - **Language**: C++20
-- **Version**: 1.2.1
+- **Version**: 2.0.0
