@@ -1,6 +1,6 @@
 # mFi MQTT Client
 
-MQTT client that exposes mFi device ports via Home Assistant MQTT auto-discovery. Each port publishes power, current, voltage, and relay control. Changes publish promptly; unchanged power also refreshes after successful hardware reads so consumers can distinguish constant loads from failed polling.
+MQTT client that exposes mFi device ports and device-wide CPU/memory diagnostics via Home Assistant MQTT auto-discovery. Each port publishes power, current, voltage, and relay control. Changes publish promptly; unchanged power also refreshes after successful hardware reads so consumers can distinguish constant loads from failed polling.
 
 ## Usage
 
@@ -22,6 +22,16 @@ Options:
                               Successful unchanged-power refresh interval (seconds)
   --power-expire-after UINT [180]
                               Power expiration advertised in discovery (seconds)
+  --system-metrics,--no-system-metrics
+                              Enable/disable CPU and memory reporting (enabled)
+  --system-polling-interval UINT [10]
+                              System sampling interval (seconds)
+  --system-refresh-interval UINT [60]
+                              Successful unchanged-system-metric refresh (seconds)
+  --system-expire-after UINT [180]
+                              System metric expiration in discovery (seconds)
+  --system-proc-root TEXT [/proc]
+                              Proc directory for alternate mounts or fixtures
   --log-level ENUM:value in {trace->0,debug->1,info->2,warn->3,error->4,critical->5,off->6} [2]
                               The log level to use
 ```
@@ -44,6 +54,77 @@ seconds and must allow at least three refresh intervals. Polling must not be
 slower than the refresh interval. Zero polling intervals are rejected. MQTT
 service runs independently in short waits, rather than blocking for an entire
 hardware polling interval.
+
+## CPU and memory diagnostics
+
+Five diagnostic sensors are enabled by default on the same Home Assistant device
+as the outlets. Names and unique IDs follow the existing MQTT conventions.
+All values use one decimal place and `state_class: measurement`; memory sizes
+also use `device_class: data_size`. Percentage sensors omit `device_class`.
+
+| Sensor | Unit | Meaning |
+|---|---|---|
+| CPU Utilization | % | Aggregate busy CPU time between successful samples |
+| Memory Total | MiB | Kernel-reported usable RAM (`MemTotal`) |
+| Memory Available | MiB | RAM available for applications without swapping |
+| Memory Used | MiB | Total minus available |
+| Memory Utilization | % | Used divided by total, multiplied by 100 |
+
+CPU comes from the aggregate `cpu` line in `/proc/stat`, not the MQTT process or
+individual cores. Utilization is normalized to 0-100% across all CPUs. Idle and
+I/O wait count as non-busy; guest counters are not added twice. The first sample
+establishes a baseline, so CPU remains unavailable until the next successful
+sample. Failures, counter regressions, and zero elapsed ticks reset the baseline;
+reconnect also requires two new reads. CPU warm-up does not hold the device or
+outlets offline, but its initial offline availability must still be acknowledged.
+The same pending-readiness rule applies to initial memory sampling: a valid read
+before the offline PUBACK is withheld without delaying shared availability.
+Diagnostics stay offline until a fresh scheduled read can be published; outlet
+availability does not wait for the next system sampling interval.
+
+Memory comes from `/proc/meminfo`; its `kB` values are KiB, converted to MiB by
+dividing by 1024. `MemAvailable` is preferred. On older kernels without it,
+available RAM is **estimated** as:
+
+```text
+MemFree + Buffers + Cached + SReclaimable - Shmem
+```
+
+`MemFree`, `Buffers`, and `Cached` are required for this estimate. Optional
+`SReclaimable` and `Shmem` contribute zero only when absent. The legacy estimate
+is bounded to 0 through `MemTotal` and is not equivalent to the modern kernel's
+estimate, especially where older firmware does not report shared memory. Use
+of the estimate is logged; malformed fields and arithmetic overflow are errors,
+not reasons to substitute zero or silently change methods.
+
+System sampling has its own steady-clock deadline, independent of outlet
+polling, and does not launch a process or add a worker thread. Changed rounded
+values publish at the next sample (10 seconds by default). Successful unchanged
+readings refresh every 60 seconds, plus at most one sampling interval and
+scheduling jitter. Discovery advertises 180-second expiration. Numeric state is
+QoS 0, **not retained**; discovery and shared/per-sensor availability are retained.
+New subscribers wait for a new publication. Cached samples are never replayed
+on reconnect. A CPU read failure affects only CPU; a memory read failure affects
+the four memory sensors. Failures and recoveries are logged on transition.
+
+CLI/config timing intervals are in seconds. Sampling and refresh accept
+1-86400, expiration accepts 1-259200, sampling must not exceed refresh, and
+expiration must allow at least three refresh intervals. These settings are
+independent of power freshness. Configuration uses the option names:
+
+```toml
+system-metrics = true
+system-polling-interval = 10
+system-refresh-interval = 60
+system-expire-after = 180
+```
+
+Use `--no-system-metrics` or `system-metrics = false` to opt out. Disabling
+reporting does not delete existing retained discovery; previously discovered
+diagnostics expire and can be removed separately in Home Assistant. It does not
+change the outlet entities. `/proc` is the default even for host builds;
+`--system-proc-root` allows an alternate proc mount or synthetic fixture directory.
+No process-specific metrics, swap, temperature, or per-core sensors are included.
 
 ## Power freshness and availability
 

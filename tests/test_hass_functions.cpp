@@ -237,6 +237,21 @@ TEST_CASE("SensorFunction: getDiscoveryJson has sensor attributes", "[hass][sens
 	CHECK(json["unit_of_measurement"] == "W");
 	CHECK(json["suggested_display_precision"] == 4);
 	CHECK(json.contains("value_template"));
+	CHECK_FALSE(json.contains("entity_category"));
+}
+
+TEST_CASE("SensorFunction: diagnostic percentages omit device class", "[hass][sensor][system-metrics]") {
+	TestFixture f;
+	auto sensor = std::make_shared<SensorFunction<double>>("CPU Utilization", SensorAttributes{
+		.device_class = "", .state_class = "measurement", .unit_of_measurement = "%",
+		.suggested_display_precision = 1, .entity_category = "diagnostic"
+	}, sensor_policy::telemetry());
+	f.device->registerFunction(sensor);
+	auto discovery = sensor->getDiscoveryJson();
+	CHECK_FALSE(discovery.contains("device_class"));
+	CHECK(discovery["entity_category"] == "diagnostic");
+	CHECK(discovery["expire_after"] == 180);
+	CHECK(discovery["unit_of_measurement"] == "%");
 }
 
 TEST_CASE("SensorFunction: getSubscribeTopics is empty", "[hass][sensor]") {

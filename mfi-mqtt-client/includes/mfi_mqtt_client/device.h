@@ -5,6 +5,7 @@
 #include "mfi.h"
 #include "hass_mqtt_device/core/mqtt_connector.h"
 #include "mfi_mqtt_client/port.h"
+#include "mfi_mqtt_client/system_metrics.h"
 
 namespace mfi_mqtt_client {
 	/**
@@ -12,7 +13,7 @@ namespace mfi_mqtt_client {
 	 *
 	 * Wraps a mfi::board and exposes each sensor port as a set of
 	 * Home Assistant entities (power, current, voltage sensors and
-	 * relay switch) via MQTT auto-discovery.
+	 * relay switch), plus optional CPU/memory diagnostics, via MQTT auto-discovery.
 	 */
 	class device : public DeviceBase {
 	public:
@@ -26,7 +27,8 @@ namespace mfi_mqtt_client {
 		 */
 		explicit device(mfi::board const& board, std::string const& server, int port,
 			std::string const& username, std::string const& password,
-			sensor_policy policy = sensor_policy::power());
+			sensor_policy policy = sensor_policy::power(),
+			system_metrics_options const& system_options = {});
 
 		/**
 		 * @brief Initializes all sensor ports and registers with the MQTT connector.
@@ -38,6 +40,8 @@ namespace mfi_mqtt_client {
 		 * @brief Reads current sensor values and publishes changes via MQTT.
 		 */
 		void update();
+		void update_system();
+		void beginConnection(std::uint64_t epoch) override;
 
 		/**
 		 * @brief Connects to the MQTT broker.
@@ -62,5 +66,6 @@ namespace mfi_mqtt_client {
 		std::vector<std::shared_ptr<port>> _ports;
 		mfi::board _board;
 		sensor_policy _policy;
+		std::unique_ptr<system_metrics> _system_metrics;
 	};
 }

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Default-enabled device-wide CPU utilization and memory total, available, used,
+  and utilization diagnostic sensors on the existing Home Assistant device.
+- Independent 10-second system sampling, 60-second successful unchanged refresh,
+  and 180-second expiration, with CLI/config timing options and an opt-out.
+- Checked proc-based statistics with CPU baseline warm-up, documented legacy
+  memory availability estimation, and independent CPU/memory failure handling.
+- Non-retained system telemetry, per-sensor availability, and fresh sampling
+  after reconnect without delaying outlet readiness for CPU warm-up.
+
+### Fixed
+
+- Delayed initial offline acknowledgements no longer leave healthy outlets
+  unavailable until the next CPU/memory sampling interval on startup or reconnect.
+
 ## [2.0.0] - 2026-09-12
 
 ### Breaking changes

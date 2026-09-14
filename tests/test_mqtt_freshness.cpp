@@ -1,6 +1,8 @@
 #include <catch2/catch_all.hpp>
 #include "hass_mqtt_device/functions/sensor.h"
 #include "mfi_mqtt_client/port.h"
+#include "mfi_mqtt_client/device.h"
+#include "mfi_mqtt_client/system_metrics.h"
 #include <spdlog/sinks/null_sink.h>
 #include <filesystem>
 #include <fstream>
@@ -117,6 +119,274 @@ public:
 		out << text;
 	}
 };
+
+struct system_fixture {
+	hardware_tree hardware;
+	fixture mqtt;
+	mfi_mqtt_client::system_metrics metrics{{.proc_root = "./proc"}};
+
+	system_fixture() {
+		cpu_time(0, 0);
+		hardware.write("proc/meminfo", "MemTotal: 65536 kB\nMemAvailable: 49152 kB\n");
+		metrics.init(mqtt.device);
+		establish();
+	}
+	void establish() {
+		mqtt.establish();
+		metrics.reset_connection();
+		mqtt.device->service();
+	}
+	void cpu_time(unsigned user, unsigned idle) {
+		hardware.write("proc/stat", "cpu " + std::to_string(user) + " 0 0 " + std::to_string(idle) + "\n");
+	}
+	void tick(int second) {
+		mqtt.device->now = std::chrono::steady_clock::time_point{} + std::chrono::seconds(second);
+		metrics.update(mqtt.device->now);
+		mqtt.device->service();
+	}
+	std::shared_ptr<SensorFunction<double>> sensor(std::string const& name) {
+		auto function = mqtt.device->findFunction(name);
+		REQUIRE(function);
+		return std::static_pointer_cast<SensorFunction<double>>(function);
+	}
+	std::vector<sent_message> samples(std::string const& name) {
+		return mqtt.device->on(sensor(name)->getDiscoveryJson()["state_topic"]);
+	}
+};
+}
+
+TEST_CASE("System metrics: options reject invalid freshness and empty proc root", "[mqtt][system-metrics]") {
+	using mfi_mqtt_client::system_metrics_options;
+	CHECK_NOTHROW(system_metrics_options{}.validate());
+	CHECK_THROWS_AS((system_metrics_options{.polling_interval = 0s}.validate()), std::invalid_argument);
+	CHECK_THROWS_AS((system_metrics_options{.polling_interval = 61s}.validate()), std::invalid_argument);
+	CHECK_THROWS_AS((system_metrics_options{.refresh_interval = 0s}.validate()), std::invalid_argument);
+	CHECK_THROWS_AS((system_metrics_options{.expire_after = 179s}.validate()), std::invalid_argument);
+	CHECK_THROWS_AS((system_metrics_options{.expire_after = 259201s}.validate()), std::invalid_argument);
+	CHECK_THROWS_AS((system_metrics_options{.proc_root = ""}.validate()), std::invalid_argument);
+}
+
+TEST_CASE("System metrics: device defaults enable five sensors and allow opt out", "[mqtt][system-metrics]") {
+	hardware_tree hardware;
+	for (bool enabled : {false, true}) {
+		mfi::board board;
+		auto device = std::make_shared<mfi_mqtt_client::device>(board, "localhost", 1883, "", "",
+			sensor_policy::power(), mfi_mqtt_client::system_metrics_options{.enabled = enabled});
+		device->init();
+		CHECK(device->getFunctions().size() == (enabled ? 37 : 32));
+		CHECK(static_cast<bool>(device->findFunction("CPU Utilization")) == enabled);
+	}
+}
+
+TEST_CASE("System metrics: discovery and CPU warmup preserve transport readiness", "[mqtt][system-metrics]") {
+	system_fixture f;
+	REQUIRE(f.mqtt.device->getFunctions().size() == 5);
+	CHECK(f.mqtt.device->readyForOnline());
+	f.tick(0);
+	CHECK(f.samples("CPU Utilization").empty());
+	CHECK(f.mqtt.device->readyForOnline());
+	for (auto const& name : {"CPU Utilization", "Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		auto sensor = f.sensor(name);
+		auto discovery = sensor->getDiscoveryJson();
+		CHECK(discovery["entity_category"] == "diagnostic");
+		CHECK(discovery["state_class"] == "measurement");
+		CHECK(discovery["expire_after"] == 180);
+		CHECK(discovery["suggested_display_precision"] == 1);
+		auto availability = f.mqtt.device->on(*sensor->availabilityTopic());
+		REQUIRE_FALSE(availability.empty());
+		CHECK(availability.front().payload["availability"] == "offline");
+		CHECK(availability.front().qos == 1);
+		CHECK(availability.front().retained);
+		if (std::string(name) == "CPU Utilization" || std::string(name) == "Memory Utilization") {
+			CHECK(discovery["unit_of_measurement"] == "%");
+			CHECK_FALSE(discovery.contains("device_class"));
+		}
+		else {
+			CHECK(discovery["unit_of_measurement"] == "MiB");
+			CHECK(discovery["device_class"] == "data_size");
+		}
+	}
+	CHECK(f.samples("Memory Total").front().payload == json{{"value", 64.0}});
+	CHECK(f.samples("Memory Available").front().payload == json{{"value", 48.0}});
+	CHECK(f.samples("Memory Used").front().payload == json{{"value", 16.0}});
+	CHECK(f.samples("Memory Utilization").front().payload == json{{"value", 25.0}});
+	f.cpu_time(25, 75);
+	f.tick(9);
+	CHECK(f.samples("CPU Utilization").empty());
+	f.tick(10);
+	auto cpu = f.samples("CPU Utilization");
+	REQUIRE(cpu.size() == 1);
+	CHECK(cpu.front().payload == json{{"value", 25.0}});
+	CHECK_FALSE(cpu.front().retained);
+	CHECK(cpu.front().qos == 0);
+}
+
+TEST_CASE("System metrics: independent ten second sampling and sixty second refresh", "[mqtt][system-metrics]") {
+	system_fixture f;
+	for (int second = 0; second <= 3600; ++second) {
+		f.cpu_time(second * 25, second * 75);
+		f.tick(second);
+	}
+	for (auto const& name : {"CPU Utilization", "Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		auto messages = f.samples(name);
+		bool cpu = std::string(name) == "CPU Utilization";
+		REQUIRE(messages.size() == (cpu ? 60 : 61));
+		for (std::size_t i = 0; i < messages.size(); ++i) {
+			CHECK(messages[i].time == std::chrono::steady_clock::time_point{} + std::chrono::seconds((cpu ? 10 : 0) + i * 60));
+			CHECK_FALSE(messages[i].retained);
+			CHECK(messages[i].qos == 0);
+		}
+	}
+}
+
+TEST_CASE("System metrics: delayed offline acknowledgements do not delay outlet readiness", "[mqtt][system-metrics][regression]") {
+	bool fault_before_sample = GENERATE(false, true);
+	system_fixture f;
+	auto power = f.mqtt.sensor();
+	f.mqtt.device->auto_ack = false;
+	++f.mqtt.device->epoch;
+	f.establish();
+	if (fault_before_sample) {
+		f.sensor("Memory Total")->invalidate("read failed");
+		power->invalidate("read failed");
+	}
+	f.tick(0);
+	f.mqtt.update(power, 100, 0s);
+	CHECK_FALSE(f.mqtt.device->readyForOnline());
+	CHECK(f.mqtt.device->on(power->getDiscoveryJson()["state_topic"]).empty());
+	for (auto const& name : {"CPU Utilization", "Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		CHECK(f.samples(name).empty());
+		CHECK_FALSE(f.sensor(name)->readyForOnline());
+	}
+	for (auto const& message : f.mqtt.device->messages) {
+		if (message.ticket.epoch == f.mqtt.device->epoch) {
+			f.mqtt.device->acked.insert(message.ticket.sequence);
+		}
+	}
+	f.mqtt.device->auto_ack = true;
+	f.tick(1);
+	for (auto const& name : {"CPU Utilization", "Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		CHECK(f.sensor(name)->readyForOnline());
+		CHECK(f.samples(name).empty());
+	}
+	CHECK_FALSE(power->readyForOnline());
+	CHECK_FALSE(f.mqtt.device->readyForOnline());
+	f.mqtt.update(power, 100, 1s);
+	CHECK(f.mqtt.device->readyForOnline());
+	f.mqtt.device->sendStatus();
+	CHECK(f.samples("Memory Total").empty());
+	f.cpu_time(25, 75);
+	f.hardware.write("proc/meminfo", "MemTotal: 65536 kB\nMemAvailable: 32768 kB\n");
+	f.tick(9);
+	CHECK(f.samples("Memory Total").empty());
+	f.tick(10);
+	REQUIRE(f.samples("Memory Utilization").size() == 1);
+	CHECK(f.samples("Memory Utilization").front().payload == json{{"value", 50.0}});
+	REQUIRE(f.samples("CPU Utilization").size() == 1);
+	CHECK(f.samples("CPU Utilization").front().payload == json{{"value", 25.0}});
+}
+
+TEST_CASE("System metrics: failures and recovery remain independent", "[mqtt][system-metrics]") {
+	system_fixture f;
+	f.tick(0);
+	f.cpu_time(25, 75);
+	f.tick(10);
+	f.hardware.write("proc/stat", "cpu broken\n");
+	f.hardware.write("proc/meminfo", "MemTotal: 65536 kB\nMemAvailable: 32768 kB\n");
+	f.tick(20);
+	CHECK(f.samples("CPU Utilization").size() == 1);
+	CHECK(f.samples("Memory Utilization").back().payload == json{{"value", 50.0}});
+	CHECK(f.mqtt.device->on(*f.sensor("CPU Utilization")->availabilityTopic()).back().payload["availability"] == "offline");
+	f.cpu_time(100, 200);
+	f.hardware.write("proc/meminfo", "MemTotal: invalid kB\n");
+	f.tick(30);
+	CHECK(f.samples("CPU Utilization").size() == 1);
+	f.cpu_time(150, 250);
+	f.tick(40);
+	CHECK(f.samples("CPU Utilization").back().payload == json{{"value", 50.0}});
+	for (auto const& name : {"Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		CHECK(f.mqtt.device->on(*f.sensor(name)->availabilityTopic()).back().payload["availability"] == "offline");
+	}
+	f.hardware.write("proc/meminfo", "MemTotal: 65536 kB\nMemFree: 8192 kB\nBuffers: 8192 kB\nCached: 16384 kB\n");
+	f.cpu_time(200, 300);
+	f.tick(50);
+	CHECK(f.samples("Memory Utilization").size() == 3);
+	CHECK(f.samples("Memory Available").back().payload == json{{"value", 32.0}});
+	CHECK(f.mqtt.device->readyForOnline());
+}
+
+TEST_CASE("System metrics: reconnect discards cached readings and CPU baseline", "[mqtt][system-metrics]") {
+	system_fixture f;
+	f.tick(0);
+	f.cpu_time(25, 75);
+	f.tick(10);
+	f.mqtt.device->connected = false;
+	f.cpu_time(100, 200);
+	f.tick(20);
+	f.mqtt.device->connected = true;
+	++f.mqtt.device->epoch;
+	f.establish();
+	f.mqtt.device->sendStatus();
+	CHECK(f.samples("CPU Utilization").size() == 1);
+	CHECK(f.samples("Memory Total").size() == 1);
+	CHECK(f.mqtt.device->readyForOnline());
+	f.tick(21);
+	CHECK(f.samples("CPU Utilization").size() == 1);
+	CHECK(f.samples("Memory Total").size() == 2);
+	f.cpu_time(150, 250);
+	f.tick(31);
+	REQUIRE(f.samples("CPU Utilization").size() == 2);
+	CHECK(f.samples("CPU Utilization").back().payload == json{{"value", 50.0}});
+}
+
+TEST_CASE("MQTT freshness: awaiting telemetry does not bypass the power readiness gate", "[mqtt][freshness][system-metrics]") {
+	fixture f;
+	auto power = f.sensor();
+	auto cpu = f.sensor("CPU Utilization", sensor_policy::telemetry());
+	f.establish();
+	cpu->await_sample();
+	f.device->service();
+	CHECK(cpu->readyForOnline());
+	CHECK_FALSE(f.device->readyForOnline());
+	CHECK(f.device->on(cpu->getDiscoveryJson()["state_topic"]).empty());
+	f.update(power, 100, 0s);
+	CHECK(f.device->readyForOnline());
+	CHECK(f.device->on(cpu->getDiscoveryJson()["state_topic"]).empty());
+}
+
+TEST_CASE("MQTT freshness: pending readiness ends on publication or connection reset", "[mqtt][freshness][regression]") {
+	bool published = GENERATE(false, true);
+	fixture f;
+	auto sensor = f.sensor("Diagnostic", sensor_policy::telemetry());
+	f.establish();
+	sensor->await_sample();
+	if (published) {
+		f.update(sensor, 10, 0s);
+	}
+	f.device->auto_ack = false;
+	if (published) {
+		sensor->invalidate("read failed");
+	}
+	else {
+		++f.device->epoch;
+		f.establish();
+	}
+	f.update(sensor, 20, 1s);
+	for (auto const& message : f.device->messages) {
+		if (message.ticket.epoch == f.device->epoch) {
+			f.device->acked.insert(message.ticket.sequence);
+		}
+	}
+	f.device->service();
+	CHECK_FALSE(sensor->readyForOnline());
+	f.device->sendStatus();
+	CHECK(f.device->on(sensor->getDiscoveryJson()["state_topic"]).size() == (published ? 1 : 0));
+	f.device->auto_ack = true;
+	f.update(sensor, 30, 2s);
+	CHECK(sensor->readyForOnline());
+	auto samples = f.device->on(sensor->getDiscoveryJson()["state_topic"]);
+	REQUIRE(samples.size() == (published ? 2 : 1));
+	CHECK(samples.back().payload == json{{"value", 30.0}});
 }
 
 TEST_CASE("MQTT freshness: constant zero and power refresh for one hour", "[mqtt][freshness]") {

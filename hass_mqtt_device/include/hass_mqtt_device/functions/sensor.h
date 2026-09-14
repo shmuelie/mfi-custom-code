@@ -38,6 +38,7 @@ struct SensorAttributes
     std::string state_class;
     std::string unit_of_measurement;
     int suggested_display_precision;
+    std::optional<std::string> entity_category;
 };
 
 struct sensor_policy {
@@ -46,12 +47,17 @@ struct sensor_policy {
     bool retain = true;
     bool reject_negative = false;
 
-    static sensor_policy power(std::chrono::seconds refresh = std::chrono::seconds(60),
-                               std::chrono::seconds expiry = std::chrono::seconds(180)) {
+    static sensor_policy telemetry(std::chrono::seconds refresh = std::chrono::seconds(60),
+                                   std::chrono::seconds expiry = std::chrono::seconds(180)) {
         if (refresh.count() <= 0) {
-            throw std::invalid_argument("Power refresh must be positive");
+            throw std::invalid_argument("Telemetry refresh must be positive");
         }
         return {refresh, expiry, false, true};
+    }
+
+    static sensor_policy power(std::chrono::seconds refresh = std::chrono::seconds(60),
+                               std::chrono::seconds expiry = std::chrono::seconds(180)) {
+        return telemetry(refresh, expiry);
     }
 };
 
@@ -128,6 +134,8 @@ public:
      */
     bool update(T value);
     bool update(T value, clock::time_point now);
+    // Acknowledged offline is ready for transport, but never a numeric sample.
+    void await_sample();
     void invalidate(std::string const& reason);
     void resetConnection(std::uint64_t epoch) override;
     void service() override;
@@ -141,10 +149,12 @@ private:
     std::optional<clock::time_point> m_last_publish;
     std::optional<std::string> m_fault;
     bool m_seen_poll = false;
+    bool m_awaiting_sample = false;
     bool m_desired_health = false;
     std::optional<bool> m_acknowledged_health;
     std::optional<publication> m_pending_health;
     bool m_pending_health_value = false;
+    void clear_sample();
     bool freshnessEnabled() const { return m_policy.refresh_interval.count() > 0; }
 protected:
     SensorAttributes m_attributes;

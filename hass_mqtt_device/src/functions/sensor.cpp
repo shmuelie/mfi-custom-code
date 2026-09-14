@@ -47,10 +47,16 @@ json SensorFunction<T>::getDiscoveryJson() const
 {
 	json discovery{
 		{"name", getName()}, {"unique_id", getId()}, {"state_topic", getBaseTopic() + "state"},
-		{"value_template", "{{ value_json.value }}"}, {"device_class", m_attributes.device_class},
+		{"value_template", "{{ value_json.value }}"},
 		{"state_class", m_attributes.state_class}, {"unit_of_measurement", m_attributes.unit_of_measurement},
 		{"suggested_display_precision", m_attributes.suggested_display_precision}
 	};
+	if (!m_attributes.device_class.empty()) {
+		discovery["device_class"] = m_attributes.device_class;
+	}
+	if (m_attributes.entity_category) {
+		discovery["entity_category"] = *m_attributes.entity_category;
+	}
 	if (freshnessEnabled()) {
 		discovery["expire_after"] = m_policy.expire_after.count();
 	}
@@ -84,6 +90,7 @@ template<typename T>
 void SensorFunction<T>::resetConnection(std::uint64_t)
 {
 	m_published_value.reset();
+	m_awaiting_sample = false;
 	if (!freshnessEnabled()) {
 		return;
 	}
@@ -142,6 +149,19 @@ void SensorFunction<T>::invalidate(std::string const& reason)
 		LOG_ERROR("Sensor {} invalid: {}", getName(), reason);
 		m_fault = reason;
 	}
+	clear_sample();
+}
+
+template<typename T>
+void SensorFunction<T>::await_sample()
+{
+	m_awaiting_sample = true;
+	clear_sample();
+}
+
+template<typename T>
+void SensorFunction<T>::clear_sample()
+{
 	m_seen_poll = true;
 	m_has_data = false;
 	m_desired_health = false;
@@ -161,7 +181,7 @@ bool SensorFunction<T>::update(T value, clock::time_point now)
 {
 	if constexpr (std::is_arithmetic_v<T>) {
 		if (m_policy.reject_negative && value < 0) {
-			invalidate("negative power");
+			invalidate("negative measurement");
 			return false;
 		}
 	}
@@ -198,8 +218,8 @@ bool SensorFunction<T>::update(T value, clock::time_point now)
 	}
 	if (freshnessEnabled() && (!m_acknowledged_health
 		|| (!m_desired_health && (m_pending_health || *m_acknowledged_health)))) {
-		// A pre-handshake read is not the initial publication attempt for this epoch.
-		m_seen_poll = false;
+		// Only explicitly pending sensors can become ready without a post-handshake poll.
+		m_seen_poll = m_awaiting_sample;
 		return true;
 	}
 	bool changed = !m_published_value || *m_published_value != value;
@@ -207,6 +227,7 @@ bool SensorFunction<T>::update(T value, clock::time_point now)
 	if (changed || due) {
 		auto message = parent->publishMessage(getBaseTopic() + "state", {{"value", value}}, 0, m_policy.retain);
 		if (message.accepted()) {
+			m_awaiting_sample = false;
 			m_published_value = value;
 			m_last_publish = now;
 			if (freshnessEnabled()) {

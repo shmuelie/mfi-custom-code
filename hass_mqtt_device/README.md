@@ -17,7 +17,8 @@ Supported entity types:
 ## Expiring sensor policy
 
 `SensorFunction<T>` preserves change-only, retained state by default. Passing
-`sensor_policy::power()` opts into 60-second successful-read refresh, 180-second
+`sensor_policy::telemetry()` (or its compatible `sensor_policy::power()` alias)
+opts into 60-second successful-read refresh, 180-second
 discovery expiration, non-retained numeric telemetry, negative-value rejection,
 and retained per-channel validity. Other refresh/expiry intervals may be supplied;
 expiry must allow at least three refresh intervals.
@@ -36,6 +37,23 @@ callback. Expiring sensors never publish cached values through `sendStatus()`.
 `DeviceBase::sendStatus()` sends function state only; shared availability is
 owned by the connector's handshake. Discovery combines shared and per-channel
 availability for opted-in sensors, leaving other function discovery unchanged.
+
+`SensorAttributes::entity_category` optionally marks diagnostic sensors.
+Unset categories and empty device classes are omitted from discovery; existing
+nonempty device classes remain unchanged.
+
+`await_sample()` marks an intentionally pending measurement unavailable without
+logging a fault or supplying a numeric value. Its acknowledged offline state
+satisfies connection readiness, useful for CPU utilization's two-sample warm-up.
+A successful pre-ACK read preserves that explicit pending state: the sensor
+can remain acknowledged offline without delaying shared availability until its
+next scheduled sample. The pre-ACK value is never replayed by ACK processing.
+The pending state ends on accepted numeric publication or connection reset.
+`invalidate()` alone does not opt sensors into this pending-readiness behavior.
+Neither method acknowledges transport packets or bypasses existing power readiness.
+`DeviceBase::beginConnection()` is virtual; overrides must call the base method
+before resetting their own sampling baselines and marking pending sensors.
+Numeric publication remains gated by the acknowledged initial offline state.
 
 `publishMessage()` returns a `publication` ticket with acceptance, connection
 epoch, and sequence information. `publicationState()` reports pending, complete,
