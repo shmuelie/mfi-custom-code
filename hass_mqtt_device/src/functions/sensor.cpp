@@ -90,6 +90,7 @@ template<typename T>
 void SensorFunction<T>::resetConnection(std::uint64_t)
 {
 	m_published_value.reset();
+	m_awaiting_sample = false;
 	if (!freshnessEnabled()) {
 		return;
 	}
@@ -148,11 +149,18 @@ void SensorFunction<T>::invalidate(std::string const& reason)
 		LOG_ERROR("Sensor {} invalid: {}", getName(), reason);
 		m_fault = reason;
 	}
-	await_sample();
+	clear_sample();
 }
 
 template<typename T>
 void SensorFunction<T>::await_sample()
+{
+	m_awaiting_sample = true;
+	clear_sample();
+}
+
+template<typename T>
+void SensorFunction<T>::clear_sample()
 {
 	m_seen_poll = true;
 	m_has_data = false;
@@ -210,8 +218,8 @@ bool SensorFunction<T>::update(T value, clock::time_point now)
 	}
 	if (freshnessEnabled() && (!m_acknowledged_health
 		|| (!m_desired_health && (m_pending_health || *m_acknowledged_health)))) {
-		// A pre-handshake read is not the initial publication attempt for this epoch.
-		m_seen_poll = false;
+		// Only explicitly pending sensors can become ready without a post-handshake poll.
+		m_seen_poll = m_awaiting_sample;
 		return true;
 	}
 	bool changed = !m_published_value || *m_published_value != value;
@@ -219,6 +227,7 @@ bool SensorFunction<T>::update(T value, clock::time_point now)
 	if (changed || due) {
 		auto message = parent->publishMessage(getBaseTopic() + "state", {{"value", value}}, 0, m_policy.retain);
 		if (message.accepted()) {
+			m_awaiting_sample = false;
 			m_published_value = value;
 			m_last_publish = now;
 			if (freshnessEnabled()) {

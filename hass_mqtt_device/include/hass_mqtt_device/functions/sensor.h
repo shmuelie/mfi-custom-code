@@ -149,10 +149,12 @@ private:
     std::optional<clock::time_point> m_last_publish;
     std::optional<std::string> m_fault;
     bool m_seen_poll = false;
+    bool m_awaiting_sample = false;
     bool m_desired_health = false;
     std::optional<bool> m_acknowledged_health;
     std::optional<publication> m_pending_health;
     bool m_pending_health_value = false;
+    void clear_sample();
     bool freshnessEnabled() const { return m_policy.refresh_interval.count() > 0; }
 protected:
     SensorAttributes m_attributes;

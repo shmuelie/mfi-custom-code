@@ -45,7 +45,12 @@ nonempty device classes remain unchanged.
 `await_sample()` marks an intentionally pending measurement unavailable without
 logging a fault or supplying a numeric value. Its acknowledged offline state
 satisfies connection readiness, useful for CPU utilization's two-sample warm-up.
-It does not acknowledge transport packets or bypass existing power readiness.
+A successful pre-ACK read preserves that explicit pending state: the sensor
+can remain acknowledged offline without delaying shared availability until its
+next scheduled sample. The pre-ACK value is never replayed by ACK processing.
+The pending state ends on accepted numeric publication or connection reset.
+`invalidate()` alone does not opt sensors into this pending-readiness behavior.
+Neither method acknowledges transport packets or bypasses existing power readiness.
 `DeviceBase::beginConnection()` is virtual; overrides must call the base method
 before resetting their own sampling baselines and marking pending sensors.
 Numeric publication remains gated by the acknowledged initial offline state.

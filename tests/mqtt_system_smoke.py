@@ -5,6 +5,7 @@ from pathlib import Path
 import signal
 import sys
 import tempfile
+import time
 
 from mqtt_wire_smoke import (
     Broker, Harness, LABELS, SmokeFailure, availability, client_command, json_object,
@@ -215,21 +216,95 @@ class SystemHarness(Harness):
         self.passed("configuration-file opt-out preserves all 32 outlet entities")
 
 
+class DefaultTimingHarness(SystemHarness):
+    def command(self, updates=False):
+        return client_command(
+            self.binary, self.broker.port, polling=1000, refresh=60, expiry=180,
+            updates=updates, system=True,
+        ) + ["--system-proc-root", str(self.root / "proc")]
+
+    def connect_epoch(self, previous=0):
+        self.epoch = self.wait(
+            lambda: next((peer for peer in self.broker.publishers() if peer.number > previous), None),
+            "default-timing publisher CONNECT", timeout=7.0,
+        )
+        self.shared = self.epoch.will.topic
+
+        def discovered():
+            found = {}
+            for event in self.publications():
+                if event.message.topic.startswith("homeassistant/"):
+                    config = json_object(event.message.payload)
+                    found[config["name"]] = config
+            return found if len(found) == 37 else None
+
+        configs = self.wait(discovered, "default-timing discovery")
+        system_states = [configs[name]["state_topic"] for name in METRICS]
+        channel_topics = {
+            entry["topic"] for config in configs.values()
+            for entry in config.get("availability", [])
+        }
+        for name in METRICS:
+            require(configs[name]["expire_after"] == 180, "System expiration does not use the default")
+        offline = {topic: self.gate(topic, "offline") for topic in channel_topics}
+        self.observe(0.4)
+        require(not any(self.publications(topic) for topic in system_states),
+                "Default-timing diagnostics escaped initial offline gates")
+        require(not any(availability(event.message.payload, "online")
+                        for event in self.publications(self.shared)),
+                "Shared online escaped unacknowledged offline gates")
+        released = time.monotonic()
+        self.broker.set_hold(lambda peer, message: False)
+        self.broker.release()
+        shared_online = self.gate(self.shared, "online", timeout=3.0)
+        require(shared_online.when - released < 3.0,
+                "Shared readiness waited for the ten-second system sampling interval")
+        for event in offline.values():
+            acknowledged = self.ack(event)
+            require(acknowledged and acknowledged.seq < shared_online.seq,
+                    "Shared online preceded an initial offline PUBACK")
+        for label in LABELS.values():
+            config = configs[f"{label} Power"]
+            channel = next(entry["topic"] for entry in config["availability"] if entry["topic"] != self.shared)
+            online = self.gate(channel, "online")
+            acknowledged = self.ack(online)
+            require(acknowledged and acknowledged.seq < shared_online.seq,
+                    "Shared readiness bypassed an outlet power online PUBACK")
+        require(not any(self.publications(topic) for topic in system_states),
+                "Default-timing diagnostics replayed a pre-ACK sample")
+        self.passed(
+            f"default-timing {'reconnect' if previous else 'startup'} becomes shared online "
+            f"{shared_online.when - released:.3f}s after delayed offline PUBACKs"
+        )
+
+    def run(self):
+        self.proc("stat", "cpu 1 0 0 9\n")
+        self.start()
+        self.connect_epoch()
+        previous = self.epoch.number
+        self.broker.set_hold(lambda peer, message: peer.publisher and availability(message.payload, "offline"))
+        self.broker.drop(self.epoch)
+        self.connect_epoch(previous)
+
+
 def main():
     binary = Path(sys.argv[1]).resolve(strict=True)
     with tempfile.TemporaryDirectory(prefix="mfi-system-wire-") as directory:
-        broker = Broker()
-        harness = SystemHarness(binary, Path(directory), broker)
-        try:
-            harness.run()
-            broker.check()
-        except (SmokeFailure, OSError, EOFError, KeyError) as error:
-            print(f"FAIL: {error}", file=sys.stderr)
-            harness.diagnostics()
-            return 1
-        finally:
-            harness.close()
-            broker.close()
+        for harness_type in (DefaultTimingHarness, SystemHarness):
+            root = Path(directory) / harness_type.__name__
+            root.mkdir()
+            broker = Broker()
+            harness = harness_type(binary, root, broker)
+            try:
+                harness.run()
+                broker.check()
+            except (SmokeFailure, OSError, EOFError, KeyError) as error:
+                print(f"FAIL: {error}", file=sys.stderr)
+                harness.diagnostics()
+                return 1
+            finally:
+                harness.close()
+                broker.close()
     return 0
 
 

@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Non-retained system telemetry, per-sensor availability, and fresh sampling
   after reconnect without delaying outlet readiness for CPU warm-up.
 
+### Fixed
+
+- Delayed initial offline acknowledgements no longer leave healthy outlets
+  unavailable until the next CPU/memory sampling interval on startup or reconnect.
+
 ## [2.0.0] - 2026-09-12
 
 ### Breaking changes

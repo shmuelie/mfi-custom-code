@@ -77,6 +77,10 @@ establishes a baseline, so CPU remains unavailable until the next successful
 sample. Failures, counter regressions, and zero elapsed ticks reset the baseline;
 reconnect also requires two new reads. CPU warm-up does not hold the device or
 outlets offline, but its initial offline availability must still be acknowledged.
+The same pending-readiness rule applies to initial memory sampling: a valid read
+before the offline PUBACK is withheld without delaying shared availability.
+Diagnostics stay offline until a fresh scheduled read can be published; outlet
+availability does not wait for the next system sampling interval.
 
 Memory comes from `/proc/meminfo`; its `kB` values are KiB, converted to MiB by
 dividing by 1024. `MemAvailable` is preferred. On older kernels without it,

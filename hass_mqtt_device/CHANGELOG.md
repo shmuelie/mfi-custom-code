@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Explicitly pending diagnostics preserve readiness through pre-ACK samples,
+  without replaying those readings or weakening the power handshake.
 - Reconnect/status replay can no longer refresh opted-in cached measurements.
 - Invalid/nonfinite readings and quantization overflow cannot become numeric
   substitutes or accidentally serialized null.

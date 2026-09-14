@@ -239,6 +239,53 @@ TEST_CASE("System metrics: independent ten second sampling and sixty second refr
 	}
 }
 
+TEST_CASE("System metrics: delayed offline acknowledgements do not delay outlet readiness", "[mqtt][system-metrics][regression]") {
+	bool fault_before_sample = GENERATE(false, true);
+	system_fixture f;
+	auto power = f.mqtt.sensor();
+	f.mqtt.device->auto_ack = false;
+	++f.mqtt.device->epoch;
+	f.establish();
+	if (fault_before_sample) {
+		f.sensor("Memory Total")->invalidate("read failed");
+		power->invalidate("read failed");
+	}
+	f.tick(0);
+	f.mqtt.update(power, 100, 0s);
+	CHECK_FALSE(f.mqtt.device->readyForOnline());
+	CHECK(f.mqtt.device->on(power->getDiscoveryJson()["state_topic"]).empty());
+	for (auto const& name : {"CPU Utilization", "Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		CHECK(f.samples(name).empty());
+		CHECK_FALSE(f.sensor(name)->readyForOnline());
+	}
+	for (auto const& message : f.mqtt.device->messages) {
+		if (message.ticket.epoch == f.mqtt.device->epoch) {
+			f.mqtt.device->acked.insert(message.ticket.sequence);
+		}
+	}
+	f.mqtt.device->auto_ack = true;
+	f.tick(1);
+	for (auto const& name : {"CPU Utilization", "Memory Total", "Memory Available", "Memory Used", "Memory Utilization"}) {
+		CHECK(f.sensor(name)->readyForOnline());
+		CHECK(f.samples(name).empty());
+	}
+	CHECK_FALSE(power->readyForOnline());
+	CHECK_FALSE(f.mqtt.device->readyForOnline());
+	f.mqtt.update(power, 100, 1s);
+	CHECK(f.mqtt.device->readyForOnline());
+	f.mqtt.device->sendStatus();
+	CHECK(f.samples("Memory Total").empty());
+	f.cpu_time(25, 75);
+	f.hardware.write("proc/meminfo", "MemTotal: 65536 kB\nMemAvailable: 32768 kB\n");
+	f.tick(9);
+	CHECK(f.samples("Memory Total").empty());
+	f.tick(10);
+	REQUIRE(f.samples("Memory Utilization").size() == 1);
+	CHECK(f.samples("Memory Utilization").front().payload == json{{"value", 50.0}});
+	REQUIRE(f.samples("CPU Utilization").size() == 1);
+	CHECK(f.samples("CPU Utilization").front().payload == json{{"value", 25.0}});
+}
+
 TEST_CASE("System metrics: failures and recovery remain independent", "[mqtt][system-metrics]") {
 	system_fixture f;
 	f.tick(0);
@@ -305,6 +352,41 @@ TEST_CASE("MQTT freshness: awaiting telemetry does not bypass the power readines
 	f.update(power, 100, 0s);
 	CHECK(f.device->readyForOnline());
 	CHECK(f.device->on(cpu->getDiscoveryJson()["state_topic"]).empty());
+}
+
+TEST_CASE("MQTT freshness: pending readiness ends on publication or connection reset", "[mqtt][freshness][regression]") {
+	bool published = GENERATE(false, true);
+	fixture f;
+	auto sensor = f.sensor("Diagnostic", sensor_policy::telemetry());
+	f.establish();
+	sensor->await_sample();
+	if (published) {
+		f.update(sensor, 10, 0s);
+	}
+	f.device->auto_ack = false;
+	if (published) {
+		sensor->invalidate("read failed");
+	}
+	else {
+		++f.device->epoch;
+		f.establish();
+	}
+	f.update(sensor, 20, 1s);
+	for (auto const& message : f.device->messages) {
+		if (message.ticket.epoch == f.device->epoch) {
+			f.device->acked.insert(message.ticket.sequence);
+		}
+	}
+	f.device->service();
+	CHECK_FALSE(sensor->readyForOnline());
+	f.device->sendStatus();
+	CHECK(f.device->on(sensor->getDiscoveryJson()["state_topic"]).size() == (published ? 1 : 0));
+	f.device->auto_ack = true;
+	f.update(sensor, 30, 2s);
+	CHECK(sensor->readyForOnline());
+	auto samples = f.device->on(sensor->getDiscoveryJson()["state_topic"]);
+	REQUIRE(samples.size() == (published ? 2 : 1));
+	CHECK(samples.back().payload == json{{"value", 30.0}});
 }
 
 TEST_CASE("MQTT freshness: constant zero and power refresh for one hour", "[mqtt][freshness]") {
