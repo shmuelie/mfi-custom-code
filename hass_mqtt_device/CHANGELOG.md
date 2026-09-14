@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Optional diagnostic sensor categories and a generic telemetry policy factory
+  retaining compatibility with the power policy.
+- Explicit pending-sample availability and an overridable device connection
+  hook for resetting sampling baselines without publishing fake readings.
 - Opt-in successful-read sensor refresh/expiration and durable per-channel
   availability, composed with shared transport availability in discovery.
 - Publication tickets, acknowledgement tracking, bounded queue/deadline
@@ -24,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Empty sensor device classes are omitted from discovery, allowing generic
+  percentage sensors without inventing a Home Assistant device class.
 - Shared availability is managed by the connector handshake, not
   `DeviceBase::sendStatus()`.
 

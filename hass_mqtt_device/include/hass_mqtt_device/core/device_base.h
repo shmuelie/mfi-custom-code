@@ -133,7 +133,7 @@ public:
 	virtual publication publishMessage(const std::string& topic, const json& payload, int qos = 1, bool retain = true);
 	virtual publication_state publicationState(publication const& message) const;
 	virtual bool isConnected() const;
-	void beginConnection(std::uint64_t epoch);
+	virtual void beginConnection(std::uint64_t epoch);
 	void service();
 	bool readyForOnline() const;
 

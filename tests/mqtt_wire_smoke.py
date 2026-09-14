@@ -673,7 +673,7 @@ def broker_self_check(broker):
         raise SmokeFailure(f"Broker self-check failed: {error}") from error
 
 
-def client_command(binary, port, polling=100, refresh=2, expiry=6, updates=False):
+def client_command(binary, port, polling=100, refresh=2, expiry=6, updates=False, system=False):
     command = [
         str(binary), "--server", "127.0.0.1", "--port", str(port),
         "--username", "test", "--password", "test", "--update" if updates else "--no-update",
@@ -682,6 +682,8 @@ def client_command(binary, port, polling=100, refresh=2, expiry=6, updates=False
     ]
     if updates:
         command += ["--update-interval", "1"]
+    if not system:
+        command += ["--no-system-metrics"]
     return command
 
 
@@ -689,17 +691,28 @@ def cli_rejections(binary, root):
     # No broker or fake hardware exists here: validation must precede startup.
     directory = root / "cli-rejections"
     directory.mkdir()
-    cases = (
-        ("polling-zero", 0, 2, 6, ("--polling-rate", "range")),
-        ("refresh-zero", 100, 0, 6, ("--power-refresh-interval", "range")),
-        ("expiry-too-short", 100, 2, 5, ("freshness", "expiry", "refresh")),
-        ("polling-too-slow", 2001, 2, 6, ("freshness", "polling", "refresh")),
-    )
-    for name, polling, refresh, expiry, expected in cases:
+    cases = [
+        ("polling-zero", ["--polling-rate", "0"], ("--polling-rate", "range")),
+        ("refresh-zero", ["--power-refresh-interval", "0"], ("--power-refresh-interval", "range")),
+        ("expiry-too-short", ["--power-expire-after", "5"], ("freshness", "expiry", "refresh")),
+        ("polling-too-slow", ["--polling-rate", "2001"], ("freshness", "polling", "refresh")),
+        ("system-polling-zero", ["--system-polling-interval", "0"], ("--system-polling-interval", "range")),
+        ("system-refresh-zero", ["--system-refresh-interval", "0"], ("--system-refresh-interval", "range")),
+        ("system-expiry-short", ["--system-expire-after", "179"], ("system", "expiry", "refresh")),
+        ("system-polling-slow", ["--system-polling-interval", "61"], ("system", "sampling", "refresh")),
+        ("system-empty-root", ["--system-proc-root", ""], ("system", "proc", "empty")),
+    ]
+    for name, overrides, expected in cases:
+        command = client_command(binary, 0)
+        for option, value in zip(overrides[::2], overrides[1::2]):
+            if option in command:
+                command[command.index(option) + 1] = value
+            else:
+                command += [option, value]
         path = directory / f"{name}.log"
         with path.open("wb") as output:
             process = subprocess.Popen(
-                client_command(binary, 0, polling, refresh, expiry),
+                command,
                 cwd=directory, env=dict(os.environ, HOME=str(directory), TMPDIR=str(directory)),
                 stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT,
             )
@@ -723,7 +736,7 @@ def cli_rejections(binary, root):
             f"CLI {name} did not report the expected validation error: {log}",
         )
         require("Starting MQTT client" not in log, f"CLI {name} reached hardware/network startup: {log}")
-    print("PASS: no-broker CLI rejection of polling=0, refresh=0, expiry<3*refresh, and polling>refresh", flush=True)
+    print("PASS: no-broker CLI rejection of invalid power/system freshness and empty proc root", flush=True)
 
 
 @dataclass(frozen=True)
@@ -803,10 +816,13 @@ class Harness:
             require(self.update_marker is not None, "Update fixture PID marker is not configured")
             environment.update(PATH=str(update_bin), MFI_UPDATE_TEST_PID=str(self.update_marker))
         self.process = subprocess.Popen(
-            client_command(self.binary, self.broker.port, updates=update_bin is not None),
+            self.command(updates=update_bin is not None),
             cwd=self.root, env=environment, stdin=subprocess.DEVNULL,
             stdout=self.log_file, stderr=subprocess.STDOUT,
         )
+
+    def command(self, updates=False):
+        return client_command(self.binary, self.broker.port, updates=updates)
 
     def check(self, allow_exit=False):
         self.broker.check()

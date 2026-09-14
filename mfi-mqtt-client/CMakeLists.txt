@@ -10,10 +10,14 @@ set(MFI_MQTT_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_MQTT_HEADERS
 	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/device.h
 	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/port.h
+	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/system_stats.h
+	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/system_metrics.h
 )
 set(MFI_MQTT_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/device.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/port.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/system_stats.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/system_metrics.cpp
 )
 
 find_package(CLI11 REQUIRED)

@@ -24,10 +24,11 @@ void request_stop(int) { stop_requested = 1; }
 }
 
 std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port,
-	std::string const& username, std::string const& password, sensor_policy policy) {
+	std::string const& username, std::string const& password, sensor_policy policy,
+	mfi_mqtt_client::system_metrics_options const& system_options) {
 	try {
 		mfi::board b{};
-		auto device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password, policy);
+		auto device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password, policy, system_options);
 		device->init();
 		return device;
 	}
@@ -70,6 +71,18 @@ int main(int argc, char* argv[]) {
 	uint32_t power_expiry;
 	app.add_option("--power-expire-after", power_expiry, "Power expiration advertised in discovery, in seconds")
 		->default_val(180)->check(CLI::Range(1U, 259200U));
+	mfi_mqtt_client::system_metrics_options system_options;
+	app.add_flag("--system-metrics,!--no-system-metrics", system_options.enabled, "Report device-wide CPU and memory metrics")
+		->default_val(true);
+	uint32_t system_polling, system_refresh, system_expiry;
+	app.add_option("--system-polling-interval", system_polling, "System sampling interval in seconds")
+		->default_val(10)->check(CLI::Range(1U, 86400U));
+	app.add_option("--system-refresh-interval", system_refresh, "Successful unchanged-system-metric refresh interval in seconds")
+		->default_val(60)->check(CLI::Range(1U, 86400U));
+	app.add_option("--system-expire-after", system_expiry, "System metric expiration advertised in discovery, in seconds")
+		->default_val(180)->check(CLI::Range(1U, 259200U));
+	app.add_option("--system-proc-root", system_options.proc_root, "Proc directory for system metrics (alternate mounts or fixtures)")
+		->default_val("/proc");
 	spdlog::level::level_enum log_level;
 	app.add_option("--log-level", log_level, "The log level to use")->transform(spdlog_level_transformer)->default_val(spdlog::level::info);
 
@@ -89,6 +102,15 @@ int main(int argc, char* argv[]) {
 		if (power_expiry / power_refresh < 3
 			|| static_cast<uint64_t>(polling_rate) > static_cast<uint64_t>(power_refresh) * 1000) {
 			throw CLI::ValidationError("Power freshness", "expiry must allow three refresh intervals, and polling must not exceed refresh");
+		}
+		system_options.polling_interval = std::chrono::seconds(system_polling);
+		system_options.refresh_interval = std::chrono::seconds(system_refresh);
+		system_options.expire_after = std::chrono::seconds(system_expiry);
+		try {
+			system_options.validate();
+		}
+		catch (std::invalid_argument const& error) {
+			throw CLI::ValidationError("System freshness", error.what());
 		}
 	}
 	catch (CLI::ParseError const& e) {
@@ -121,7 +143,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	auto device = create_device(server, port, username, password,
-		sensor_policy::power(std::chrono::seconds(power_refresh), std::chrono::seconds(power_expiry)));
+		sensor_policy::power(std::chrono::seconds(power_refresh), std::chrono::seconds(power_expiry)),
+		system_options);
 	if (!device) {
 		return -2;
 	}
@@ -160,6 +183,12 @@ int main(int argc, char* argv[]) {
 				logger->log_error("Error updating device: {}", e.what());
 			}
 			next_poll = now + std::chrono::milliseconds(polling_rate);
+		}
+		try {
+			device->update_system();
+		}
+		catch (std::exception const& error) {
+			logger->log_error("Error updating system metrics: {}", error.what());
 		}
 		if (updater && !stop_requested) {
 			bool interrupted = false;
