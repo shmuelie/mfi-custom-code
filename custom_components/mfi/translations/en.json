@@ -1,0 +1,86 @@
+{
+  "title": "mFi",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select an existing mFi MQTT device",
+        "description": "MQTT keeps ownership of your power sensors and relays. This companion adds energy counters without changing them.",
+        "data": {"source_device_id": "MQTT device"}
+      },
+      "confirm": {
+        "title": "Create energy counters for {device}",
+        "description": "Detected {ports} power sources (model: {model}). New counters start at zero. Exclude ports whose existing energy helpers you want to keep. Before enabling, verify the running mfi-mqtt-client refreshes unchanged power, advertises expiration and per-channel availability, and that legacy retained numeric power has been cleared through a separately approved migration. This integration cannot verify those prerequisites from entity metadata. No device or broker changes will be made.",
+        "data": {
+          "freshness_confirmed": "I verified power freshness and retained-power cleanup",
+          "excluded_sources": "Ports to exclude from new energy counters",
+          "model_confirmed": "I confirm this unrecognized model is an mFi device with compatible power sources"
+        }
+      }
+    },
+    "error": {
+      "invalid_device": "Select an available mFi MQTT device.",
+      "invalid_source": "Select power sources belonging to this device.",
+      "confirmation_required": "Confirm this prerequisite before creating counters.",
+      "storage_error": "The initial energy checkpoint could not be saved. Check Home Assistant's storage and logs, then retry."
+    },
+    "abort": {
+      "mqtt_required": "Configure Home Assistant's MQTT integration first.",
+      "no_devices": "No compatible mFi MQTT power sensors were found. Wait for MQTT discovery and check sensor metadata.",
+      "already_configured": "This device already has an mFi energy companion.",
+      "device_removed": "The selected MQTT device was removed.",
+      "ambiguous_sources": "More power sources were found than physical ports. Resolve obsolete MQTT discovery entries before setup; do not delete broker records without approval.",
+      "setup_cancelled": "Setup was canceled."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure mFi energy",
+        "menu_options": {
+          "exclude": "Exclude or enable port counters",
+          "rebind": "Rebind an existing counter to a replacement source",
+          "ignore": "Ignore obsolete unbound MQTT sources",
+          "device": "Recover after an upstream device identity change"
+        }
+      },
+      "exclude": {
+        "description": "Excluded counters stop accumulating. Existing counters keep their identity and saved totals but become unavailable. No energy is backfilled when re-enabled.",
+        "data": {"excluded_sources": "Excluded counters"}
+      },
+      "rebind": {
+        "description": "Use only when you have identified the same physical port after an upstream identity change. The counter keeps its total and history. The old source is ignored, not deleted. Unavailable time is not backfilled.",
+        "data": {"binding": "Counter to preserve", "source": "Replacement power sensor"}
+      },
+      "ignore": {
+        "description": "Ignore obsolete discovery sources without deleting their MQTT entities or broker records. Bound sources must be excluded or rebound instead.",
+        "data": {"ignored": "Ignored unbound sources"}
+      },
+      "device": {
+        "description": "Use only after a hostname or device identity change for the same physical mFi device. Counters and history are preserved, but all missing ports must then be mapped explicitly using Rebind. No port labels are matched automatically.",
+        "data": {
+          "source_device_id": "Replacement MQTT device",
+          "same_device": "I confirm this is the same physical device with compatible power freshness"
+        }
+      }
+    },
+    "error": {
+      "storage_error": "The changes could not be committed. Check storage and the Repairs notice before retrying.",
+      "invalid_source": "Choose an eligible unbound source on this device or a valid counter. A replacement device must not already have another companion.",
+      "confirmation_required": "Confirm the physical device before changing its source."
+    },
+    "abort": {
+      "not_loaded": "Load the integration successfully before changing its options.",
+      "no_replacements": "No unbound power sources are available on this device."
+    }
+  },
+  "issues": {
+    "storage": {
+      "title": "mFi energy checkpoint needs attention",
+      "description": "{detail}\n\nEnergy reporting is suspended rather than resetting counters or reporting unsaved totals. Check available disk space, permissions, and logs. Restore missing or corrupt checkpoint files from a consistent Home Assistant backup, then reload the integration. Do not replace an existing total with zero."
+    },
+    "sources": {
+      "title": "mFi power source bindings need attention",
+      "description": "{detail}\n\nCheck the MQTT source entities. Use the mFi integration's Configure menu to rebind a known physical port or ignore obsolete unbound sources. Existing totals and MQTT entities are preserved."
+    }
+  }
+}

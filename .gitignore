@@ -428,3 +428,10 @@ MigrationBackup/
 # End of https://www.toptal.com/developers/gitignore/api/c++,cmake,vs,visualstudiocode
 
 CMakeUserPresets.json
+
+# Home Assistant development
+.venv-ha/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/

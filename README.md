@@ -5,6 +5,10 @@ switching devices. Includes an MQTT client for Home Assistant integration, a RES
 API server, and a CLI tool — all built on a shared C++ library that wraps the mFi
 hardware interface.
 
+An optional [Home Assistant energy companion](home-assistant/) adds automatic
+per-port kWh counters on top of the existing MQTT entities without replacing
+their sensors or relay controls.
+
 ## Architecture
 
 ```
@@ -42,6 +46,14 @@ mfi-cli ─────────┬─ mfi
 | [mfi-update](mfi-update/) | Self-update from GitHub Releases | 1.0.0 |
 | [shmuelie-shared](shmuelie-shared/) | String helper functions | 1.0.0 |
 
+### Home Assistant companion
+
+[mFi energy companion](home-assistant/) is a local MVP custom integration for
+Home Assistant 2026.9.2 and newer. It provides per-port cumulative energy,
+durable checkpoints, and explicit source recovery after label or hostname
+changes. Development and local distribution tooling live here; HACS publication
+to the planned `shmuelie/mfi-home-assistant` repository is not yet available.
+
 ## Alternatives
 
 There are several community shell-script projects for controlling mFi devices.
@@ -69,3 +81,5 @@ abstraction layer, native MQTT, and Home Assistant auto-discovery.
 - [Updating](docs/updating.md) — self-update from GitHub Releases
 - [mFi Notes](docs/mfi-notes.md) — persistent storage, save, boot hooks
 - [cfgmtd](docs/cfgmtd.md) — flash configuration utility internals
+- [Home Assistant energy companion](home-assistant/) — setup, development, checkpoint recovery, and local packaging
+- [Home Assistant companion integration plan](docs/home-assistant-integration-plan.md) — automatic per-port energy on top of existing MQTT entities

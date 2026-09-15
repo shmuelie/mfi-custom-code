@@ -1,0 +1,13 @@
+{
+  "domain": "mfi",
+  "name": "mFi",
+  "codeowners": ["@shmuelie"],
+  "config_flow": true,
+  "dependencies": ["mqtt"],
+  "documentation": "https://github.com/shmuelie/mfi-custom-code/blob/main/home-assistant/README.md",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/shmuelie/mfi-custom-code/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

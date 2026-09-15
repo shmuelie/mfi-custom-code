@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>mFi energy companion: a power plug inside a home</title>
+  <polygon fill="#009fae" points="128,18 234,108 216,129 128,54 40,129 22,108"/>
+  <polygon fill="#009fae" points="48,122 76,122 76,206 180,206 180,122 208,122 208,232 48,232"/>
+  <rect fill="#d68c23" x="104" y="88" width="12" height="32"/>
+  <rect fill="#d68c23" x="140" y="88" width="12" height="32"/>
+  <polygon fill="#d68c23" points="94,116 162,116 162,147 148,166 140,166 140,192 116,192 116,166 108,166 94,147"/>
+</svg>
