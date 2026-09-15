@@ -1,5 +1,6 @@
 """Registry changes, options, restart, and data-loss protection."""
 
+import asyncio
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -181,3 +182,72 @@ async def test_cannot_take_another_companions_device(
     await setup_companion(second)
     with pytest.raises(ValueError, match="already"):
         await first_entry.runtime_data.async_change_device(second.id)
+
+
+async def test_concurrent_recovery_cannot_claim_one_device_twice(
+    isolated_hass, create_mqtt_device, setup_companion
+):
+    first = await setup_companion(await create_mqtt_device(device_id="first"))
+    second = await setup_companion(await create_mqtt_device(device_id="second"))
+    destination = await create_mqtt_device(device_id="destination")
+    started = asyncio.Event()
+    release = asyncio.Event()
+    manager = first.runtime_data
+    next(iter(manager.ports.values())).accumulator.total = Decimal(1)
+    save = manager.store.async_save
+
+    async def delayed_save(snapshot):
+        started.set()
+        await release.wait()
+        await save(snapshot)
+
+    with patch.object(manager.store, "async_save", side_effect=delayed_save):
+        one = asyncio.create_task(manager.async_change_device(destination.id))
+        await asyncio.wait_for(started.wait(), 5)
+        two = asyncio.create_task(second.runtime_data.async_change_device(destination.id))
+        await asyncio.sleep(0)
+        release.set()
+        results = await asyncio.gather(one, two, return_exceptions=True)
+    assert sum(isinstance(result, ValueError) for result in results) == 1
+    owners = [
+        entry
+        for entry in isolated_hass.config_entries.async_entries("mfi")
+        if entry.runtime_data.source_device_id == destination.id
+    ]
+    assert len(owners) == 1
+    assert manager.store.path.exists() and second.runtime_data.store.path.exists()
+
+
+@pytest.mark.parametrize("policy", ["excluded", "disabled"])
+async def test_suspended_binding_blocks_ambiguous_identity_enrollment(
+    isolated_hass, create_mqtt_device, setup_companion, policy
+):
+    device = await create_mqtt_device(1, model_id="58952")
+    registry = er.async_get(isolated_hass)
+    if policy == "disabled":
+        registry.async_update_entity(
+            device.sources[0].entity_id, disabled_by=er.RegistryEntryDisabler.USER
+        )
+        await isolated_hass.async_block_till_done()
+    entry = await setup_companion(device, [device.sources[0].id] if policy == "excluded" else None)
+    manager = entry.runtime_data
+    isolated_hass.states.async_set(device.sources[0].entity_id, "unavailable")
+    replacement = registry.async_get_or_create(
+        "sensor",
+        "mqtt",
+        "replacement_power",
+        config_entry=isolated_hass.config_entries.async_get_entry(manager.source_config_entry_id),
+        device_id=device.id,
+        original_device_class="power",
+        unit_of_measurement="W",
+        capabilities={"state_class": "measurement"},
+    )
+    isolated_hass.states.async_set(
+        replacement.entity_id,
+        "100",
+        {"device_class": "power", "state_class": "measurement", "unit_of_measurement": "W"},
+    )
+    await isolated_hass.async_block_till_done()
+    assert manager.ambiguous
+    assert len(manager.ports) == 1
+    assert not er.async_entries_for_config_entry(registry, entry.entry_id)

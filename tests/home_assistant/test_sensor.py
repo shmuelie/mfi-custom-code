@@ -4,6 +4,7 @@ import asyncio
 from decimal import Decimal
 from unittest.mock import patch
 
+import pytest
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.mfi.storage import StorageError
@@ -56,3 +57,73 @@ async def test_storage_failure_and_retry(isolated_hass, create_mqtt_device, setu
     await manager.async_flush()
     assert manager.committed.ports[0].total == Decimal("1.25")
     assert manager.storage_error is None
+
+
+@pytest.mark.parametrize("operation", ["exclude", "ignore", "rebind"])
+async def test_metadata_acknowledges_its_commit_not_a_later_save(
+    isolated_hass, create_mqtt_device, setup_companion, operation
+):
+    device = await create_mqtt_device()
+    entry = await setup_companion(device)
+    manager = entry.runtime_data
+    registry = er.async_get(isolated_hass)
+    key = next(iter(manager.ports))
+    replacement = registry.async_get_or_create(
+        "sensor",
+        "mqtt",
+        "replacement_power",
+        config_entry=isolated_hass.config_entries.async_get_entry(manager.source_config_entry_id),
+        device_id=device.id,
+        original_device_class="power",
+        unit_of_measurement="W",
+        capabilities={"state_class": "measurement"},
+    )
+    isolated_hass.states.async_set(
+        replacement.entity_id,
+        "100",
+        {"device_class": "power", "state_class": "measurement", "unit_of_measurement": "W"},
+    )
+    await isolated_hass.async_block_till_done()
+    started = asyncio.Event()
+    release = asyncio.Event()
+    save = manager.store.async_save
+    writes = 0
+
+    async def first_save_succeeds(snapshot):
+        nonlocal writes
+        writes += 1
+        if writes != 1:
+            raise StorageError("Later write failed")
+        started.set()
+        await release.wait()
+        await save(snapshot)
+
+    with patch.object(manager.store, "async_save", side_effect=first_save_succeeds):
+        if operation == "exclude":
+            request = manager.async_set_exclusions({key})
+        elif operation == "ignore":
+            request = manager.async_ignore_sources({replacement.id})
+        else:
+            request = manager.async_rebind(key, replacement.entity_id)
+        pending = asyncio.create_task(request)
+        await asyncio.wait_for(started.wait(), 5)
+        registry.async_update_entity(
+            manager.ports[key].binding.entity_id, name="Renamed while saving"
+        )
+        await asyncio.sleep(0)
+        manager._request_save()
+        release.set()
+        await pending
+        await manager._save_task
+    assert writes == 2
+    assert manager.storage_error is not None
+    stored = await manager.store.async_load()
+    assert stored == manager.committed
+    if operation == "exclude":
+        assert stored.ports[0].excluded and manager.ports[key].binding.excluded
+    elif operation == "ignore":
+        assert replacement.id in stored.ignored_sources
+        assert replacement.id in manager.ignored_sources
+    else:
+        assert stored.ports[0].registry_id == replacement.id
+        assert manager.ports[key].binding.registry_id == replacement.id

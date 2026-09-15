@@ -14,6 +14,11 @@ reconciliation, exclusions, source rebinding, device-identity recovery, Repairs,
 and diagnostics. Development instructions and the local-only distribution
 builder are in [home-assistant/](../home-assistant/).
 
+Peer-review hardening coordinates destination ownership across setup/recovery,
+holds file-operation locks through repeated cancellation, acknowledges options
+against their specific checkpoint, and evaluates source identity availability
+independently of exclusion/disabled accounting status.
+
 Automated coverage exercises actual HA MQTT sensor/expiration code with a
 mocked transport, Recorder energy sum statistics, cancellation-safe checkpoint
 ordering, and packaging of the actual runtime snapshot in a temporary Git

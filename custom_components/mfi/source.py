@@ -23,10 +23,12 @@ from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_track_time_interval,
 )
+from homeassistant.util.hass_dict import HassKey
 
 from .const import (
     CONF_SOURCE_CONFIG_ENTRY,
     CONF_SOURCE_DEVICE,
+    DOMAIN,
     MANUFACTURER,
     MODEL_PORT_COUNTS,
     REPORT_INTERVAL,
@@ -39,6 +41,35 @@ if TYPE_CHECKING:
     from . import MfiConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
+_DESTINATION_LOCKS: HassKey[dict[str, asyncio.Lock]] = HassKey("mfi_destination_locks")
+
+
+def destination_lock(hass: HomeAssistant, unique_id: str) -> asyncio.Lock:
+    """Serialize creation and recovery for the same MQTT device."""
+    return hass.data.setdefault(_DESTINATION_LOCKS, {}).setdefault(unique_id, asyncio.Lock())
+
+
+def destination_conflict(
+    hass: HomeAssistant,
+    unique_id: str,
+    *,
+    entry_id: str | None = None,
+    flow_id: str | None = None,
+) -> str | None:
+    """Include pending setup reservations, which remain active during creation."""
+    if any(
+        entry.entry_id != entry_id and entry.unique_id == unique_id
+        for entry in hass.config_entries.async_entries(DOMAIN)
+    ):
+        return "already_configured"
+    if any(
+        flow["flow_id"] != flow_id
+        for flow in hass.config_entries.flow.async_progress_by_handler(
+            DOMAIN, include_uninitialized=True, match_context={"unique_id": unique_id}
+        )
+    ):
+        return "already_in_progress"
+    return None
 
 
 def source_entries(hass: HomeAssistant, device_id: str) -> list[er.RegistryEntry]:
@@ -101,6 +132,7 @@ class TrackedPort:
     binding: PortSnapshot
     accumulator: EnergyAccumulator
     reason: str | None = "waiting"
+    source_reason: str | None = "waiting"
 
     @property
     def available(self) -> bool:
@@ -134,6 +166,8 @@ class SourceManager:
         self._reconcile_handle: asyncio.Handle | None = None
         self._save_task: asyncio.Task[None] | None = None
         self._save_again = False
+        self._commit_waiters: list[asyncio.Future[StorageError | None]] = []
+        self._configuration_lock = asyncio.Lock()
         self._stopping = False
 
     @property
@@ -192,6 +226,7 @@ class SourceManager:
             for port in self.ports.values():
                 port.accumulator.update(None, now)
                 port.reason = "stopped"
+                port.source_reason = "stopped"
         await self.async_flush()
 
     @callback
@@ -234,9 +269,7 @@ class SourceManager:
         entity = er.async_get(self.hass).async_get(port.binding.registry_id)
         reason = None
         power = None
-        if port.binding.excluded:
-            reason = "excluded"
-        elif (
+        if (
             entity is None
             or entity.device_id != self.source_device_id
             or entity.config_entry_id != self.source_config_entry_id
@@ -261,6 +294,10 @@ class SourceManager:
                 )
             except ValueError as error:
                 reason = str(error)
+        port.source_reason = reason
+        if port.binding.excluded:
+            reason = "excluded"
+            power = None
         if reason != port.reason:
             if reason not in (None, "excluded", "disabled", "waiting", "unavailable", "unknown"):
                 _LOGGER.warning("Energy source %s suspended: %s", port.binding.entity_id, reason)
@@ -309,6 +346,7 @@ class SourceManager:
             else:
                 port.accumulator.update(None, now)
                 port.reason = "missing"
+                port.source_reason = "missing"
         bound = {port.binding.registry_id for port in self.ports.values()}
         additions = [
             entity
@@ -320,10 +358,7 @@ class SourceManager:
             if isinstance(device, dr.DeviceEntry)
             else None
         )
-        orphaned = any(
-            port.reason in ("missing", "waiting", "unavailable", "unknown")
-            for port in self.ports.values()
-        )
+        orphaned = any(port.source_reason is not None for port in self.ports.values())
         self.ambiguous = bool(additions) and (
             orphaned
             or (
@@ -350,7 +385,7 @@ class SourceManager:
         )
         set_issue(self.hass, self.entry.entry_id, "sources", detail)
         self._notify()
-        if self._metadata_changed():
+        if self._metadata_changed() and self.storage_error is None:
             self._request_save()
 
     def _snapshot(self) -> Checkpoint:
@@ -393,12 +428,14 @@ class SourceManager:
     async def _save_loop(self) -> None:
         while self._save_again:
             self._save_again = False
+            waiters, self._commit_waiters = self._commit_waiters, []
             snapshot = self._snapshot()
             if (
                 snapshot.ports == self.committed.ports
                 and snapshot.ignored_sources == self.committed.ignored_sources
                 and self.storage_error is None
             ):
+                self._complete_commits(waiters, None)
                 continue
             try:
                 await self.store.async_save(snapshot)
@@ -407,12 +444,37 @@ class SourceManager:
                     _LOGGER.error("Energy checkpoint failed for %s: %s", self.entry.title, error)
                 self.storage_error = str(error)
                 set_issue(self.hass, self.entry.entry_id, "storage", self.storage_error)
+                self._complete_commits(waiters + self._commit_waiters, error)
+                self._commit_waiters.clear()
+                self._save_again = False
                 self._notify()
                 break
+            except asyncio.CancelledError:
+                for waiter in waiters + self._commit_waiters:
+                    waiter.cancel()
+                self._commit_waiters.clear()
+                raise
             self.committed = snapshot
             self.storage_error = None
             set_issue(self.hass, self.entry.entry_id, "storage", None)
+            self._complete_commits(waiters, None)
             self._notify()
+
+    @staticmethod
+    def _complete_commits(
+        waiters: list[asyncio.Future[StorageError | None]], error: StorageError | None
+    ) -> None:
+        for waiter in waiters:
+            if not waiter.done():
+                waiter.set_result(error)
+
+    async def _async_commit(self) -> None:
+        """Acknowledge the snapshot containing this request, not a later write."""
+        waiter: asyncio.Future[StorageError | None] = self.hass.loop.create_future()
+        self._commit_waiters.append(waiter)
+        self._request_save()
+        if (error := await asyncio.shield(waiter)) is not None:
+            raise error
 
     async def async_flush(self) -> None:
         self._request_save()
@@ -420,102 +482,115 @@ class SourceManager:
         await asyncio.shield(self._save_task)
 
     async def async_set_exclusions(self, excluded: set[str]) -> None:
-        if not excluded <= set(self.ports):
-            raise ValueError("Unknown port binding")
-        previous = {key: port.binding for key, port in self.ports.items()}
-        for binding_id, port in self.ports.items():
-            port.binding = replace(port.binding, excluded=binding_id in excluded)
-            self._update_port(
-                port, self.hass.states.get(port.binding.entity_id), self.hass.loop.time()
-            )
-        self._notify()
-        await self.async_flush()
-        if self.storage_error is not None:
-            error = self.storage_error
-            for key, binding in previous.items():
-                self.ports[key].binding = binding
-            self._reconcile()
-            raise StorageError(error)
+        async with self._configuration_lock:
+            if not excluded <= set(self.ports):
+                raise ValueError("Unknown port binding")
+            previous = {key: port.binding for key, port in self.ports.items()}
+            for binding_id, port in self.ports.items():
+                port.binding = replace(port.binding, excluded=binding_id in excluded)
+                self._update_port(
+                    port, self.hass.states.get(port.binding.entity_id), self.hass.loop.time()
+                )
+            self._notify()
+            try:
+                await self._async_commit()
+            except StorageError:
+                for key, binding in previous.items():
+                    self.ports[key].binding = binding
+                self._reconcile()
+                raise
 
     async def async_rebind(self, binding_id: str, entity_id: str) -> None:
-        entity = er.async_get(self.hass).async_get(entity_id)
-        if (
-            binding_id not in self.ports
-            or entity is None
-            or entity.device_id != self.source_device_id
-            or entity.config_entry_id != self.source_config_entry_id
-            or not eligible_source(self.hass, entity)
-            or any(
-                port.binding.registry_id == entity.id
-                for key, port in self.ports.items()
-                if key != binding_id
+        async with self._configuration_lock:
+            entity = er.async_get(self.hass).async_get(entity_id)
+            if (
+                binding_id not in self.ports
+                or entity is None
+                or entity.device_id != self.source_device_id
+                or entity.config_entry_id != self.source_config_entry_id
+                or not eligible_source(self.hass, entity)
+                or any(
+                    port.binding.registry_id == entity.id
+                    for key, port in self.ports.items()
+                    if key != binding_id
+                )
+            ):
+                raise ValueError(
+                    "Replacement must be an unbound power source on the selected device"
+                )
+            port = self.ports[binding_id]
+            previous_binding = port.binding
+            previous_ignored = self.ignored_sources.copy()
+            port.accumulator.update(None, self.hass.loop.time())
+            if port.binding.registry_id != entity.id:
+                self.ignored_sources.add(port.binding.registry_id)
+            self.ignored_sources.discard(entity.id)
+            port.binding = replace(
+                port.binding,
+                registry_id=entity.id,
+                unique_id=entity.unique_id,
+                entity_id=entity.entity_id,
+                name=entity.name or entity.original_name or entity.entity_id,
             )
-        ):
-            raise ValueError("Replacement must be an unbound power source on the selected device")
-        port = self.ports[binding_id]
-        previous_binding = port.binding
-        previous_ignored = self.ignored_sources.copy()
-        port.accumulator.update(None, self.hass.loop.time())
-        if port.binding.registry_id != entity.id:
-            self.ignored_sources.add(port.binding.registry_id)
-        self.ignored_sources.discard(entity.id)
-        port.binding = replace(
-            port.binding,
-            registry_id=entity.id,
-            unique_id=entity.unique_id,
-            entity_id=entity.entity_id,
-            name=entity.name or entity.original_name or entity.entity_id,
-        )
-        await self.async_flush()
-        if self.storage_error is not None:
-            error = self.storage_error
-            port.binding = previous_binding
-            self.ignored_sources = previous_ignored
+            try:
+                await self._async_commit()
+            except StorageError:
+                port.binding = previous_binding
+                self.ignored_sources = previous_ignored
+                self._reconcile()
+                raise
             self._reconcile()
-            raise StorageError(error)
-        self._reconcile()
 
     async def async_ignore_sources(self, registry_ids: set[str]) -> None:
-        bound = {port.binding.registry_id for port in self.ports.values()}
-        candidates = {entity.id for entity in source_entries(self.hass, self.source_device_id)}
-        if registry_ids & bound or not registry_ids <= candidates | self.ignored_sources:
-            raise ValueError("Only unbound sources on this device can be ignored")
-        previous = self.ignored_sources
-        self.ignored_sources = registry_ids
-        await self.async_flush()
-        if self.storage_error is not None:
-            error = self.storage_error
-            self.ignored_sources = previous
+        async with self._configuration_lock:
+            bound = {port.binding.registry_id for port in self.ports.values()}
+            candidates = {entity.id for entity in source_entries(self.hass, self.source_device_id)}
+            if registry_ids & bound or not registry_ids <= candidates | self.ignored_sources:
+                raise ValueError("Only unbound sources on this device can be ignored")
+            previous = self.ignored_sources
+            self.ignored_sources = registry_ids
+            try:
+                await self._async_commit()
+            except StorageError:
+                self.ignored_sources = previous
+                self._reconcile()
+                raise
             self._reconcile()
-            raise StorageError(error)
-        self._reconcile()
 
     async def async_change_device(self, device_id: str) -> None:
         """Select the same physical device after its upstream identity changed."""
-        device = next((item for item in candidate_devices(self.hass) if item.id == device_id), None)
-        if device is None:
-            raise ValueError("Select an eligible MQTT device")
-        unique_id = f"{device.config_entry_id}_{device.id}"
-        if any(
-            item.entry_id != self.entry.entry_id and item.unique_id == unique_id
-            for item in self.hass.config_entries.async_entries(self.entry.domain)
-        ):
-            raise ValueError("This MQTT device already has a companion")
-        now = self.hass.loop.time()
-        for port in self.ports.values():
-            port.accumulator.update(None, now)
-        await self.async_flush()
-        if self.storage_error is not None:
-            error = self.storage_error
-            self._reconcile()
-            raise StorageError(error)
-        self.hass.config_entries.async_update_entry(
-            self.entry,
-            unique_id=unique_id,
-            data={
-                **self.entry.data,
-                CONF_SOURCE_DEVICE: device.id,
-                CONF_SOURCE_CONFIG_ENTRY: device.config_entry_id,
-            },
-        )
-        self._reconcile()
+        async with self._configuration_lock:
+            device = next(
+                (item for item in candidate_devices(self.hass) if item.id == device_id), None
+            )
+            if device is None:
+                raise ValueError("Select an eligible MQTT device")
+            unique_id = f"{device.config_entry_id}_{device.id}"
+            async with destination_lock(self.hass, unique_id):
+                if destination_conflict(self.hass, unique_id, entry_id=self.entry.entry_id):
+                    raise ValueError("This MQTT device already has a companion or a pending setup")
+                now = self.hass.loop.time()
+                for port in self.ports.values():
+                    port.accumulator.update(None, now)
+                try:
+                    await self._async_commit()
+                    if destination_conflict(self.hass, unique_id, entry_id=self.entry.entry_id):
+                        raise ValueError(
+                            "This MQTT device already has a companion or a pending setup"
+                        )
+                    current = dr.async_get(self.hass).async_get(device_id)
+                    if current is None or current.config_entry_id != device.config_entry_id:
+                        raise ValueError("The selected MQTT device changed during recovery")
+                except StorageError, ValueError:
+                    self._reconcile()
+                    raise
+                self.hass.config_entries.async_update_entry(
+                    self.entry,
+                    unique_id=unique_id,
+                    data={
+                        **self.entry.data,
+                        CONF_SOURCE_DEVICE: device.id,
+                        CONF_SOURCE_CONFIG_ENTRY: device.config_entry_id,
+                    },
+                )
+                self._reconcile()

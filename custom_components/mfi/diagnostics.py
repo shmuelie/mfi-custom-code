@@ -17,6 +17,7 @@ async def async_get_config_entry_diagnostics(
             {
                 "source": port.binding.entity_id,
                 "status": port.reason or "tracking",
+                "source_status": port.source_reason or "available",
                 "excluded": port.binding.excluded,
                 "committed_kwh": str(
                     next(

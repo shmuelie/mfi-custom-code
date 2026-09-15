@@ -21,6 +21,20 @@ _ID = re.compile(r"[0-9a-f]{32}")
 _WRITE_LOCKS: HassKey[dict[str, asyncio.Lock]] = HassKey("mfi_checkpoint_locks")
 
 
+async def _async_complete_io[T](job: asyncio.Future[T]) -> T:
+    """Delay cancellation until executor I/O can no longer outlive its lock."""
+    cancelled = False
+    while not job.done():
+        try:
+            await asyncio.shield(job)
+        except asyncio.CancelledError:
+            cancelled = True
+    result = job.result()
+    if cancelled:
+        raise asyncio.CancelledError
+    return result
+
+
 class StorageError(HomeAssistantError):
     """A checkpoint could not be read, validated, or durably saved."""
 
@@ -149,8 +163,8 @@ class CheckpointStore:
     async def async_load(self) -> Checkpoint:
         try:
             async with self._lock:
-                raw = await self.hass.async_add_executor_job(
-                    partial(load_json, self.path, default=None)
+                raw = await _async_complete_io(
+                    self.hass.async_add_executor_job(partial(load_json, self.path, default=None))
                 )
         except HomeAssistantError as error:
             raise StorageError("Could not read energy checkpoint") from error
@@ -169,14 +183,10 @@ class CheckpointStore:
 
     async def async_save(self, checkpoint: Checkpoint) -> None:
         async with self._lock:
-            write = self.hass.async_add_executor_job(self._save, checkpoint)
-            try:
-                await asyncio.shield(write)
-            except asyncio.CancelledError:
-                # An executor write keeps running; retain its lock until it finishes.
-                await asyncio.shield(write)
-                raise
+            await _async_complete_io(self.hass.async_add_executor_job(self._save, checkpoint))
 
     async def async_remove(self) -> None:
         async with self._lock:
-            await self.hass.async_add_executor_job(partial(self.path.unlink, missing_ok=True))
+            await _async_complete_io(
+                self.hass.async_add_executor_job(partial(self.path.unlink, missing_ok=True))
+            )

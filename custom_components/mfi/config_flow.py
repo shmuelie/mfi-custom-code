@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
 
 from . import MfiConfigEntry
@@ -21,7 +22,14 @@ from .const import (
     DOMAIN,
     MODEL_PORT_COUNTS,
 )
-from .source import candidate_devices, eligible_source, make_binding, source_entries
+from .source import (
+    candidate_devices,
+    destination_conflict,
+    destination_lock,
+    eligible_source,
+    make_binding,
+    source_entries,
+)
 from .storage import Checkpoint, CheckpointStore, StorageError
 
 _LOGGER = logging.getLogger(__name__)
@@ -116,32 +124,10 @@ class MfiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             elif not excluded <= {entity.id for entity in sources}:
                 errors[CONF_EXCLUDED] = "invalid_source"
             else:
-                self._bootstrap = CheckpointStore(self.hass, self._storage_id)
-                checkpoint = Checkpoint(
-                    self._storage_id,
-                    0,
-                    tuple(make_binding(entity, entity.id in excluded) for entity in sources),
-                )
                 try:
-                    self._bootstrap_task = self.hass.async_create_task(
-                        self._bootstrap.async_save(checkpoint), "mFi initial checkpoint"
-                    )
-                    await asyncio.shield(self._bootstrap_task)
+                    return await self._async_create_companion(device, sources, excluded)
                 except StorageError:
                     errors["base"] = "storage_error"
-                else:
-                    if self._aborted:
-                        return self.async_abort(reason="setup_cancelled")
-                    self._bootstrap = None
-                    return self.async_create_entry(
-                        title=device.name_by_user or device.name or "mFi",
-                        data={
-                            CONF_SOURCE_DEVICE: device.id,
-                            CONF_SOURCE_CONFIG_ENTRY: device.config_entry_id,
-                            CONF_STORAGE_ID: self._storage_id,
-                            CONF_FRESHNESS: True,
-                        },
-                    )
         fields: dict[vol.Marker, object] = {
             vol.Required(CONF_FRESHNESS, default=False): bool,
             vol.Optional(CONF_EXCLUDED, default=[]): _multi_select(
@@ -163,6 +149,42 @@ class MfiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "model": device.model or device.model_id or "Unknown",
             },
         )
+
+    async def _async_create_companion(
+        self, device: dr.DeviceEntry, sources: list[er.RegistryEntry], excluded: set[str]
+    ) -> config_entries.ConfigFlowResult:
+        unique_id = f"{device.config_entry_id}_{device.id}"
+        async with destination_lock(self.hass, unique_id):
+            await self.async_set_unique_id(unique_id)
+            if reason := destination_conflict(self.hass, unique_id, flow_id=self.flow_id):
+                return self.async_abort(reason=reason)
+            self._bootstrap = CheckpointStore(self.hass, self._storage_id)
+            checkpoint = Checkpoint(
+                self._storage_id,
+                0,
+                tuple(make_binding(entity, entity.id in excluded) for entity in sources),
+            )
+            self._bootstrap_task = self.hass.async_create_task(
+                self._bootstrap.async_save(checkpoint), "mFi initial checkpoint"
+            )
+            await asyncio.shield(self._bootstrap_task)
+            if self._aborted:
+                return self.async_abort(reason="setup_cancelled")
+            if reason := destination_conflict(self.hass, unique_id, flow_id=self.flow_id):
+                return self.async_abort(reason=reason)
+            current = dr.async_get(self.hass).async_get(device.id)
+            if current is None or current.config_entry_id != device.config_entry_id:
+                return self.async_abort(reason="device_removed")
+            self._bootstrap = None
+            return self.async_create_entry(
+                title=device.name_by_user or device.name or "mFi",
+                data={
+                    CONF_SOURCE_DEVICE: device.id,
+                    CONF_SOURCE_CONFIG_ENTRY: device.config_entry_id,
+                    CONF_STORAGE_ID: self._storage_id,
+                    CONF_FRESHNESS: True,
+                },
+            )
 
     @callback
     def async_remove(self) -> None:

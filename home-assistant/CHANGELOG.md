@@ -18,6 +18,16 @@ Initial, locally developed energy-companion MVP:
   explicit source commit, with independent version checks, provenance, checksums,
   original bundled branding, and local distribution tests.
 
+### Fixed
+
+- Coordinate setup and device recovery so stale confirmations or concurrent
+  recovery cannot replace another companion or remove its saved energy.
+- Preserve file-operation ordering through repeated task cancellation.
+- Acknowledge each options change against its own committed snapshot instead of
+  rolling it back after an unrelated later save failure.
+- Preserve excluded/disabled source identity safeguards during replacement
+  discovery, including partially discovered multi-port devices.
+
 Production publisher/history audits, isolated HACS installation and lifecycle
 acceptance, creation of the public distribution repository, and publication
 remain pending separate evidence and authorization.

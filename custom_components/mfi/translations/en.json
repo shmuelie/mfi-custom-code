@@ -27,6 +27,7 @@
       "mqtt_required": "Configure Home Assistant's MQTT integration first.",
       "no_devices": "No compatible mFi MQTT power sensors were found. Wait for MQTT discovery and check sensor metadata.",
       "already_configured": "This device already has an mFi energy companion.",
+      "already_in_progress": "Setup for this device is already in progress. Finish or cancel it before recovering an existing companion onto this device.",
       "device_removed": "The selected MQTT device was removed.",
       "ambiguous_sources": "More power sources were found than physical ports. Resolve obsolete MQTT discovery entries before setup; do not delete broker records without approval.",
       "setup_cancelled": "Setup was canceled."
@@ -65,7 +66,7 @@
     },
     "error": {
       "storage_error": "The changes could not be committed. Check storage and the Repairs notice before retrying.",
-      "invalid_source": "Choose an eligible unbound source on this device or a valid counter. A replacement device must not already have another companion.",
+      "invalid_source": "Choose an eligible unbound source on this device or a valid counter. A replacement device must not already have another companion or a pending setup. Cancel its pending Add Integration flow before recovering an existing companion.",
       "confirmation_required": "Confirm the physical device before changing its source."
     },
     "abort": {

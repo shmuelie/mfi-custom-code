@@ -101,11 +101,18 @@ The integration's options menu offers **exclude**, **rebind**, **ignore**, and
 **Recover after an upstream device identity change**. A confirmed rebind
 preserves the energy total and ignores the old registry source so it is not
 enrolled again. Do not delete a companion merely to resolve a missing source.
+Unavailable or disabled source identities still take part in ambiguity detection,
+even when their counters are excluded. A new MQTT identity competing with one
+of those bindings requires explicit reconciliation, not a new enabled counter.
 
 If a hostname change creates a replacement MQTT device identity, choose
 **Recover after an upstream device identity change**, confirm that it is the
 same physical device, and select the replacement MQTT device. That device
-cannot already belong to another companion. Existing energy sensor IDs and
+cannot already belong to another companion or have a pending Add Integration
+flow. Cancel that pending setup before using recovery. Creation and recovery
+coordinate destination ownership, including rechecking it after checkpoint
+writes; a stale confirmation never replaces an established companion.
+Existing energy sensor IDs and
 totals are preserved, but each counter stays unavailable until explicitly
 mapped to its replacement power source using **Rebind**. Recovery does not
 automatically match ports by label or infer energy across the gap.
@@ -121,7 +128,12 @@ sample from availability alone.
 Totals and bindings are stored in HA's private
 `.storage/mfi_energy.<storage_id>` checkpoints. Metadata and energy snapshots
 share a serialized writer using atomic `save_json` writes rather than treating
-`Store.async_save()` as a commit acknowledgement. Back up the entire HA
+`Store.async_save()` as a commit acknowledgement. Repeated cancellation does not
+release the file-operation lock while an executor write or removal is running.
+Options are acknowledged against the snapshot containing that change: if it
+commits, a later telemetry/metadata save failure can suspend reporting but does
+not undo the committed option or report that option as unsuccessful.
+Back up the entire HA
 configuration, including config entries and these files, as a consistent set.
 Do not edit, delete, or initialize missing checkpoints to zero. A missing,
 corrupt, unsupported-version, or unwritable checkpoint needs a visible repair
