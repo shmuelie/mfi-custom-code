@@ -23,6 +23,8 @@ from .const import (
     MODEL_PORT_COUNTS,
 )
 from .source import (
+    RuntimeChangedError,
+    SourceManager,
     candidate_devices,
     destination_conflict,
     destination_lock,
@@ -210,10 +212,15 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     def entry(self) -> MfiConfigEntry:
         return self.config_entry
 
+    def _manager(self) -> SourceManager | None:
+        if not hasattr(self.entry, "runtime_data"):
+            return None
+        return self.entry.runtime_data
+
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        if not hasattr(self.entry, "runtime_data"):
+        if self._manager() is None:
             return self.async_abort(reason="not_loaded")
         return self.async_show_menu(
             step_id="init", menu_options=["exclude", "rebind", "ignore", "device"]
@@ -222,11 +229,14 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     async def async_step_exclude(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        manager = self.entry.runtime_data
+        if (manager := self._manager()) is None:
+            return self.async_abort(reason="not_loaded")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 await manager.async_set_exclusions(set(user_input.get(CONF_EXCLUDED, [])))
+            except RuntimeChangedError:
+                return self.async_abort(reason="runtime_changed")
             except (StorageError, ValueError) as error:
                 errors["base"] = (
                     "storage_error" if isinstance(error, StorageError) else "invalid_source"
@@ -253,11 +263,14 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     async def async_step_rebind(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        manager = self.entry.runtime_data
+        if (manager := self._manager()) is None:
+            return self.async_abort(reason="not_loaded")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 await manager.async_rebind(user_input["binding"], user_input["source"])
+            except RuntimeChangedError:
+                return self.async_abort(reason="runtime_changed")
             except (StorageError, ValueError) as error:
                 errors["base"] = (
                     "storage_error" if isinstance(error, StorageError) else "invalid_source"
@@ -288,11 +301,14 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     async def async_step_ignore(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        manager = self.entry.runtime_data
+        if (manager := self._manager()) is None:
+            return self.async_abort(reason="not_loaded")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
                 await manager.async_ignore_sources(set(user_input.get("ignored", [])))
+            except RuntimeChangedError:
+                return self.async_abort(reason="runtime_changed")
             except (StorageError, ValueError) as error:
                 errors["base"] = (
                     "storage_error" if isinstance(error, StorageError) else "invalid_source"
@@ -323,15 +339,17 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     async def async_step_device(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
+        if (manager := self._manager()) is None:
+            return self.async_abort(reason="not_loaded")
         errors: dict[str, str] = {}
         if user_input is not None:
             if not user_input.get("same_device"):
                 errors["same_device"] = "confirmation_required"
             else:
                 try:
-                    await self.entry.runtime_data.async_change_device(
-                        user_input[CONF_SOURCE_DEVICE]
-                    )
+                    await manager.async_change_device(user_input[CONF_SOURCE_DEVICE])
+                except RuntimeChangedError:
+                    return self.async_abort(reason="runtime_changed")
                 except (StorageError, ValueError) as error:
                     errors["base"] = (
                         "storage_error" if isinstance(error, StorageError) else "invalid_source"

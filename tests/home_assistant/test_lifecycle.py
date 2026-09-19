@@ -7,6 +7,8 @@ from unittest.mock import patch
 import pytest
 from homeassistant.helpers import entity_registry as er
 
+from custom_components.mfi.const import CONF_SOURCE_DEVICE
+from custom_components.mfi.source import destination_lock
 from custom_components.mfi.storage import StorageError
 
 
@@ -251,3 +253,155 @@ async def test_suspended_binding_blocks_ambiguous_identity_enrollment(
     assert manager.ambiguous
     assert len(manager.ports) == 1
     assert not er.async_entries_for_config_entry(registry, entry.entry_id)
+
+
+async def test_reload_drains_recovery_and_rejects_queued_options(
+    isolated_hass, create_mqtt_device, setup_companion
+):
+    original = await create_mqtt_device()
+    entry = await setup_companion(original)
+    manager = entry.runtime_data
+    key = next(iter(manager.ports))
+    manager.ports[key].accumulator.total = Decimal("1")
+    await manager.async_flush()
+    destination = await create_mqtt_device(device_id="replacement")
+    recovery_flow = await isolated_hass.config_entries.options.async_init(entry.entry_id)
+    recovery_flow = await isolated_hass.config_entries.options.async_configure(
+        recovery_flow["flow_id"], {"next_step_id": "device"}
+    )
+    exclusion_flow = await isolated_hass.config_entries.options.async_init(entry.entry_id)
+    exclusion_flow = await isolated_hass.config_entries.options.async_configure(
+        exclusion_flow["flow_id"], {"next_step_id": "exclude"}
+    )
+    gate = destination_lock(isolated_hass, f"{manager.source_config_entry_id}_{destination.id}")
+    await gate.acquire()
+    stopping = asyncio.Event()
+    stop = manager.async_stop
+
+    async def observed_stop():
+        stopping.set()
+        await stop()
+
+    with patch.object(manager, "async_stop", new=observed_stop):
+        recovering = asyncio.create_task(
+            isolated_hass.config_entries.options.async_configure(
+                recovery_flow["flow_id"],
+                {CONF_SOURCE_DEVICE: destination.id, "same_device": True},
+            )
+        )
+        await asyncio.sleep(0)
+        assert manager._configuration_lock.locked()
+        excluding = asyncio.create_task(
+            isolated_hass.config_entries.options.async_configure(
+                exclusion_flow["flow_id"], {"excluded_sources": [key]}
+            )
+        )
+        await asyncio.sleep(0)
+        unloading = asyncio.create_task(isolated_hass.config_entries.async_unload(entry.entry_id))
+        try:
+            await asyncio.wait_for(stopping.wait(), 5)
+            await asyncio.sleep(0)
+        finally:
+            gate.release()
+        recovery_result, exclusion_result, unloaded = await asyncio.gather(
+            recovering, excluding, unloading
+        )
+    assert unloaded
+    assert recovery_result["type"] == "abort"
+    assert exclusion_result["type"] == "abort"
+    assert entry.data[CONF_SOURCE_DEVICE] == original.id
+    assert await isolated_hass.config_entries.async_setup(entry.entry_id)
+    await isolated_hass.async_block_till_done()
+    current = entry.runtime_data
+    assert current is not manager
+    current.ports[key].accumulator.total = Decimal("8.5")
+    await current.async_flush()
+    assert not current.ports[key].binding.excluded
+    assert await isolated_hass.config_entries.async_reload(entry.entry_id)
+    assert entry.runtime_data.committed.ports[0].total >= Decimal("8.5")
+    assert not entry.runtime_data.committed.ports[0].excluded
+
+
+@pytest.mark.parametrize("operation", ["exclude", "ignore", "rebind", "device", "flush"])
+async def test_retired_manager_rejects_all_mutations(
+    isolated_hass, create_mqtt_device, setup_companion, operation
+):
+    device = await create_mqtt_device()
+    entry = await setup_companion(device)
+    retired = entry.runtime_data
+    key = next(iter(retired.ports))
+    assert await isolated_hass.config_entries.async_reload(entry.entry_id)
+    current = entry.runtime_data
+    current.ports[key].accumulator.total = Decimal("8.5")
+    await current.async_flush()
+    checkpoint = await current.store.async_load()
+    with pytest.raises(ValueError, match="runtime|stopping"):
+        if operation == "exclude":
+            await retired.async_set_exclusions({key})
+        elif operation == "ignore":
+            await retired.async_ignore_sources(set())
+        elif operation == "rebind":
+            await retired.async_rebind(key, device.sources[0].entity_id)
+        elif operation == "device":
+            await retired.async_change_device(device.id)
+        else:
+            await retired.async_flush()
+    assert await current.store.async_load() == checkpoint
+
+
+@pytest.mark.parametrize("fail_first_save", [False, True])
+async def test_stop_settles_in_flight_configuration_before_final_snapshot(
+    isolated_hass, create_mqtt_device, setup_companion, fail_first_save
+):
+    entry = await setup_companion(await create_mqtt_device())
+    manager = entry.runtime_data
+    key = next(iter(manager.ports))
+    started = asyncio.Event()
+    release = asyncio.Event()
+    save = manager.store.async_save
+    writes = 0
+
+    async def delayed_first_save(snapshot):
+        nonlocal writes
+        writes += 1
+        if writes == 1:
+            started.set()
+            await release.wait()
+            if fail_first_save:
+                raise StorageError("Transient write failure")
+        await save(snapshot)
+
+    with patch.object(manager.store, "async_save", side_effect=delayed_first_save):
+        configuring = asyncio.create_task(manager.async_set_exclusions({key}))
+        await asyncio.wait_for(started.wait(), 5)
+        stopping = asyncio.create_task(manager.async_stop())
+        try:
+            await asyncio.sleep(0)
+            assert not stopping.done()
+        finally:
+            release.set()
+        if fail_first_save:
+            with pytest.raises(StorageError):
+                await configuring
+        else:
+            await configuring
+        await stopping
+    stored = await manager.store.async_load()
+    assert stored.ports[0].excluded is not fail_first_save
+    assert manager.ports[key].binding.excluded is not fail_first_save
+    assert stored == manager.committed
+    assert manager.storage_error is None
+
+
+@pytest.mark.parametrize("step", ["exclude", "ignore", "rebind", "device"])
+async def test_open_options_abort_after_runtime_is_unloaded(
+    isolated_hass, create_mqtt_device, setup_companion, step
+):
+    entry = await setup_companion(await create_mqtt_device())
+    flow = await isolated_hass.config_entries.options.async_init(entry.entry_id)
+    assert await isolated_hass.config_entries.async_unload(entry.entry_id)
+    result = await isolated_hass.config_entries.options.async_configure(
+        flow["flow_id"], {"next_step_id": step}
+    )
+    assert result["type"] == "abort"
+    assert result["reason"] == "not_loaded"

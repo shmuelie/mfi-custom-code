@@ -18,6 +18,9 @@ Peer-review hardening coordinates destination ownership across setup/recovery,
 holds file-operation locks through repeated cancellation, acknowledges options
 against their specific checkpoint, and evaluates source identity availability
 independently of exclusion/disabled accounting status.
+Runtime retirement also drains active configuration before the final checkpoint
+and rejects waiting operations from that lifecycle. Unignore changes cannot
+trigger source enrollment before their checkpoint commits.
 
 Automated coverage exercises actual HA MQTT sensor/expiration code with a
 mocked transport, Recorder energy sum statistics, cancellation-safe checkpoint

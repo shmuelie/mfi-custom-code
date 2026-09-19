@@ -71,6 +71,7 @@
     },
     "abort": {
       "not_loaded": "Load the integration successfully before changing its options.",
+      "runtime_changed": "The integration stopped or reloaded while this request was waiting. Reopen Configure after it has loaded; the stale request was not applied.",
       "no_replacements": "No unbound power sources are available on this device."
     }
   },

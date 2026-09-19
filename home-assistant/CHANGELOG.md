@@ -27,6 +27,10 @@ Initial, locally developed energy-companion MVP:
   rolling it back after an unrelated later save failure.
 - Preserve excluded/disabled source identity safeguards during replacement
   discovery, including partially discovered multi-port devices.
+- Drain in-flight configuration before shutdown and reject queued or retired
+  runtime operations so they cannot overwrite newer counters after reload.
+- Keep unignored sources out of enrollment until their metadata commits, leaving
+  a consistent, retryable checkpoint when an unignore save fails.
 
 Production publisher/history audits, isolated HACS installation and lifecycle
 acceptance, creation of the public distribution repository, and publication

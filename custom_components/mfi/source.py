@@ -2,7 +2,8 @@
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -42,6 +43,10 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 _DESTINATION_LOCKS: HassKey[dict[str, asyncio.Lock]] = HassKey("mfi_destination_locks")
+
+
+class RuntimeChangedError(ValueError):
+    """An operation belongs to a stopping or replaced companion runtime."""
 
 
 def destination_lock(hass: HomeAssistant, unique_id: str) -> asyncio.Lock:
@@ -169,6 +174,7 @@ class SourceManager:
         self._commit_waiters: list[asyncio.Future[StorageError | None]] = []
         self._configuration_lock = asyncio.Lock()
         self._stopping = False
+        self._lifecycle = 0
 
     @property
     def source_device_id(self) -> str:
@@ -177,6 +183,23 @@ class SourceManager:
     @property
     def source_config_entry_id(self) -> str:
         return str(self.entry.data[CONF_SOURCE_CONFIG_ENTRY])
+
+    def _ensure_current(self) -> None:
+        if getattr(self.entry, "runtime_data", None) is not self:
+            raise RuntimeChangedError("The mFi runtime has changed; reopen its configuration")
+
+    def _ensure_configurable(self, lifecycle: int) -> None:
+        self._ensure_current()
+        if self._stopping or lifecycle != self._lifecycle:
+            raise RuntimeChangedError("The mFi runtime is stopping; reopen its configuration")
+
+    @asynccontextmanager
+    async def _configuration(self) -> AsyncIterator[int]:
+        lifecycle = self._lifecycle
+        self._ensure_configurable(lifecycle)
+        async with self._configuration_lock:
+            self._ensure_configurable(lifecycle)
+            yield lifecycle
 
     @callback
     def async_subscribe(self, listener: Callable[[], None]) -> Callable[[], None]:
@@ -189,6 +212,7 @@ class SourceManager:
             listener()
 
     async def async_start(self) -> None:
+        self._ensure_current()
         self._stopping = False
         self._unsubs.extend(
             [
@@ -219,15 +243,19 @@ class SourceManager:
         await self.async_stop()
 
     async def async_stop(self) -> None:
+        if getattr(self.entry, "runtime_data", None) is not self:
+            return
         if not self._stopping:
             self._stopping = True
+            self._lifecycle += 1
             self._unsubscribe()
             now = self.hass.loop.time()
             for port in self.ports.values():
                 port.accumulator.update(None, now)
                 port.reason = "stopped"
                 port.source_reason = "stopped"
-        await self.async_flush()
+        async with self._configuration_lock:
+            await self.async_flush()
 
     @callback
     def _schedule_reconcile(self) -> None:
@@ -258,6 +286,8 @@ class SourceManager:
 
     @callback
     def _state_changed(self, event: Event[EventStateChangedData]) -> None:
+        if self._stopping:
+            return
         for port in self.ports.values():
             if port.binding.entity_id == event.data["entity_id"]:
                 self._update_port(port, event.data["new_state"], self.hass.loop.time())
@@ -348,10 +378,12 @@ class SourceManager:
                 port.reason = "missing"
                 port.source_reason = "missing"
         bound = {port.binding.registry_id for port in self.ports.values()}
+        # Neither a pending ignore nor an uncommitted unignore permits enrollment.
+        enrollment_ignored = self.ignored_sources | set(self.committed.ignored_sources)
         additions = [
             entity
             for entity in candidates
-            if entity.id not in bound and entity.id not in self.ignored_sources
+            if entity.id not in bound and entity.id not in enrollment_ignored
         ]
         count = (
             MODEL_PORT_COUNTS.get(device.model_id or "")
@@ -363,7 +395,7 @@ class SourceManager:
             orphaned
             or (
                 count is not None
-                and len(bound | {e.id for e in candidates if e.id not in self.ignored_sources})
+                and len(bound | {e.id for e in candidates if e.id not in enrollment_ignored})
                 > count
             )
         )
@@ -470,6 +502,7 @@ class SourceManager:
 
     async def _async_commit(self) -> None:
         """Acknowledge the snapshot containing this request, not a later write."""
+        self._ensure_configurable(self._lifecycle)
         waiter: asyncio.Future[StorageError | None] = self.hass.loop.create_future()
         self._commit_waiters.append(waiter)
         self._request_save()
@@ -477,12 +510,13 @@ class SourceManager:
             raise error
 
     async def async_flush(self) -> None:
+        self._ensure_current()
         self._request_save()
         assert self._save_task is not None
         await asyncio.shield(self._save_task)
 
     async def async_set_exclusions(self, excluded: set[str]) -> None:
-        async with self._configuration_lock:
+        async with self._configuration():
             if not excluded <= set(self.ports):
                 raise ValueError("Unknown port binding")
             previous = {key: port.binding for key, port in self.ports.items()}
@@ -501,7 +535,7 @@ class SourceManager:
                 raise
 
     async def async_rebind(self, binding_id: str, entity_id: str) -> None:
-        async with self._configuration_lock:
+        async with self._configuration():
             entity = er.async_get(self.hass).async_get(entity_id)
             if (
                 binding_id not in self.ports
@@ -542,7 +576,7 @@ class SourceManager:
             self._reconcile()
 
     async def async_ignore_sources(self, registry_ids: set[str]) -> None:
-        async with self._configuration_lock:
+        async with self._configuration():
             bound = {port.binding.registry_id for port in self.ports.values()}
             candidates = {entity.id for entity in source_entries(self.hass, self.source_device_id)}
             if registry_ids & bound or not registry_ids <= candidates | self.ignored_sources:
@@ -559,7 +593,7 @@ class SourceManager:
 
     async def async_change_device(self, device_id: str) -> None:
         """Select the same physical device after its upstream identity changed."""
-        async with self._configuration_lock:
+        async with self._configuration() as lifecycle:
             device = next(
                 (item for item in candidate_devices(self.hass) if item.id == device_id), None
             )
@@ -567,6 +601,7 @@ class SourceManager:
                 raise ValueError("Select an eligible MQTT device")
             unique_id = f"{device.config_entry_id}_{device.id}"
             async with destination_lock(self.hass, unique_id):
+                self._ensure_configurable(lifecycle)
                 if destination_conflict(self.hass, unique_id, entry_id=self.entry.entry_id):
                     raise ValueError("This MQTT device already has a companion or a pending setup")
                 now = self.hass.loop.time()
@@ -574,6 +609,7 @@ class SourceManager:
                     port.accumulator.update(None, now)
                 try:
                     await self._async_commit()
+                    self._ensure_configurable(lifecycle)
                     if destination_conflict(self.hass, unique_id, entry_id=self.entry.entry_id):
                         raise ValueError(
                             "This MQTT device already has a companion or a pending setup"

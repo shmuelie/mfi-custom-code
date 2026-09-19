@@ -133,8 +133,17 @@ release the file-operation lock while an executor write or removal is running.
 Options are acknowledged against the snapshot containing that change: if it
 commits, a later telemetry/metadata save failure can suspend reporting but does
 not undo the committed option or report that option as unsuccessful.
-Back up the entire HA
-configuration, including config entries and these files, as a consistent set.
+Unignoring a source does not enroll it until that change commits; a failed save
+leaves it ignored and can be retried after storage recovers.
+
+Stopping or reloading the integration rejects waiting configuration requests and
+settles in-flight changes before the final checkpoint. Old runtime objects
+cannot write after their replacement starts. If Configure reports that the
+runtime changed, reopen it once the integration has loaded; do not retry using
+the stale form.
+
+Back up the entire HA configuration, including config entries and these files,
+as a consistent set.
 Do not edit, delete, or initialize missing checkpoints to zero. A missing,
 corrupt, unsupported-version, or unwritable checkpoint needs a visible repair
 and backup recovery decision. Reported totals advance only after a successful
