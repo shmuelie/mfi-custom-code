@@ -31,6 +31,10 @@ Initial, locally developed energy-companion MVP:
   runtime operations so they cannot overwrite newer counters after reload.
 - Keep unignored sources out of enrollment until their metadata commits, leaving
   a consistent, retryable checkpoint when an unignore save fails.
+- Stage rebindings and exclusions until their own checkpoint succeeds. Failed
+  changes cannot enroll extra ambiguous counters or alter energy accounting.
+- Keep canceled options serialized until their checkpoint acknowledgement so a
+  later request cannot replace their in-flight metadata.
 
 Production publisher/history audits, isolated HACS installation and lifecycle
 acceptance, creation of the public distribution repository, and publication

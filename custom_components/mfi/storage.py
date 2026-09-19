@@ -21,8 +21,8 @@ _ID = re.compile(r"[0-9a-f]{32}")
 _WRITE_LOCKS: HassKey[dict[str, asyncio.Lock]] = HassKey("mfi_checkpoint_locks")
 
 
-async def _async_complete_io[T](job: asyncio.Future[T]) -> T:
-    """Delay cancellation until executor I/O can no longer outlive its lock."""
+async def async_complete_io[T](job: asyncio.Future[T]) -> T:
+    """Keep a lock until I/O or its commit acknowledgement finishes."""
     cancelled = False
     while not job.done():
         try:
@@ -163,7 +163,7 @@ class CheckpointStore:
     async def async_load(self) -> Checkpoint:
         try:
             async with self._lock:
-                raw = await _async_complete_io(
+                raw = await async_complete_io(
                     self.hass.async_add_executor_job(partial(load_json, self.path, default=None))
                 )
         except HomeAssistantError as error:
@@ -183,10 +183,10 @@ class CheckpointStore:
 
     async def async_save(self, checkpoint: Checkpoint) -> None:
         async with self._lock:
-            await _async_complete_io(self.hass.async_add_executor_job(self._save, checkpoint))
+            await async_complete_io(self.hass.async_add_executor_job(self._save, checkpoint))
 
     async def async_remove(self) -> None:
         async with self._lock:
-            await _async_complete_io(
+            await async_complete_io(
                 self.hass.async_add_executor_job(partial(self.path.unlink, missing_ok=True))
             )

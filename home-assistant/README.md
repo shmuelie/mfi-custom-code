@@ -133,8 +133,14 @@ release the file-operation lock while an executor write or removal is running.
 Options are acknowledged against the snapshot containing that change: if it
 commits, a later telemetry/metadata save failure can suspend reporting but does
 not undo the committed option or report that option as unsuccessful.
-Unignoring a source does not enroll it until that change commits; a failed save
-leaves it ignored and can be retried after storage recovers.
+Exclusions and rebindings are staged separately from the effective source
+bindings. Until a change commits, valid samples continue under the previous
+accounting policy and no new sources are automatically enrolled. A failed save
+therefore neither loses/adds energy from a rejected policy nor leaves new
+provisional bindings behind. Unignoring a source also waits for commitment; a
+failed save leaves it ignored and can be retried after storage recovers.
+Closing or canceling an in-flight options request does not interrupt its atomic
+checkpoint; the request may still commit before the next operation can begin.
 
 Stopping or reloading the integration rejects waiting configuration requests and
 settles in-flight changes before the final checkpoint. Old runtime objects

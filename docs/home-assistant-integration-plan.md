@@ -21,6 +21,9 @@ independently of exclusion/disabled accounting status.
 Runtime retirement also drains active configuration before the final checkpoint
 and rejects waiting operations from that lifecycle. Unignore changes cannot
 trigger source enrollment before their checkpoint commits.
+All options metadata is staged separately from effective bindings. Accounting
+continues under the committed policy and automatic enrollment pauses until the
+configuration checkpoint succeeds; canceled callers also wait for that outcome.
 
 Automated coverage exercises actual HA MQTT sensor/expiration code with a
 mocked transport, Recorder energy sum statistics, cancellation-safe checkpoint

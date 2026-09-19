@@ -36,7 +36,7 @@ from .const import (
 )
 from .energy import EnergyAccumulator, parse_power
 from .repairs import set_issue
-from .storage import Checkpoint, CheckpointStore, PortSnapshot, StorageError
+from .storage import Checkpoint, CheckpointStore, PortSnapshot, StorageError, async_complete_io
 
 if TYPE_CHECKING:
     from . import MfiConfigEntry
@@ -144,6 +144,14 @@ class TrackedPort:
         return self.reason is None and not self.binding.excluded
 
 
+@dataclass(frozen=True)
+class ConfigurationChange:
+    """Metadata staged for a checkpoint, not yet used for accounting."""
+
+    bindings: tuple[PortSnapshot, ...]
+    ignored_sources: frozenset[str]
+
+
 class SourceManager:
     """Own a device's accounting, subscriptions, and single checkpoint writer."""
 
@@ -173,6 +181,7 @@ class SourceManager:
         self._save_again = False
         self._commit_waiters: list[asyncio.Future[StorageError | None]] = []
         self._configuration_lock = asyncio.Lock()
+        self._pending_configuration: ConfigurationChange | None = None
         self._stopping = False
         self._lifecycle = 0
 
@@ -378,12 +387,10 @@ class SourceManager:
                 port.reason = "missing"
                 port.source_reason = "missing"
         bound = {port.binding.registry_id for port in self.ports.values()}
-        # Neither a pending ignore nor an uncommitted unignore permits enrollment.
-        enrollment_ignored = self.ignored_sources | set(self.committed.ignored_sources)
         additions = [
             entity
             for entity in candidates
-            if entity.id not in bound and entity.id not in enrollment_ignored
+            if entity.id not in bound and entity.id not in self.ignored_sources
         ]
         count = (
             MODEL_PORT_COUNTS.get(device.model_id or "")
@@ -395,11 +402,11 @@ class SourceManager:
             orphaned
             or (
                 count is not None
-                and len(bound | {e.id for e in candidates if e.id not in enrollment_ignored})
+                and len(bound | {e.id for e in candidates if e.id not in self.ignored_sources})
                 > count
             )
         )
-        if not self.ambiguous:
+        if not self.ambiguous and self._pending_configuration is None:
             for entity in additions:
                 binding = make_binding(entity)
                 port = TrackedPort(binding, EnergyAccumulator())
@@ -421,15 +428,34 @@ class SourceManager:
             self._request_save()
 
     def _snapshot(self) -> Checkpoint:
+        change = self._pending_configuration
+        bindings = {item.binding_id: item for item in change.bindings} if change else {}
         return replace(
             self.committed.next_generation(
                 tuple(
-                    replace(port.binding, total=port.accumulator.total)
+                    replace(
+                        bindings.get(port.binding.binding_id, port.binding),
+                        total=port.accumulator.total,
+                    )
                     for port in self.ports.values()
                 )
             ),
-            ignored_sources=tuple(sorted(self.ignored_sources)),
+            ignored_sources=tuple(
+                sorted(change.ignored_sources if change else self.ignored_sources)
+            ),
         )
+
+    def _apply_configuration(self, change: ConfigurationChange | None) -> None:
+        if change is None:
+            return
+        self._pending_configuration = None
+        now = self.hass.loop.time()
+        for binding in change.bindings:
+            port = self.ports[binding.binding_id]
+            port.binding = binding
+            if not self._stopping:
+                self._update_port(port, self.hass.states.get(binding.entity_id), now)
+        self.ignored_sources = set(change.ignored_sources)
 
     def _metadata_changed(self) -> bool:
         committed = {port.binding_id: port for port in self.committed.ports}
@@ -461,12 +487,14 @@ class SourceManager:
         while self._save_again:
             self._save_again = False
             waiters, self._commit_waiters = self._commit_waiters, []
+            change = self._pending_configuration
             snapshot = self._snapshot()
             if (
                 snapshot.ports == self.committed.ports
                 and snapshot.ignored_sources == self.committed.ignored_sources
                 and self.storage_error is None
             ):
+                self._apply_configuration(change)
                 self._complete_commits(waiters, None)
                 continue
             try:
@@ -475,6 +503,7 @@ class SourceManager:
                 if self.storage_error is None:
                     _LOGGER.error("Energy checkpoint failed for %s: %s", self.entry.title, error)
                 self.storage_error = str(error)
+                self._pending_configuration = None
                 set_issue(self.hass, self.entry.entry_id, "storage", self.storage_error)
                 self._complete_commits(waiters + self._commit_waiters, error)
                 self._commit_waiters.clear()
@@ -482,11 +511,13 @@ class SourceManager:
                 self._notify()
                 break
             except asyncio.CancelledError:
+                self._pending_configuration = None
                 for waiter in waiters + self._commit_waiters:
                     waiter.cancel()
                 self._commit_waiters.clear()
                 raise
             self.committed = snapshot
+            self._apply_configuration(change)
             self.storage_error = None
             set_issue(self.hass, self.entry.entry_id, "storage", None)
             self._complete_commits(waiters, None)
@@ -506,8 +537,15 @@ class SourceManager:
         waiter: asyncio.Future[StorageError | None] = self.hass.loop.create_future()
         self._commit_waiters.append(waiter)
         self._request_save()
-        if (error := await asyncio.shield(waiter)) is not None:
+        if (error := await async_complete_io(waiter)) is not None:
             raise error
+
+    async def _async_configure(self, change: ConfigurationChange) -> None:
+        self._pending_configuration = change
+        try:
+            await self._async_commit()
+        finally:
+            self._reconcile()
 
     async def async_flush(self) -> None:
         self._ensure_current()
@@ -519,20 +557,15 @@ class SourceManager:
         async with self._configuration():
             if not excluded <= set(self.ports):
                 raise ValueError("Unknown port binding")
-            previous = {key: port.binding for key, port in self.ports.items()}
-            for binding_id, port in self.ports.items():
-                port.binding = replace(port.binding, excluded=binding_id in excluded)
-                self._update_port(
-                    port, self.hass.states.get(port.binding.entity_id), self.hass.loop.time()
+            await self._async_configure(
+                ConfigurationChange(
+                    tuple(
+                        replace(port.binding, excluded=binding_id in excluded)
+                        for binding_id, port in self.ports.items()
+                    ),
+                    frozenset(self.ignored_sources),
                 )
-            self._notify()
-            try:
-                await self._async_commit()
-            except StorageError:
-                for key, binding in previous.items():
-                    self.ports[key].binding = binding
-                self._reconcile()
-                raise
+            )
 
     async def async_rebind(self, binding_id: str, entity_id: str) -> None:
         async with self._configuration():
@@ -553,27 +586,18 @@ class SourceManager:
                     "Replacement must be an unbound power source on the selected device"
                 )
             port = self.ports[binding_id]
-            previous_binding = port.binding
-            previous_ignored = self.ignored_sources.copy()
-            port.accumulator.update(None, self.hass.loop.time())
+            ignored = self.ignored_sources.copy()
             if port.binding.registry_id != entity.id:
-                self.ignored_sources.add(port.binding.registry_id)
-            self.ignored_sources.discard(entity.id)
-            port.binding = replace(
+                ignored.add(port.binding.registry_id)
+            ignored.discard(entity.id)
+            binding = replace(
                 port.binding,
                 registry_id=entity.id,
                 unique_id=entity.unique_id,
                 entity_id=entity.entity_id,
                 name=entity.name or entity.original_name or entity.entity_id,
             )
-            try:
-                await self._async_commit()
-            except StorageError:
-                port.binding = previous_binding
-                self.ignored_sources = previous_ignored
-                self._reconcile()
-                raise
-            self._reconcile()
+            await self._async_configure(ConfigurationChange((binding,), frozenset(ignored)))
 
     async def async_ignore_sources(self, registry_ids: set[str]) -> None:
         async with self._configuration():
@@ -581,15 +605,7 @@ class SourceManager:
             candidates = {entity.id for entity in source_entries(self.hass, self.source_device_id)}
             if registry_ids & bound or not registry_ids <= candidates | self.ignored_sources:
                 raise ValueError("Only unbound sources on this device can be ignored")
-            previous = self.ignored_sources
-            self.ignored_sources = registry_ids
-            try:
-                await self._async_commit()
-            except StorageError:
-                self.ignored_sources = previous
-                self._reconcile()
-                raise
-            self._reconcile()
+            await self._async_configure(ConfigurationChange((), frozenset(registry_ids)))
 
     async def async_change_device(self, device_id: str) -> None:
         """Select the same physical device after its upstream identity changed."""
@@ -604,9 +620,6 @@ class SourceManager:
                 self._ensure_configurable(lifecycle)
                 if destination_conflict(self.hass, unique_id, entry_id=self.entry.entry_id):
                     raise ValueError("This MQTT device already has a companion or a pending setup")
-                now = self.hass.loop.time()
-                for port in self.ports.values():
-                    port.accumulator.update(None, now)
                 try:
                     await self._async_commit()
                     self._ensure_configurable(lifecycle)
