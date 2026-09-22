@@ -1,5 +1,11 @@
 # mFi Home Assistant companion integration plan
 
+**Successor direction:** [Native mFi ownership and port-child plan](home-assistant-native-integration-plan.md).
+The native implementation now coexists with the companion and provides
+mFi-owned sensors and switches under native port children. The document below
+records the companion MVP and its history; native migration is explicit, not a
+side effect of an integration upgrade.
+
 Status: MVP 0.1.0 implemented locally; not deployed or published. Research
 completed September 14, 2026, against Home Assistant 2026.9.2 and HACS 2.0.5,
 with current HACS validation behavior checked separately.
@@ -177,13 +183,13 @@ tracking path. The MQTT dependency orders integration setup, not availability of
 every MQTT entity: late source reconciliation is still required. Do not add a
 broad manifest MQTT discovery subscription or instantiate a polling coordinator.
 
-Device presentation needs explicit care: Home Assistant 2026.9.2 scopes device
-ownership and identifiers to one config entry. Reusing an MQTT identifier does
-not merge an mFi-owned device into the MQTT record. Create one clearly named
-energy-companion device per config entry and expose its source-device reference
-in configuration and diagnostics. Do not move MQTT entities, use deprecated
-ownership-transfer shims, or misrepresent the source as a routing hub with
-`via_device_id`. Verify presentation against the pinned supported HA releases.
+The MVP creates a separate energy-companion device per config entry. Later
+research established that this separation is optional: although reusing device
+identifiers does not merge config-entry ownership, helper entities can attach
+to an existing MQTT device through `entity.device_entry`, as the built-in
+Integral helper does. Do not use deprecated ownership-transfer shims or
+misrepresent physical composition with `via_device_id`. The successor plan
+instead gives mFi ownership of the parent, children, sensors, and switches.
 
 Adding another physical device requires adding/selecting that device once;
 automatic creation applies to all its ports, including subsequently discovered

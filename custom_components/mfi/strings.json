@@ -1,7 +1,25 @@
 {
   "title": "mFi",
+  "entity": {
+    "sensor": {
+      "power": {"name": "Power"},
+      "current": {"name": "Current"},
+      "voltage": {"name": "Voltage"},
+      "energy": {"name": "Energy"}
+    },
+    "switch": {"relay": {"name": "Relay"}}
+  },
   "config": {
+    "flow_title": "{name}",
     "step": {
+      "native": {
+        "title": "Add native mFi device {name}",
+        "description": "This publisher advertises {ports} physical ports. mFi will own their sensors and relay switches under separate port devices. Only continue for a new installation with no existing MQTT/companion counters to preserve. Use the explicit migration workflow for existing installations. Renaming ports in HA will not change hardware labels.",
+        "data": {
+          "confirm_new": "This is a new installation; no legacy entity or energy-history migration is required",
+          "excluded_sources": "Ports excluded from calculated energy"
+        }
+      },
       "user": {
         "title": "Select an existing mFi MQTT device",
         "description": "MQTT keeps ownership of your power sensors and relays. This companion adds energy counters without changing them.",
@@ -24,6 +42,8 @@
       "storage_error": "The initial energy checkpoint could not be saved. Check Home Assistant's storage and logs, then retry."
     },
     "abort": {
+      "invalid_native_descriptor": "The native mFi descriptor is malformed, unsupported, or does not match its topic.",
+      "migration_pending": "This device is reserved by an ownership migration. Resume or roll back that migration instead of creating another entry.",
       "mqtt_required": "Configure Home Assistant's MQTT integration first.",
       "no_devices": "No compatible mFi MQTT power sensors were found. Wait for MQTT discovery and check sensor metadata.",
       "already_configured": "This device already has an mFi energy companion.",
@@ -71,11 +91,16 @@
     },
     "abort": {
       "not_loaded": "Load the integration successfully before changing its options.",
+      "native_mapping": "Native ports use provisioned physical identities. Legacy source rebinding is not available for this device.",
       "runtime_changed": "The integration stopped or reloaded while this request was waiting. Reopen Configure after it has loaded; the stale request was not applied.",
       "no_replacements": "No unbound power sources are available on this device."
     }
   },
   "issues": {
+    "native": {
+      "title": "Native mFi publisher needs attention",
+      "description": "{detail}\n\nCheck the provisioned device identity, publisher version, and MQTT configuration. Control and energy remain unavailable while the contract is invalid or conflicting. Do not reset existing counters to recover."
+    },
     "storage": {
       "title": "mFi energy checkpoint needs attention",
       "description": "{detail}\n\nEnergy reporting is suspended rather than resetting counters or reporting unsaved totals. Check available disk space, permissions, and logs. Restore missing or corrupt checkpoint files from a consistent Home Assistant backup, then reload the integration. Do not replace an existing total with zero."

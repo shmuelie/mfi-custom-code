@@ -11,17 +11,24 @@ from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import selector
+from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 
-from . import MfiConfigEntry
+from . import MfiConfigEntry, migration
 from .const import (
+    CONF_DESCRIPTOR,
     CONF_EXCLUDED,
     CONF_FRESHNESS,
+    CONF_MODE,
+    CONF_PORT_BINDINGS,
     CONF_SOURCE_CONFIG_ENTRY,
     CONF_SOURCE_DEVICE,
     CONF_STORAGE_ID,
     DOMAIN,
+    MODE_NATIVE,
     MODEL_PORT_COUNTS,
 )
+from .mqtt import NativeRuntime
+from .protocol import Descriptor, parse_descriptor
 from .source import (
     RuntimeChangedError,
     SourceManager,
@@ -32,7 +39,7 @@ from .source import (
     make_binding,
     source_entries,
 )
-from .storage import Checkpoint, CheckpointStore, StorageError
+from .storage import Checkpoint, CheckpointStore, PortSnapshot, StorageError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +60,7 @@ def _multi_select(options: dict[str, str]) -> selector.SelectSelector:
 class MfiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """One companion entry per existing MQTT device."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         self._device_id: str | None = None
@@ -61,11 +68,110 @@ class MfiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._bootstrap: CheckpointStore | None = None
         self._bootstrap_task: asyncio.Task[None] | None = None
         self._aborted = False
+        self._native: Descriptor | None = None
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> MfiOptionsFlow:
         return MfiOptionsFlow()
+
+    async def async_step_mqtt(
+        self, discovery_info: MqttServiceInfo
+    ) -> config_entries.ConfigFlowResult:
+        try:
+            self._native = parse_descriptor(discovery_info.payload, discovery_info.topic)
+        except ValueError:
+            return self.async_abort(reason="invalid_native_descriptor")
+        async with destination_lock(self.hass, self._native.device_id):
+            await self.async_set_unique_id(self._native.device_id)
+            self._abort_if_unique_id_configured()
+            try:
+                await migration.async_assert_destination_available(
+                    self.hass, self._native.device_id
+                )
+            except migration.MigrationError:
+                return self.async_abort(reason="migration_pending")
+        self.context["title_placeholders"] = {"name": self._native.name}
+        return await self.async_step_native()
+
+    async def async_step_native(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        assert self._native is not None
+        descriptor = self._native
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if not user_input.get("confirm_new"):
+                errors["confirm_new"] = "confirmation_required"
+            else:
+                excluded = set(user_input.get(CONF_EXCLUDED, []))
+                ports = [port for port in descriptor.ports if "power" in port.capabilities]
+                if not excluded <= {str(port.id) for port in ports}:
+                    errors[CONF_EXCLUDED] = "invalid_source"
+                else:
+                    async with destination_lock(self.hass, descriptor.device_id):
+                        self._abort_if_unique_id_configured()
+                        try:
+                            await migration.async_assert_destination_available(
+                                self.hass, descriptor.device_id
+                            )
+                        except migration.MigrationError:
+                            return self.async_abort(reason="migration_pending")
+                        bindings = {str(port.id): uuid4().hex for port in ports}
+                        snapshot = Checkpoint(
+                            self._storage_id,
+                            0,
+                            tuple(
+                                PortSnapshot(
+                                    bindings[str(port.id)],
+                                    descriptor.unique_id(port.id, "power"),
+                                    descriptor.unique_id(port.id, "power"),
+                                    f"sensor.{descriptor.unique_id(port.id, 'power')}",
+                                    port.name,
+                                    excluded=str(port.id) in excluded,
+                                )
+                                for port in ports
+                            ),
+                        )
+                        self._bootstrap = CheckpointStore(self.hass, self._storage_id)
+                        self._bootstrap_task = self.hass.async_create_task(
+                            self._bootstrap.async_save(snapshot), "mFi native initial checkpoint"
+                        )
+                        try:
+                            await asyncio.shield(self._bootstrap_task)
+                        except StorageError:
+                            errors["base"] = "storage_error"
+                        else:
+                            if self._aborted:
+                                return self.async_abort(reason="setup_cancelled")
+                            self._abort_if_unique_id_configured()
+                            self._bootstrap = None
+                            return self.async_create_entry(
+                                title=descriptor.name,
+                                data={
+                                    CONF_MODE: MODE_NATIVE,
+                                    CONF_DESCRIPTOR: descriptor.as_dict(),
+                                    CONF_STORAGE_ID: self._storage_id,
+                                    CONF_PORT_BINDINGS: bindings,
+                                },
+                            )
+        return self.async_show_form(
+            step_id="native",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("confirm_new", default=False): bool,
+                    vol.Optional(CONF_EXCLUDED, default=[]): _multi_select(
+                        {
+                            str(port.id): port.name
+                            for port in descriptor.ports
+                            if "power" in port.capabilities
+                        }
+                    ),
+                }
+            ),
+            errors=errors,
+            description_placeholders={"name": descriptor.name, "ports": str(len(descriptor.ports))},
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -223,7 +329,12 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
         if self._manager() is None:
             return self.async_abort(reason="not_loaded")
         return self.async_show_menu(
-            step_id="init", menu_options=["exclude", "rebind", "ignore", "device"]
+            step_id="init",
+            menu_options=(
+                ["exclude"]
+                if isinstance(self._manager(), NativeRuntime)
+                else ["exclude", "rebind", "ignore", "device"]
+            ),
         )
 
     async def async_step_exclude(
@@ -265,6 +376,8 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         if (manager := self._manager()) is None:
             return self.async_abort(reason="not_loaded")
+        if isinstance(manager, NativeRuntime):
+            return self.async_abort(reason="native_mapping")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
@@ -303,6 +416,8 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         if (manager := self._manager()) is None:
             return self.async_abort(reason="not_loaded")
+        if isinstance(manager, NativeRuntime):
+            return self.async_abort(reason="native_mapping")
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
@@ -341,6 +456,8 @@ class MfiOptionsFlow(config_entries.OptionsFlow):
     ) -> config_entries.ConfigFlowResult:
         if (manager := self._manager()) is None:
             return self.async_abort(reason="not_loaded")
+        if isinstance(manager, NativeRuntime):
+            return self.async_abort(reason="native_mapping")
         errors: dict[str, str] = {}
         if user_input is not None:
             if not user_input.get("same_device"):

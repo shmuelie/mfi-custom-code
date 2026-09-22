@@ -4,13 +4,20 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import UnitOfEnergy
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfPower,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
+from .entity import NativeEntity
+from .mqtt import NativeRuntime
 from .source import SourceManager
 
 if TYPE_CHECKING:
@@ -21,6 +28,32 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: MfiConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
     manager = entry.runtime_data
+    if isinstance(manager, NativeRuntime):
+        native_entities: list[SensorEntity] = [
+            NativeMeasurement(manager, port.id, role)
+            for port in manager.descriptor.ports
+            for role in port.capabilities
+            if role != "relay"
+        ]
+        added_energy: set[int] = set()
+
+        @callback
+        def add_native_energy() -> None:
+            energy = []
+            for port_id, binding_id in manager.bindings.items():
+                if port_id not in added_energy and any(
+                    port.binding_id == binding_id and not port.excluded
+                    for port in manager.committed.ports
+                ):
+                    energy.append(NativeEnergy(manager, port_id, "energy"))
+                    added_energy.add(port_id)
+            if energy:
+                async_add_entities(energy)
+
+        async_add_entities(native_entities)
+        entry.async_on_unload(manager.async_subscribe(add_native_energy))
+        add_native_energy()
+        return
     added: set[str] = set()
 
     @callback
@@ -95,3 +128,48 @@ class MfiEnergySensor(SensorEntity):
             "source_device_id": self._manager.source_device_id,
             "status": self._manager.storage_error or port.reason or "tracking",
         }
+
+
+class NativeMeasurement(NativeEntity, SensorEntity):
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, runtime: NativeRuntime, port_id: int, role: str) -> None:
+        super().__init__(runtime, port_id, role)
+        self._attr_device_class = {
+            "power": SensorDeviceClass.POWER,
+            "current": SensorDeviceClass.CURRENT,
+            "voltage": SensorDeviceClass.VOLTAGE,
+        }[role]
+        self._attr_native_unit_of_measurement = {
+            "power": UnitOfPower.WATT,
+            "current": UnitOfElectricCurrent.AMPERE,
+            "voltage": UnitOfElectricPotential.VOLT,
+        }[role]
+        self._attr_suggested_display_precision = 4
+
+    @property
+    def native_value(self) -> Decimal | None:
+        value = self.runtime.role_value(self.port_id, self.role)
+        return value if isinstance(value, Decimal) else None
+
+
+class NativeEnergy(NativeEntity, SensorEntity):
+    _attr_state_class = SensorStateClass.TOTAL
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 4
+
+    @property
+    def native_value(self) -> Decimal | None:
+        binding_id = self.runtime.bindings[self.port_id]
+        return next(
+            (port.total for port in self.runtime.committed.ports if port.binding_id == binding_id),
+            None,
+        )
+
+    @property
+    def available(self) -> bool:
+        return (
+            self.runtime.storage_error is None
+            and self.runtime.ports[self.runtime.bindings[self.port_id]].available
+        )

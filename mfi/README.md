@@ -30,6 +30,15 @@ The existing `power()`, `current()`, `voltage()`, and `power_factor()` getters
 retain their legacy behavior for compatibility, including zero on missing
 files. Do not use those getters to establish successful-read freshness.
 
+`sensor::relay_checked()` returns `relay_read_result` (`bool` or
+`sensor_read_error`), accepting only complete finite numeric 0/1 readings.
+Missing or malformed data is not OFF. `relay_checked(bool)` performs a checked
+write without creating a missing hardware path and returns an optional
+`sensor_write_error` (`open_failed` or `write_failed`): empty means the one-byte
+write and close succeeded. Successful writing alone does
+not confirm the hardware state: read back before acknowledging a relay command.
+Legacy `relay()`/`relay(bool)` behavior is unchanged.
+
 ## Dependencies
 
 - No external dependencies.

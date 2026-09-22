@@ -14,9 +14,10 @@ constexpr std::size_t pending_limit = 256;
 }
 
 MQTTConnector::MQTTConnector(const std::string& server, int port,
-	const std::string& username, const std::string& password, const std::string& unique_id)
+	const std::string& username, const std::string& password, const std::string& unique_id,
+	mqtt_session_options session_options)
 	: m_server(server), m_port(port), m_username(username), m_password(password),
-	  m_unique_id(getValidHassString(unique_id)), m_mosquitto(nullptr),
+	  m_unique_id(getValidHassString(unique_id)), m_session_options(std::move(session_options)), m_mosquitto(nullptr),
 	  m_logger(spdlog::default_logger()), m_backoff_state(0), m_slept_for(0)
 {
 	if (int rc = mosquitto_lib_init(); rc != MOSQ_ERR_SUCCESS) {
@@ -38,7 +39,17 @@ MQTTConnector::~MQTTConnector()
 
 std::string MQTTConnector::getAvailabilityTopic() const
 {
+	if (!m_session_options.availability_topic.empty()) {
+		return m_session_options.availability_topic;
+	}
 	return "home/" + getId() + "/availability";
+}
+
+json MQTTConnector::availabilityPayload(bool online) const {
+	if (m_session_options.new_session_id) {
+		return {{"session_id", m_session_id}, {"state", online ? "online" : "offline"}};
+	}
+	return {{"availability", online ? "online" : "offline"}};
 }
 
 std::vector<std::shared_ptr<DeviceBase>> MQTTConnector::devices() const
@@ -56,6 +67,9 @@ bool MQTTConnector::connect()
 {
 	abortConnection();
 	m_stopping = false;
+	if (m_session_options.new_session_id) {
+		m_session_id = m_session_options.new_session_id();
+	}
 	m_mosquitto = mosquitto_new(m_unique_id.c_str(), true, this);
 	if (!m_mosquitto) {
 		LOG_ERROR("Failed to create MQTT client");
@@ -111,7 +125,7 @@ bool MQTTConnector::shutdown(std::chrono::milliseconds timeout)
 		abortConnection();
 		return true;
 	}
-	auto message = publishMessage(getAvailabilityTopic(), {{"availability", "offline"}});
+	auto message = publishMessage(getAvailabilityTopic(), availabilityPayload(false));
 	auto deadline = std::chrono::steady_clock::now() + timeout;
 	while (message.accepted() && publicationState(message) == publication_state::pending
 		&& std::chrono::steady_clock::now() < deadline) {
@@ -183,7 +197,7 @@ void MQTTConnector::beginSession()
 	m_just_connected = false;
 	m_backoff_state = 0;
 	m_slept_for = 0;
-	m_offline = publishMessage(getAvailabilityTopic(), {{"availability", "offline"}});
+	m_offline = publishMessage(getAvailabilityTopic(), availabilityPayload(false));
 	if (!m_offline->accepted()) {
 		throw std::runtime_error("Initial MQTT offline publication rejected");
 	}
@@ -217,7 +231,7 @@ void MQTTConnector::serviceSession()
 	}
 	if (ready && !m_online && m_offline
 		&& publicationState(*m_offline) == publication_state::complete) {
-		auto online = publishMessage(getAvailabilityTopic(), {{"availability", "online"}});
+		auto online = publishMessage(getAvailabilityTopic(), availabilityPayload(true));
 		if (online.accepted()) {
 			m_online = online;
 		}
@@ -339,7 +353,7 @@ publication_state MQTTConnector::publicationState(publication const& message) co
 
 bool MQTTConnector::publishLWT()
 {
-	std::string body = R"({"availability":"offline"})";
+	std::string body = availabilityPayload(false).dump();
 	int rc = mosquitto_will_set(m_mosquitto, getAvailabilityTopic().c_str(),
 		static_cast<int>(body.size()), body.data(), 1, true);
 	if (rc != MOSQ_ERR_SUCCESS) {
@@ -389,13 +403,18 @@ void MQTTConnector::messageCallback(mosquitto*, void* obj, const mosquitto_messa
 	}
 	try {
 		std::string topic(message->topic);
-		std::string payload;
-		if (message->payload && message->payloadlen > 0) {
-			payload.assign(static_cast<char const*>(message->payload), message->payloadlen);
-		}
 		for (auto const& device : self.devices()) {
-			if (topic.starts_with("home/" + device->getFullId() + "/")) {
-				device->processMessage(topic, payload);
+			if (device->acceptsMessage(topic)) {
+				if (message->payloadlen < 0
+					|| static_cast<std::size_t>(message->payloadlen) > device->messagePayloadLimit()) {
+					self.LOG_WARN("MQTT command exceeds device payload limit");
+					continue;
+				}
+				std::string payload;
+				if (message->payload && message->payloadlen > 0) {
+					payload.assign(static_cast<char const*>(message->payload), message->payloadlen);
+				}
+				device->processMessage(topic, payload, message->retain);
 			}
 		}
 	}

@@ -1,4 +1,5 @@
 #include "mfi_mqtt_client/device.h"
+#include "mfi_mqtt_client/identity.h"
 
 using namespace mfi;
 using namespace mfi_mqtt_client;
@@ -10,11 +11,13 @@ device::device(
 	int port,
 	string const& username,
 	string const& password,
-	sensor_policy policy) :
+	sensor_policy policy, string const& native_id) :
 	DeviceBase(board.hostname(), board.hostname()),
-	_ports(),
+	_connector(make_shared<MQTTConnector>(server, port, username, password,
+		native_id.empty() ? board.hostname() : native_id,
+		native_id.empty() ? mqtt_session_options{} :
+			mqtt_session_options{"mfi/" + native_id + "/availability", random_uuid})),
 	_board(board),
-	_connector(make_shared<MQTTConnector>(server, port, username, password, board.hostname())),
 	_policy(policy) {
 }
 
@@ -66,4 +69,17 @@ bool device::shutdown() {
 
 void device::processMessages(int timeout) {
 	_connector->processMessages(timeout);
+}
+
+json device::migration_map(string const& native_id) const {
+	if (!valid_uuid(native_id) || _ports.empty() || _ports.size() != _board.sensors().size()) {
+		throw invalid_argument("Migration export requires an initialized supported legacy device and valid native device_id");
+	}
+	json ports = json::array();
+	for (auto const& port : _ports) {
+		ports.push_back(port->migration_map());
+	}
+	return {{"schema_version", 1}, {"device_id", native_id},
+		{"legacy_device_id", getId()}, {"legacy_full_id", getFullId()},
+		{"legacy_availability_topic", _connector->getAvailabilityTopic()}, {"ports", ports}};
 }

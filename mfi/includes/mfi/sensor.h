@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdint>
 #include <variant>
+#include <optional>
 
 namespace mfi {
 	enum class sensor_read_error {
@@ -13,6 +14,11 @@ namespace mfi {
 	};
 
 	using sensor_read_result = std::variant<double, sensor_read_error>;
+	using relay_read_result = std::variant<bool, sensor_read_error>;
+	enum class sensor_write_error {
+		open_failed,
+		write_failed
+	};
 	char const* describe(sensor_read_error error) noexcept;
 
 	/**
@@ -54,6 +60,8 @@ namespace mfi {
 		 * @brief Gets a value indicating whether the port is on or off.
 		*/
 		bool relay() const;
+		relay_read_result relay_checked() const;
+		std::optional<sensor_write_error> relay_checked(bool value) const;
 		/**
 		 * @brief Sets a value indicating whether the port is on or off.
 		 * @param value A value indicating whether the port is on or off.

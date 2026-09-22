@@ -1,12 +1,20 @@
-# mFi Home Assistant energy companion
+# mFi Home Assistant integration
 
-An MQTT companion for the mFi devices exposed by
+Native MQTT integration and a backwards-compatible energy companion for devices exposed by
 [`mfi-mqtt-client`](https://github.com/shmuelie/mfi-custom-code/tree/main/mfi-mqtt-client).
-It derives one cumulative energy sensor per eligible power-measuring port.
-Home Assistant's MQTT integration continues to own the original sensors,
-relays, discovery, availability, connection, and credentials.
+Native mode owns power, current, voltage, relay, and calculated energy, with
+one native child device per physical port. Companion mode retains MQTT ownership
+of the original sensors and relays. Both use Home Assistant's configured MQTT
+connection; no extra credentials or separate MQTT client are needed.
 
-**Status: 0.1.0 is an unpublished MVP.** Distribution preparation is local only.
+**Status: 0.1.0 is an unpublished local implementation.** Native and companion
+modes, publisher protocol, and administrative migration services are implemented;
+production device/flash and live HACS acceptance remain pending.
+The [native-ownership plan](https://github.com/shmuelie/mfi-custom-code/blob/main/docs/home-assistant-native-integration-plan.md)
+records the protocol and ownership-migration contracts. Local native-mode
+implementation does not authorize a production cutover; publisher readiness,
+history, broker, and HACS rollout acceptance remain separate gates.
+
 The planned public HACS repository is `shmuelie/mfi-home-assistant`; its existence,
 publication access, and install/update behavior have not been verified. The
 development source remains
@@ -33,7 +41,7 @@ their own matching test-plugin validation as they diverge. Development requires
 Python **3.14.2 or newer in the 3.14 series**. The companion has no third-party
 runtime requirements beyond Home Assistant.
 
-Supported sources are MQTT-owned sensors with power device class, measurement
+Companion sources are MQTT-owned sensors with power device class, measurement
 state class, and W or kW units, belonging to the selected mFi device. Initial
 recognized boards are model IDs `58952` (eight ports) and `58993` (one port).
 An unrecognized model requires explicit selection and eligible power sources;
@@ -64,6 +72,37 @@ Once a complete release has been approved and published, add
 as type **Integration**. Install mFi, restart Home Assistant, and use
 **Settings > Devices & services > Add integration > mFi**.
 
+### New native installations
+
+An upgraded publisher in explicit native mode announces a retained descriptor
+at `mfi/<provisioned-device-id>/config`. Home Assistant discovers the mFi
+integration rather than creating generic MQTT sensors. Confirm only if no
+legacy MQTT entities or companion counters need migration. Creating a new
+native entry does not import existing history or delete legacy discovery.
+
+Each native port has Power, Current, Voltage, Relay, and Energy entities for
+its advertised capabilities. Rename the child device once to change generated
+role names, leaving entity IDs and hardware labels unchanged. Area inheritance
+and port-specific areas/labels are provided by HA's native child-device model.
+Only energy exclusions are exposed in native options; legacy label-based
+source rebinding does not apply to physical port IDs.
+
+Non-retained, session/sequence-validated power reports drive the same durable
+energy accumulator directly. An enabled energy counter can continue while the
+separate Power entity is disabled. A retained descriptor or online notification
+alone never supplies a valid measurement; every restart/reconnect waits for live
+samples. Invalid role results and expired reports suspend their affected values.
+Conflicting publisher sessions block measurement and control until the
+conflict is corrected and the integration reconnects/reloads.
+
+Relay actions publish exactly one non-retained QoS 0 set command and wait up to
+10 seconds for correlated hardware confirmation. There is no optimistic state,
+queued reconnect retry, or automatic toggle replay. A timeout means the
+outcome is uncertain, not that the outlet is OFF or that the command was never
+applied. The integration never switches outlets as a setup test.
+
+### Existing companion installations
+
 Select an existing MQTT source device, review its detected ports, and exclude
 initial power sources that should not receive new counters. Confirm both the
 verified publisher freshness prerequisite and the decision to start new
@@ -80,6 +119,56 @@ For an isolated, local rehearsal only, copy the prepared
 the flat `mfi.zip` **into** that integration directory, not into
 `custom_components/`. Do not apply either procedure to a live installation
 without rollout approval. Back up the complete HA configuration first.
+
+## Explicit legacy-to-native ownership migration
+
+Migration is **not** triggered by installation, discovery, or a config-entry
+schema upgrade. The five `mfi.migration_*` actions require administrator access
+and return a response; use `response_variable` when invoking them from a script.
+Their full input forms are in HA's action UI and `services.yaml`.
+
+First configure the legacy energy companion and resolve missing or ignored
+source bindings. Every physical power port must have a current binding; a port
+without an energy entity must be explicitly excluded. Export the upgraded
+publisher's read-only `--export-migration-map`, validate it against HA and broker
+inventory, and obtain its native descriptor. Provision the device ID once and
+keep the publisher in legacy mode until the approved cutover.
+
+| Action | Inputs and effect |
+|---|---|
+| `mfi.migration_prepare` | Supply `entry_id`, native `descriptor`, publisher `migration_map`, and `mapping` keyed by physical port ID with each role's existing HA entity ID. Returns `journal_id` and the exact inventory/cleanup allowlist. Writes only a local journal, not device/entity/broker changes. |
+| `mfi.migration_quiesce` | Supply `journal_id` and `approve: true`. Flushes/unloads the companion and disables HA's shared MQTT entry, waiting for its persisted restart guard. Every MQTT entity in HA is temporarily affected; the broker keeps running. |
+| `mfi.migration_apply` | Supply `journal_id`, `approve`, `backup_confirmed`, `references_reviewed`, `publisher_native`, and `broker_clean`, all explicit confirmations. While MQTT is durably disabled, transfers unloaded entities first, the parent second, attaches native port children, and retires only the verified empty companion device. |
+| `mfi.migration_finish` | Supply `journal_id`, `approve`, `broker_absent`, and `publisher_native`. Restores shared MQTT, activates the native runtime, and verifies identity/topology/checkpoint invariants. It never sends a relay test command. |
+| `mfi.migration_rollback` | Supply `journal_id`, `approve`, and `publisher_stopped` after both publishers are stopped. Restores registry ownership and the original companion device while preserving the newest energy totals, leaving MQTT disabled at `rollback_ready`. Restore the exact legacy discovery and legacy-only publisher externally, then invoke again with `legacy_restored: true`. |
+
+Between quiesce and apply, the operator separately switches the publisher and
+clears **only** the exported legacy discovery topics after backing them up.
+These actions never publish broker cleanup, write a physical relay, invoke
+`cfgmtd`, change device configuration, or start/stop an external publisher.
+Never clear a wildcard topic tree or delete the HA entry as a workaround.
+
+Preparation reserves the native physical identity against competing discovery.
+A journal is bound to its original entry/storage/parent/entity identities.
+Repeat the interrupted action to resume; do not edit or delete
+`.storage/mfi_migration.<storage_id>`. Setup refuses unfinished migration phases.
+Unexpected user edits, loaded entities, stale inventory, regressed energy,
+missing persistence evidence, or a changed device ID stop the operation with
+a Repairs notice rather than guessing. Allow scheduled HA storage writes to
+complete before retrying a persistence timeout.
+
+The checkpoint and journal never contain broker credentials. Keep their
+identity/topology metadata private and back up the entire HA configuration as a
+consistent set. Rollback preserves latest totals, not the pre-migration value.
+If HA can no longer restore the retired companion's original device ID, rollback
+stops for explicit repair instead of substituting another device and breaking
+device-targeted references.
+
+The coordinator verifies user overrides; HA-generated sensor precision
+suggestions may change with the new implementation, but explicit user display
+precision and unit options remain protected. External helper history and
+MQTT-specific device automations still require the separately approved audit.
+Production use must follow the reviewed maintenance window and rollback rehearsal.
 
 ## Energy behavior and operations
 

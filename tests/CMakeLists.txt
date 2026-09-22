@@ -25,6 +25,7 @@ add_executable(tests
 	test_background_update.cpp
 	test_update_process.cpp
 	test_mqtt_freshness.cpp
+	test_native_mqtt.cpp
 )
 set_target_properties(tests PROPERTIES
 	CXX_STANDARD 20
@@ -66,3 +67,9 @@ add_test(
 	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mqtt_wire_smoke.py $<TARGET_FILE:${MFI_MQTT_TARGET_NAME}>
 )
 set_tests_properties(mqtt_wire_smoke PROPERTIES TIMEOUT 90)
+
+add_test(
+	NAME native_mqtt_wire_smoke
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/native_mqtt_wire_smoke.py $<TARGET_FILE:${MFI_MQTT_TARGET_NAME}>
+)
+set_tests_properties(native_mqtt_wire_smoke PROPERTIES TIMEOUT 90)

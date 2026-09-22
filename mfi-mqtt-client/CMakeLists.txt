@@ -10,10 +10,14 @@ set(MFI_MQTT_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/includes)
 set(MFI_MQTT_HEADERS
 	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/device.h
 	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/port.h
+	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/identity.h
+	${MFI_MQTT_INCLUDE}/mfi_mqtt_client/native_device.h
 )
 set(MFI_MQTT_SOURCE_CODE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/device.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/port.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/identity.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/mfi_mqtt_client/native_device.cpp
 )
 
 find_package(CLI11 REQUIRED)
@@ -24,6 +28,7 @@ add_library(${MFI_MQTT_CORE_TARGET_NAME} STATIC
 )
 target_include_directories(${MFI_MQTT_CORE_TARGET_NAME} PUBLIC ${MFI_MQTT_INCLUDE})
 target_link_libraries(${MFI_MQTT_CORE_TARGET_NAME} PUBLIC ${MFI_API_TARGET_NAME} hass_mqtt_device)
+target_link_libraries(${MFI_MQTT_CORE_TARGET_NAME} PRIVATE CLI11::CLI11)
 add_executable(${MFI_MQTT_TARGET_NAME} src/main.cpp)
 set_target_properties(${MFI_MQTT_TARGET_NAME} PROPERTIES
 	CXX_STANDARD 20

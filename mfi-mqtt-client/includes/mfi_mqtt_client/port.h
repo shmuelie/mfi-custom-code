@@ -39,6 +39,7 @@ namespace mfi_mqtt_client {
 		 * @param value true to turn on, false to turn off.
 		 */
 		void relay(bool value);
+		json migration_map() const;
 	private:
 		mfi::sensor _sensor;
 		std::shared_ptr<SensorFunction<double>> _power;

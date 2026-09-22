@@ -18,6 +18,21 @@ Initial, locally developed energy-companion MVP:
   explicit source commit, with independent version checks, provenance, checksums,
   original bundled branding, and local distribution tests.
 
+### Added
+
+- Opt-in native mFi discovery with mFi-owned measurement and relay entities,
+  one parent and stable native child devices per physical port.
+- Session/sequence freshness, rejected retained telemetry, and direct energy
+  accounting independent of the Power entity's enabled state.
+- Single-attempt QoS 0 relay commands with correlated hardware confirmation
+  and explicit timeout/disconnection failures.
+- Preserve companion mode on config-entry schema upgrades; changing entity
+  ownership remains an explicit, separately approved migration.
+- Administrator-only inventory, quiesce, transfer, activation, and rollback
+  actions with durable journals, persisted maintenance checks, preserved
+  entity/registry/energy identities, and retirement/restoration of the old
+  empty companion device.
+
 ### Fixed
 
 - Coordinate setup and device recovery so stale confirmations or concurrent

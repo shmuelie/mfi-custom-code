@@ -26,18 +26,19 @@ namespace mfi_mqtt_client {
 		 */
 		explicit device(mfi::board const& board, std::string const& server, int port,
 			std::string const& username, std::string const& password,
-			sensor_policy policy = sensor_policy::power());
+			sensor_policy policy = sensor_policy::power(), std::string const& native_id = {});
 
 		/**
 		 * @brief Initializes all sensor ports and registers with the MQTT connector.
 		 * @note Must be called after construction and before connect().
 		 */
-		void init();
+		virtual void init();
 
 		/**
 		 * @brief Reads current sensor values and publishes changes via MQTT.
 		 */
-		void update();
+		virtual void update();
+		json migration_map(std::string const& native_id) const;
 
 		/**
 		 * @brief Connects to the MQTT broker.
@@ -57,10 +58,10 @@ namespace mfi_mqtt_client {
 		virtual std::optional<std::string> getSoftwareVersion() const override;
 		virtual std::optional<std::string> getModelId() const override;
 		virtual std::optional<std::string> getConfigurationUrl() const override;
-	private:
 		std::shared_ptr<MQTTConnector> _connector;
-		std::vector<std::shared_ptr<port>> _ports;
 		mfi::board _board;
 		sensor_policy _policy;
+	private:
+		std::vector<std::shared_ptr<port>> _ports;
 	};
 }

@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   availability, composed with shared transport availability in discovery.
 - Publication tickets, acknowledgement tracking, bounded queue/deadline
   handling, and acknowledged offline shutdown.
+- Optional session-tagged availability/Last Will and mode-specific device
+  lifecycle/routing hooks, including retained-message metadata and per-device
+  command payload limits, without changing legacy defaults or transport bounds.
 
 ### Fixed
 

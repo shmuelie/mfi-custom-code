@@ -5,9 +5,10 @@ switching devices. Includes an MQTT client for Home Assistant integration, a RES
 API server, and a CLI tool — all built on a shared C++ library that wraps the mFi
 hardware interface.
 
-An optional [Home Assistant energy companion](home-assistant/) adds automatic
-per-port kWh counters on top of the existing MQTT entities without replacing
-their sensors or relay controls.
+The optional [Home Assistant integration](home-assistant/) supports native
+per-port devices with measurements, relay controls, and durable kWh counters.
+Its backwards-compatible companion mode adds energy without replacing existing
+MQTT entities.
 
 ## Architecture
 
@@ -46,12 +47,13 @@ mfi-cli ─────────┬─ mfi
 | [mfi-update](mfi-update/) | Self-update from GitHub Releases | 1.0.0 |
 | [shmuelie-shared](shmuelie-shared/) | String helper functions | 1.0.0 |
 
-### Home Assistant companion
+### Home Assistant integration
 
-[mFi energy companion](home-assistant/) is a local MVP custom integration for
-Home Assistant 2026.9.2 and newer. It provides per-port cumulative energy,
-durable checkpoints, and explicit source recovery after label or hostname
-changes. Development and local distribution tooling live here; HACS publication
+[mFi](home-assistant/) is a local custom integration for Home Assistant 2026.9.2
+and newer. Native mode uses HA's MQTT transport, mFi-owned port children, and
+hardware-confirmed relay commands; companion mode preserves the existing MQTT
+ownership model. An explicit administrative migration preserves IDs and energy
+totals across that transition. Development and local distribution tooling live here; HACS publication
 to the planned `shmuelie/mfi-home-assistant` repository is not yet available.
 
 ## Alternatives
@@ -83,3 +85,4 @@ abstraction layer, native MQTT, and Home Assistant auto-discovery.
 - [cfgmtd](docs/cfgmtd.md) — flash configuration utility internals
 - [Home Assistant energy companion](home-assistant/) — setup, development, checkpoint recovery, and local packaging
 - [Home Assistant companion integration plan](docs/home-assistant-integration-plan.md) — automatic per-port energy on top of existing MQTT entities
+- [Native Home Assistant integration plan](docs/home-assistant-native-integration-plan.md) — mFi-owned sensors and switches, native port children, and coordinated migration

@@ -16,10 +16,16 @@
 #include <chrono>
 #include <map>
 #include <optional>
+#include <functional>
 
 using json = nlohmann::json;
 
 class DeviceBase;
+
+struct mqtt_session_options {
+    std::string availability_topic;
+    std::function<std::string()> new_session_id;
+};
 
 /**
  * @brief Class for connecting to an MQTT server and registering devices to
@@ -46,7 +52,8 @@ public:
                   int port,
                   const std::string& username,
                   const std::string& password,
-                  const std::string& unique_id);
+                  const std::string& unique_id,
+                  mqtt_session_options session_options = {});
 
     ~MQTTConnector();
 
@@ -130,12 +137,14 @@ public:
     publication publishMessage(const std::string& topic, const json& payload, int qos = 1, bool retain = true);
     publication_state publicationState(publication const& message) const;
     std::uint64_t connectionEpoch() const noexcept { return m_epoch; }
+    std::string const& sessionId() const noexcept { return m_session_id; }
 
 private:
     /**
      * @brief Send a last will and testament message to the MQTT server
      */
     bool publishLWT();
+    json availabilityPayload(bool online) const;
     void beginSession();
     void serviceSession();
     std::vector<std::shared_ptr<DeviceBase>> devices() const;
@@ -199,6 +208,8 @@ private:
     std::string m_username;
     std::string m_password;
     std::string m_unique_id;
+    mqtt_session_options m_session_options;
+    std::string m_session_id;
     bool m_is_connected = false;
     std::vector<std::weak_ptr<DeviceBase>> m_registered_devices;
     mosquitto* m_mosquitto;

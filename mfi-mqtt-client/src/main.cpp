@@ -5,6 +5,8 @@
 #include <cerrno>
 #include <cstring>
 #include "mfi_mqtt_client/device.h"
+#include "mfi_mqtt_client/identity.h"
+#include "mfi_mqtt_client/native_device.h"
 #include <CLI/CLI.hpp>
 #include "mfi_update.h"
 #include "mfi_update/background_updater.h"
@@ -21,13 +23,41 @@
 namespace {
 volatile std::sig_atomic_t stop_requested = 0;
 void request_stop(int) { stop_requested = 1; }
+
+int initialize_identity(int argc, char* argv[]) {
+	CLI::App setup{"Provision identity only; does not connect, enable native mode or commit flash"};
+	std::string path;
+	setup.add_option("--initialize-device-id", path, "Absolute persistent configuration file")->required();
+	try {
+		setup.parse(argc, argv);
+		auto id = mfi_mqtt_client::initialize_device_id(path);
+		std::cout << "device_id=" << id << '\n';
+		std::cerr << "Identity saved/reused. On mFi, flash persistence requires separately approved cfgmtd; no flash command was run.\n";
+		return 0;
+	}
+	catch (CLI::ParseError const& error) {
+		return setup.exit(error);
+	}
+	catch (std::exception const& error) {
+		std::cerr << "Device ID provisioning failed: " << error.what() << '\n';
+		return 1;
+	}
+}
 }
 
 std::shared_ptr<mfi_mqtt_client::device> create_device(std::string const& server, uint16_t port,
-	std::string const& username, std::string const& password, sensor_policy policy) {
+	std::string const& username, std::string const& password, sensor_policy policy,
+	std::string const& mode, std::string const& device_id) {
 	try {
 		mfi::board b{};
-		auto device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password, policy);
+		std::shared_ptr<mfi_mqtt_client::device> device;
+		if (mode == "native") {
+			device = std::make_shared<mfi_mqtt_client::native_device>(b, server, port, username, password,
+				policy, device_id, PROJECT_VERSION);
+		}
+		else {
+			device = std::make_shared<mfi_mqtt_client::device>(b, server, port, username, password, policy);
+		}
 		device->init();
 		return device;
 	}
@@ -50,18 +80,34 @@ CLI::CheckedTransformer spdlog_level_transformer{
 };
 
 int main(int argc, char* argv[]) {
+	for (int i = 1; i < argc; ++i) {
+		std::string_view argument(argv[i]);
+		if (argument == "--initialize-device-id" || argument.starts_with("--initialize-device-id=")) {
+			return initialize_identity(argc, argv);
+		}
+	}
 	CLI::App app{ PROJECT_DESCRIPTION };
 	app.set_version_flag("--version", PROJECT_NAME " " PROJECT_VERSION);
-	app.set_config("--config", "", "Configuration file to load options from", false)->check(CLI::ExistingFile);
+	auto config_option = app.set_config("--config", "", "Configuration file to load options from", false)->check(CLI::ExistingFile);
+	std::string setup_path;
+	app.add_option("--initialize-device-id", setup_path, "Standalone: provision identity in an absolute config file")->configurable(false);
+	std::string ha_mode;
+	app.add_option("--ha-mode,--ha_mode", ha_mode, "Home Assistant publication mode")
+		->default_val("legacy")->check(CLI::IsMember({"legacy", "native"}));
+	std::string device_id;
+	app.add_option("--device-id,--device_id", device_id, "Persisted native UUID (must match --config device_id)");
+	bool export_map = false;
+	app.add_flag("--export-migration-map", export_map, "Legacy-only: print physical-port identity/topic map as JSON and exit")
+		->configurable(false);
 
 	std::string server;
-	app.add_option("--server", server, "The MQTT server to connect to")->required();
+	auto server_option = app.add_option("--server", server, "The MQTT server to connect to");
 	uint16_t port;
 	app.add_option("--port", port, "The port to use when connecting to the MQTT server")->default_val(1883);
 	std::string username;
-	app.add_option("--username", username, "The username to use when connecting to the MQTT server")->required();
+	auto username_option = app.add_option("--username", username, "The username to use when connecting to the MQTT server");
 	std::string password;
-	app.add_option("--password", password, "The password to use when connecting to the MQTT server")->required();
+	auto password_option = app.add_option("--password", password, "The password to use when connecting to the MQTT server");
 	uint32_t polling_rate;
 	app.add_option("--polling-rate", polling_rate, "The polling rate in milliseconds")->default_val(1000)->check(CLI::Range(1U, UINT32_MAX));
 	uint32_t power_refresh;
@@ -86,6 +132,22 @@ int main(int argc, char* argv[]) {
 
 	try {
 		app.parse(argc, argv);
+		if (export_map && ha_mode != "legacy") {
+			throw CLI::ValidationError("--export-migration-map", "requires --ha-mode legacy");
+		}
+		if (ha_mode == "native" || export_map || !device_id.empty()) {
+			if (config_option->count() > 1) {
+				throw CLI::ValidationError("--config", "select exactly one persistent identity configuration");
+			}
+			std::optional<std::string> configured;
+			if (config_option->count()) {
+				configured = mfi_mqtt_client::configured_device_id(config_option->as<std::string>());
+			}
+			device_id = mfi_mqtt_client::select_device_id(configured, device_id);
+		}
+		if (!export_map && (!server_option->count() || !username_option->count() || !password_option->count())) {
+			throw CLI::ValidationError("MQTT credentials", "--server, --username and --password are required");
+		}
 		if (power_expiry / power_refresh < 3
 			|| static_cast<uint64_t>(polling_rate) > static_cast<uint64_t>(power_refresh) * 1000) {
 			throw CLI::ValidationError("Power freshness", "expiry must allow three refresh intervals, and polling must not exceed refresh");
@@ -93,6 +155,27 @@ int main(int argc, char* argv[]) {
 	}
 	catch (CLI::ParseError const& e) {
 		return app.exit(e);
+	}
+	catch (std::exception const& error) {
+		std::cerr << "Configuration rejected: " << error.what() << '\n';
+		return 1;
+	}
+
+	auto policy = sensor_policy::power(std::chrono::seconds(power_refresh), std::chrono::seconds(power_expiry));
+	if (export_map) {
+		spdlog::set_default_logger(spdlog::stderr_color_mt("migration-export"));
+		auto device = create_device("", 1883, "", "", policy, "legacy", device_id);
+		if (!device) {
+			return 1;
+		}
+		try {
+			std::cout << device->migration_map(device_id).dump(2) << '\n';
+			return 0;
+		}
+		catch (std::exception const& error) {
+			std::cerr << "Migration export failed: " << error.what() << '\n';
+			return 1;
+		}
 	}
 
 	auto logger = spdlog::stdout_color_mt("main");
@@ -120,8 +203,7 @@ int main(int argc, char* argv[]) {
 		logger->log_info("Self-update disabled");
 	}
 
-	auto device = create_device(server, port, username, password,
-		sensor_policy::power(std::chrono::seconds(power_refresh), std::chrono::seconds(power_expiry)));
+	auto device = create_device(server, port, username, password, policy, ha_mode, device_id);
 	if (!device) {
 		return -2;
 	}

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Checked measurement APIs with explicit read/parse errors, finite-value and
   complete-input validation, and overflow/underflow rejection, preserving
   legacy getter behavior.
+- Checked relay read/write APIs for native command validation and readback,
+  distinguishing missing/malformed data from OFF and refusing to create a
+  missing hardware path.
 
 ## [1.0.1] - 2026-03-29
 

@@ -55,6 +55,22 @@ disconnecting; it defaults to 5 seconds and reports whether offline was
 acknowledged (or the connector was already disconnected). A failed flush logs an
 error and preserves the Last Will by closing without a clean DISCONNECT.
 
+## Alternate native publisher lifecycle
+
+`MQTTConnector` optionally accepts `mqtt_session_options` with an explicit
+availability topic and a session-ID generator. The generator runs before
+installing the Last Will on each newly created clean-session MQTT client;
+availability then uses `{"session_id":"...","state":"online"|"offline"}`.
+Without these options, legacy availability/topic behavior is unchanged.
+
+`DeviceBase` provides virtual subscription, discovery, connection, service and
+online-readiness hooks so native publishers reuse the bounded transport rather
+than fork it. Incoming routing uses `acceptsMessage()`, checks
+`messagePayloadLimit()` before copying, and forwards the retained flag to the
+three-argument `processMessage()`. Its default delegates to the existing legacy
+handler. Native implementations own their payload validation and must not
+register legacy functions when native discovery is selected.
+
 ## Dependencies
 
 ### External

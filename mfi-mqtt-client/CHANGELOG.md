@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in `--ha-mode native` publisher for the native mFi Home Assistant
+  integration; default legacy discovery, identities and relay topics are unchanged.
+- Native protocol v1 descriptors, session-tagged availability/Last Will,
+  non-retained per-port reports with monotonic sequences and independent checked
+  role errors, and strict QoS 0 relay requests with fresh readback confirmations.
+- Standalone `--initialize-device-id /absolute/config` provisioning with
+  idempotent OS-random UUID persistence, atomic replacement and explicit errors.
+  It never connects to MQTT, selects native mode or commits flash.
+- `--export-migration-map` for read-only legacy physical-port identity/topic
+  inventory, requiring a persisted UUID and no broker connection.
+- Native publisher/provisioning regression tests and an isolated loopback MQTT
+  wire smoke covering legacy export parity, sessions, commands, errors and
+  bounded reconnect/shutdown behavior.
+
 ## [2.0.0] - 2026-09-12
 
 ### Breaking changes

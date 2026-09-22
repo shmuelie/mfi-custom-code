@@ -6,6 +6,9 @@
 #include <cmath>
 #include <charconv>
 #include <string_view>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cerrno>
 
 using namespace std;
 using namespace mfi;
@@ -123,6 +126,35 @@ bool sensor::relay() const {
 	int value = 0;
 	stream >> value;
 	return value == 1;
+}
+
+relay_read_result sensor::relay_checked() const {
+	auto result = read_checked(relay_path);
+	if (auto error = get_if<sensor_read_error>(&result)) {
+		return *error;
+	}
+	auto value = get<double>(result);
+	if (value != 0 && value != 1) {
+		return sensor_read_error::invalid_number;
+	}
+	return value == 1;
+}
+
+optional<sensor_write_error> sensor::relay_checked(bool value) const {
+	int fd = ::open((relay_path + to_string(_id)).c_str(), O_WRONLY | O_TRUNC | O_CLOEXEC);
+	if (fd < 0) {
+		return sensor_write_error::open_failed;
+	}
+	char data = value ? '1' : '0';
+	ssize_t written;
+	do {
+		written = ::write(fd, &data, 1);
+	} while (written < 0 && errno == EINTR);
+	int closed = ::close(fd);
+	if (written != 1 || closed != 0) {
+		return sensor_write_error::write_failed;
+	}
+	return nullopt;
 }
 
 void sensor::relay(bool value) const {

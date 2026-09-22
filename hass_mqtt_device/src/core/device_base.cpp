@@ -248,6 +248,14 @@ void DeviceBase::processMessage(const std::string& topic, const std::string& pay
 	}
 }
 
+bool DeviceBase::acceptsMessage(const std::string& topic) const {
+	return topic.starts_with("home/" + getFullId() + "/");
+}
+
+void DeviceBase::processMessage(const std::string& topic, const std::string& payload, bool) {
+	processMessage(topic, payload);
+}
+
 publication DeviceBase::publishMessage(const std::string& topic, const json& payload, int qos, bool retain)
 {
 	// Check if the connector is still alive

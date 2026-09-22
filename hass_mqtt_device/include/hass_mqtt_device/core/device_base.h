@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <climits>
 #include <spdlog/spdlog.h>
 
 using json = nlohmann::json;
@@ -85,7 +86,7 @@ public:
 	 *
 	 * @return The MQTT topic for this device
 	 */
-	std::vector<std::string> getSubscribeTopics() const;
+	virtual std::vector<std::string> getSubscribeTopics() const;
 
 	/**
 	 * @brief Add a function to this device
@@ -120,6 +121,9 @@ public:
 	 * @param payload The payload of the incoming message
 	 */
 	void processMessage(const std::string& topic, const std::string& payload);
+	virtual bool acceptsMessage(const std::string& topic) const;
+	virtual std::size_t messagePayloadLimit() const { return static_cast<std::size_t>(INT_MAX); }
+	virtual void processMessage(const std::string& topic, const std::string& payload, bool retained);
 
 	/**
 	 * @brief Publish an MQTT message
@@ -133,9 +137,9 @@ public:
 	virtual publication publishMessage(const std::string& topic, const json& payload, int qos = 1, bool retain = true);
 	virtual publication_state publicationState(publication const& message) const;
 	virtual bool isConnected() const;
-	void beginConnection(std::uint64_t epoch);
-	void service();
-	bool readyForOnline() const;
+	virtual void beginConnection(std::uint64_t epoch);
+	virtual void service();
+	virtual bool readyForOnline() const;
 
 	/**
 	 * @brief Send the home assistant discovery message for this device
@@ -143,7 +147,7 @@ public:
 	 * @note This method should be called after the device has been registered
 	 * with the MQTTConnector
 	 */
-	void sendDiscovery();
+	virtual void sendDiscovery();
 
 	/**
 	 * @brief Send an update message for this device.
@@ -153,7 +157,7 @@ public:
 	 * @note This method should be called after the device has been registered
 	 * with the MQTTConnector
 	 */
-	void sendStatus();
+	virtual void sendStatus();
 
 	/**
 	 * @brief Send the home assistant will message for this device

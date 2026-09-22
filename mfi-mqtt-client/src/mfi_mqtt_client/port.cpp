@@ -75,3 +75,18 @@ void port::update() {
 void port::relay(bool value) {
 	_sensor.relay(value);
 }
+
+json port::migration_map() const {
+	auto role = [](FunctionBase const& function) {
+		auto discovery = function.getDiscoveryJson();
+		json result{{"unique_id", function.getId()},
+			{"discovery_topic", function.getDiscoveryTopic()}, {"state_topic", discovery.at("state_topic")}};
+		if (discovery.contains("command_topic")) {
+			result["command_topic"] = discovery.at("command_topic");
+		}
+		return result;
+	};
+	return {{"id", _sensor.id()}, {"roles", {
+		{"power", role(*_power)}, {"current", role(*_current)},
+		{"voltage", role(*_voltage)}, {"relay", role(*_relay)}}}};
+}

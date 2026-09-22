@@ -71,6 +71,8 @@ def source_repository(tmp_path: Path) -> tuple[Path, str]:
             destination.write_text('"""Fixture runtime module."""\n')
         elif name.endswith(".json"):
             destination.write_text("{}\n")
+        elif name.endswith(".yaml"):
+            destination.write_text("{}\n")
         else:
             destination.write_bytes(
                 (PROJECT_ROOT / "custom_components/mfi/brand/icon.png").read_bytes()

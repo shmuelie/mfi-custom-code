@@ -1,0 +1,171 @@
+migration_prepare:
+  name: Prepare ownership migration
+  description: >-
+    Administrator-only inventory for an existing energy companion. Writes an
+    immutable rollback preimage and returns the journal ID, exact discovery
+    topics, identities, and shared-MQTT impact. Does not change devices, entries,
+    entities, publishers, or broker topics. Keep a separate consistent HA backup.
+    All migration actions require a response (use response_variable in scripts).
+  fields:
+    entry_id:
+      name: Companion config entry ID
+      required: true
+      selector:
+        text:
+    descriptor:
+      name: Native descriptor
+      description: Complete native protocol v1 descriptor from the approved publisher.
+      required: true
+      selector:
+        object:
+    migration_map:
+      name: Legacy publisher migration export
+      description: Exact read-only export with physical port IDs, role unique IDs, and topics.
+      required: true
+      selector:
+        object:
+    mapping:
+      name: Physical port to existing entity mapping
+      description: >-
+        Object keyed by physical port ID strings. Each value maps power,
+        current, voltage, and relay (only advertised roles) to existing HA
+        entity IDs. Port identity must come from the export, never display labels.
+      required: true
+      selector:
+        object:
+    discovery_prefix:
+      name: Legacy discovery prefix
+      default: homeassistant
+      selector:
+        text:
+
+migration_quiesce:
+  name: Quiesce ownership migration
+  description: >-
+    Administrator-only maintenance. Checkpoints and unloads the companion, then
+    disables and unloads the shared MQTT integration using HA's public API.
+    Every MQTT device in HA is temporarily unavailable; the broker is not stopped.
+    Waits for the restart guard to reach disk. If persistence is not acknowledged,
+    keep maintenance enabled, resolve storage/startup delays, and retry.
+  fields:
+    journal_id:
+      name: Journal ID returned by prepare
+      required: true
+      selector:
+        text:
+    approve:
+      name: Approve shared MQTT outage
+      description: Must be explicitly true.
+      required: true
+      selector:
+        boolean:
+
+migration_apply:
+  name: Apply ownership migration
+  description: >-
+    Administrator-only resumable transfer while MQTT remains durably disabled.
+    Transfers and detaches unloaded entities before moving the parent, then
+    creates and attaches port children and retires only the verified empty
+    energy companion. Preserves entity IDs, energy binding IDs, and latest totals.
+    HA never clears broker topics or changes the physical publisher.
+  fields:
+    journal_id:
+      name: Journal ID returned by prepare
+      required: true
+      selector:
+        text:
+    approve:
+      name: Approve ownership changes
+      required: true
+      selector:
+        boolean:
+    backup_confirmed:
+      name: Consistent HA and retained discovery backups secured
+      required: true
+      selector:
+        boolean:
+    references_reviewed:
+      name: Device references and external energy helpers reviewed
+      description: Includes references to the old companion device that will be retired.
+      required: true
+      selector:
+        boolean:
+    publisher_native:
+      name: Publisher is exclusively native
+      description: Operator confirmed legacy discovery cannot be reintroduced.
+      required: true
+      selector:
+        boolean:
+    broker_clean:
+      name: Exact exported legacy discovery topics cleared externally
+      description: >-
+        Operator confirmed broker acceptance and absence while HA MQTT was
+        unloaded. No wildcard, command topic, or unrelated discovery cleanup.
+      required: true
+      selector:
+        boolean:
+
+migration_finish:
+  name: Finish ownership migration
+  description: >-
+    Administrator-only recovery of shared MQTT and activation of the native
+    entry after durable transfer checks. Retry this action after an interrupted
+    activation. Runtime availability still requires live native samples.
+    No relay command or physical device test is issued.
+  fields:
+    journal_id:
+      name: Journal ID returned by prepare
+      required: true
+      selector:
+        text:
+    approve:
+      name: Approve ending maintenance
+      required: true
+      selector:
+        boolean:
+    broker_absent:
+      name: Reconfirmed legacy discovery is absent
+      required: true
+      selector:
+        boolean:
+    publisher_native:
+      name: Reconfirmed publisher is exclusively native
+      required: true
+      selector:
+        boolean:
+
+migration_rollback:
+  name: Roll back ownership migration
+  description: >-
+    Administrator-only two-step rollback. With both publishers stopped, first
+    call restores registry ownership, original companion device ID and metadata,
+    and original bindings without discarding newer energy totals. It leaves
+    MQTT disabled at rollback_ready. Then restore only the exported legacy
+    discovery and legacy-only publisher externally, and call again with
+    legacy_restored true. A missing original device ID is a repair blocker,
+    never permission to attach energy to a replacement ID.
+  fields:
+    journal_id:
+      name: Journal ID returned by prepare
+      required: true
+      selector:
+        text:
+    approve:
+      name: Approve rollback and shared MQTT outage
+      required: true
+      selector:
+        boolean:
+    publisher_stopped:
+      name: Both publishers stopped before registry rollback
+      description: >-
+        Must be explicitly true. On the second call, confirms the native
+        publisher remains stopped and the initial stop prerequisite was met.
+      required: true
+      selector:
+        boolean:
+    legacy_restored:
+      name: Legacy discovery and legacy-only publisher restored
+      description: Only used on the second call, after the journal reaches rollback_ready.
+      default: false
+      selector:
+        boolean:
